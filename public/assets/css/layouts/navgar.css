@@ -98,8 +98,9 @@
   position: absolute;
   top: 0;
   right: 0;
-  font-size: .65rem;
-  transform: none;
+  transform: translate(30%, -30%);
+  font-size: .6rem;
+  line-height: 1;
 }
 
 
