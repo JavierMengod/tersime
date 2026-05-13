@@ -116,8 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     const from  = new Date();
     from.setDate(from.getDate() - 7);
-    document.getElementById('fromDate').value = from.toISOString().split('T')[0];
-    document.getElementById('toDate').value   = today.toISOString().split('T')[0];
+    const fmtLocal = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+    document.getElementById('fromDate').value = fmtLocal(from);
+    document.getElementById('toDate').value   = fmtLocal(today);
 
     const selector = new MultiDeviceSelector({
         containerId:  'dispositivosSeleccionados',
