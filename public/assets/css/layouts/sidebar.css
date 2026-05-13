@@ -8,7 +8,7 @@
     top: var(--topbar-height);
     left: 0;
 
-    width: 250px;
+    width: var(--sidebar-width);
     height: calc(100vh - var(--topbar-height));
 
     padding-top: 0;
@@ -127,11 +127,6 @@
     font-weight: 600;
 }
 
-.sidebar__link--dropdown {
-    align-items: center;
-    padding-top: 10px;
-}
-
 /* =========================================================
    SIDEBAR ICONS
 ========================================================= */
@@ -152,7 +147,7 @@
 ========================================================= */
 
 .sidebar__text {
-    margin-left: 10px;
+    margin-left: 0.625rem;
     font-size: 14px;
     word-wrap: break-word;
 }
@@ -166,7 +161,7 @@
     border: none;
 
     width: 100%;
-    margin-top: -15px;
+    margin-top: -0.9375rem;
 }
 
 /* =========================================================
@@ -206,7 +201,7 @@
 ========================================================= */
 
 .sidebar__dropdown-text {
-    margin-left: 10px;
+    margin-left: 0.625rem;
 
     color: rgba(255, 255, 255, 0.8);
 

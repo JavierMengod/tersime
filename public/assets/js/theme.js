@@ -1,15 +1,10 @@
 (function () {
   "use strict";
 
-  var sidebar = document.querySelector('.sidebar');
-  var sidebarToggles = document.querySelectorAll('#sidebarToggle, #sidebarToggleTop');
-
-  var fullscreenButton = document.getElementById('pantalla-completa');
-  var exitFullscreenButton = document.getElementById('pantalla-completa-exit');
-
-  if (exitFullscreenButton) {
-    exitFullscreenButton.style.display = 'none';
-  }
+  const sidebar        = document.querySelector('.sidebar');
+  const sidebarToggles = document.querySelectorAll('#sidebarToggle, #sidebarToggleTop');
+  const fullscreenButton     = document.getElementById('pantalla-completa');
+  const exitFullscreenButton = document.getElementById('pantalla-completa-exit');
 
   /*
    |--------------------------------------------------------------------------
@@ -19,69 +14,43 @@
 
   if (sidebar) {
 
-    var collapseElementList = [].slice.call(
-      document.querySelectorAll('.sidebar .collapse')
+    const collapseElements   = [...document.querySelectorAll('.sidebar .collapse')];
+    const sidebarCollapseList = collapseElements.map(el =>
+      new bootstrap.Collapse(el, { toggle: false })
     );
 
-    var sidebarCollapseList = collapseElementList.map(function (collapseEl) {
-      return new bootstrap.Collapse(collapseEl, {
-        toggle: false
-      });
-    });
-
-    var overlay = document.getElementById('sidebarOverlay');
-    var overlayEnabled = true;
+    const overlay = document.getElementById('sidebarOverlay');
+    let overlayEnabled = true;
 
     function openSidebar() {
       document.body.classList.add('sidebar-toggled');
       overlayEnabled = false;
-      setTimeout(function () { overlayEnabled = true; }, 400);
+      setTimeout(() => { overlayEnabled = true; }, 400);
     }
 
     function closeSidebar() {
       document.body.classList.remove('sidebar-toggled');
-      for (var bsCollapse of sidebarCollapseList) {
-        bsCollapse.hide();
-      }
+      sidebarCollapseList.forEach(c => c.hide());
     }
 
-    for (var toggle of sidebarToggles) {
-      toggle.addEventListener('click', function (e) {
+    sidebarToggles.forEach(toggle => {
+      toggle.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
-
-        if (document.body.classList.contains('sidebar-toggled')) {
-          closeSidebar();
-        } else {
-          openSidebar();
-        }
+        document.body.classList.contains('sidebar-toggled') ? closeSidebar() : openSidebar();
       });
-    }
+    });
 
     if (overlay) {
-      overlay.addEventListener('click', function () {
-        if (!overlayEnabled) return;
-        closeSidebar();
-      });
+      overlay.addEventListener('click', () => { if (overlayEnabled) closeSidebar(); });
     }
 
-    var closeBtn = document.getElementById('sidebarClose');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', function () {
-        closeSidebar();
-      });
-    }
+    const closeBtn = document.getElementById('sidebarClose');
+    if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
 
-    window.addEventListener('resize', function () {
-      var vw = Math.max(
-        document.documentElement.clientWidth || 0,
-        window.innerWidth || 0
-      );
-      if (vw < 768) {
-        for (var bsCollapse of sidebarCollapseList) {
-          bsCollapse.hide();
-        }
-      }
+    window.addEventListener('resize', () => {
+      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      if (vw < 768) sidebarCollapseList.forEach(c => c.hide());
     });
   }
 
@@ -93,29 +62,24 @@
 
   function isFullscreenActive() {
     return !!(
-      document.fullscreenElement ||
+      document.fullscreenElement       ||
       document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement ||
+      document.mozFullScreenElement    ||
+      document.msFullscreenElement     ||
       (window.innerWidth >= screen.width && window.innerHeight >= screen.height)
     );
   }
 
   function updateFullscreenButtons() {
-    var active = isFullscreenActive();
-
-    if (fullscreenButton) {
-      fullscreenButton.style.display = active ? 'none' : 'inline-flex';
-    }
-    if (exitFullscreenButton) {
-      exitFullscreenButton.style.display = active ? 'inline-flex' : 'none';
-    }
+    const active = isFullscreenActive();
+    if (fullscreenButton)     fullscreenButton.classList.toggle('d-none', active);
+    if (exitFullscreenButton) exitFullscreenButton.classList.toggle('d-none', !active);
   }
 
   if (fullscreenButton) {
-    fullscreenButton.addEventListener('click', function () {
-      var el = document.documentElement;
-      if (el.requestFullscreen)       el.requestFullscreen();
+    fullscreenButton.addEventListener('click', () => {
+      const el = document.documentElement;
+      if (el.requestFullscreen)            el.requestFullscreen();
       else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
       else if (el.msRequestFullscreen)     el.msRequestFullscreen();
@@ -123,11 +87,11 @@
   }
 
   if (exitFullscreenButton) {
-    exitFullscreenButton.addEventListener('click', function () {
-      if (document.exitFullscreen)           document.exitFullscreen();
-      else if (document.mozCancelFullScreen)   document.mozCancelFullScreen();
-      else if (document.webkitExitFullscreen)  document.webkitExitFullscreen();
-      else if (document.msExitFullscreen)      document.msExitFullscreen();
+    exitFullscreenButton.addEventListener('click', () => {
+      if (document.exitFullscreen)            document.exitFullscreen();
+      else if (document.mozCancelFullScreen)  document.mozCancelFullScreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen)     document.msExitFullscreen();
     });
   }
 

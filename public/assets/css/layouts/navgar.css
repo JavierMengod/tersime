@@ -96,15 +96,12 @@
 
 .topbar__badge {
   position: absolute;
-  top: 2vh;
-  right: 6px;
+  top: 0.125rem;
+  right: 0.375rem;
   font-size: .65rem;
   transform: none;
 }
 
-.topbar__icon-button.position-relative {
-  position: relative;
-}
 
 .topbar__divider {
   flex: 0 0 auto;
@@ -170,7 +167,6 @@
 }
 
 .topbar__dropdown-text {
-  width: 200px;
   color: var(--dropdown-text);
 }
 

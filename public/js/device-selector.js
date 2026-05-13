@@ -65,42 +65,38 @@ class MultiDeviceSelector {
         const cont = this.container;
         cont.innerHTML = '';
 
-        if (this.hideSelected) {
-            document.querySelectorAll(this.itemSelector).forEach(el => {
-                el.parentElement.style.display = 'block';
-            });
-        }
-
         if (!this.selections.length) {
             const span = document.createElement('span');
             span.className = this.msgClass;
             span.textContent = this.msgEmpty;
             cont.appendChild(span);
-            return;
+        } else {
+            this.selections.forEach(sel => {
+                const badge = document.createElement('span');
+                badge.className = this.badgeClass;
+                badge.textContent = sel.label;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = this.closeBtnClass;
+                btn.addEventListener('click', () => {
+                    this.selections = this.selections.filter(s => s.key !== sel.key);
+                    this._render();
+                    this.onChange(this.selections);
+                });
+
+                badge.appendChild(btn);
+                cont.appendChild(badge);
+            });
         }
 
-        this.selections.forEach(sel => {
-            const badge = document.createElement('span');
-            badge.className = this.badgeClass;
-            badge.textContent = sel.label;
-
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = this.closeBtnClass;
-            btn.addEventListener('click', () => {
-                this.selections = this.selections.filter(s => s.key !== sel.key);
-                this._render();
-                this.onChange(this.selections);
+        if (this.hideSelected) {
+            document.querySelectorAll(this.itemSelector).forEach(itemEl => {
+                const { key } = this.getData(itemEl);
+                itemEl.parentElement.style.display =
+                    this.selections.some(s => s.key === key) ? 'none' : 'block';
             });
-
-            badge.appendChild(btn);
-            cont.appendChild(badge);
-
-            if (this.hideSelected) {
-                const el = document.querySelector(`${this.itemSelector}[data-url="${sel.key}"]`);
-                if (el) el.parentElement.style.display = 'none';
-            }
-        });
+        }
     }
 }
 
