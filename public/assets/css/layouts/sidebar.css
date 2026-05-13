@@ -1,0 +1,463 @@
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+    background: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+
+    width: 250px;
+    height: calc(100vh - var(--topbar-height));
+
+    padding-top: 0;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    z-index: 1030;
+
+    transition:
+        transform .25s ease,
+        width .25s ease;
+}
+
+/* =========================================================
+   SIDEBAR CONTAINER
+========================================================= */
+
+.sidebar__container {
+    padding: 0;
+}
+
+/* =========================================================
+   SIDEBAR MOBILE HEADER
+========================================================= */
+
+.sidebar__menu-label {
+    font-size: .95rem;
+    letter-spacing: .03em;
+}
+
+.sidebar__mobile-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    min-height: 3rem;
+    flex-shrink: 0;
+    border-radius: 1rem 1rem 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: inherit;
+}
+
+.sidebar__close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: .5rem;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color .2s ease, color .2s ease;
+}
+
+.sidebar__close-btn:hover,
+.sidebar__close-btn:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+/* =========================================================
+   SIDEBAR DIVIDER
+========================================================= */
+
+.sidebar__divider {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* =========================================================
+   SIDEBAR MENU
+========================================================= */
+
+.sidebar__menu {
+    display: flex;
+    flex-direction: column;
+    padding-left: 0;
+    margin-bottom: 0;
+    list-style: none;
+    color: #f8f9fc;
+}
+
+/* =========================================================
+   SIDEBAR ITEMS
+========================================================= */
+
+.sidebar__item {
+    width: 100%;
+}
+
+/* =========================================================
+   SIDEBAR LINKS
+========================================================= */
+
+.sidebar__link {
+    display: flex;
+    align-items: center;
+    padding: .5rem 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: color .15s ease-in-out;
+}
+
+.sidebar__link:hover,
+.sidebar__link:focus {
+    color: #fff;
+    text-decoration: none;
+}
+
+.sidebar__link.active {
+    color: #fff;
+    font-weight: 600;
+}
+
+.sidebar__link--dropdown {
+    align-items: center;
+    padding-top: 10px;
+}
+
+/* =========================================================
+   SIDEBAR ICONS
+========================================================= */
+
+.sidebar__icon {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+/* Iconos específicos más grandes */
+
+.bi-clipboard-data-fill {
+    font-size: 17px;
+}
+
+/* =========================================================
+   SIDEBAR TEXTS
+========================================================= */
+
+.sidebar__text {
+    margin-left: 10px;
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+/* =========================================================
+   SIDEBAR DROPDOWN
+========================================================= */
+
+.sidebar__dropdown {
+    background: transparent;
+    border: none;
+
+    width: 100%;
+    margin-top: -15px;
+}
+
+/* =========================================================
+   SIDEBAR DROPDOWN ITEMS
+========================================================= */
+
+.sidebar__dropdown-item {
+    display: flex;
+    align-items: center;
+
+    width: 94%;
+
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+
+    white-space: normal;
+    text-decoration: none;
+}
+
+.sidebar__dropdown-item:hover,
+.sidebar__dropdown-item:focus {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* =========================================================
+   SIDEBAR DROPDOWN ICONS
+========================================================= */
+
+.sidebar__dropdown-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+/* =========================================================
+   SIDEBAR DROPDOWN TEXT
+========================================================= */
+
+.sidebar__dropdown-text {
+    margin-left: 10px;
+
+    color: rgba(255, 255, 255, 0.8);
+
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+/* =========================================================
+   SPECIAL TEXT WIDTH
+========================================================= */
+
+.sidebar__dropdown-text--wide {
+    width: 80%;
+}
+
+.sidebar__link--dropdown {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* =========================================================
+   BODY
+========================================================= */
+
+body.sidebar-toggled {
+    overflow-x: hidden;
+}
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.page-content {
+    margin-left: var(--sidebar-width);
+    padding: calc(var(--topbar-height) + 1.25rem) 1.5rem 1.5rem;
+    min-height: 100vh;
+    transition: margin-left .25s ease;
+}
+
+/* =========================================================
+   SIDEBAR OVERLAY (mobile backdrop)
+========================================================= */
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .4);
+    z-index: 1029;
+    cursor: pointer;
+}
+
+/* =========================================================
+   CHEVRON (CSS-only via ::after)
+========================================================= */
+
+.sidebar__link--toggle::after {
+    content: "\f078";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: .7rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    display: inline-block;
+    transition: transform .2s ease;
+}
+
+.sidebar__link--toggle:not(.collapsed)::after {
+    transform: rotate(-180deg);
+}
+
+/* =========================================================
+   SUBMENU (collapse panel)
+========================================================= */
+
+.sidebar__submenu {
+    padding-left: .5rem;
+}
+
+/* =========================================================
+   DESKTOP
+========================================================= */
+
+@media (min-width: 768px) {
+
+    .sidebar {
+        transform: translateX(0);
+    }
+
+    /* Sidebar colapsado en desktop */
+
+    body.sidebar-toggled .sidebar {
+        width: 6.5rem;
+    }
+
+    body.sidebar-toggled .page-content {
+        margin-left: 6.5rem;
+    }
+}
+
+/* =========================================================
+   MOBILE — panel centrado horizontalmente, bajo la topbar
+========================================================= */
+
+@media (max-width: 767.98px) {
+
+    /* Panel justo debajo de la topbar, centrado en X */
+
+    .sidebar {
+        top: calc(var(--topbar-height) + 0.5rem);
+        left: 50%;
+        right: auto;
+        z-index: 1050;
+
+        width: min(90vw, 380px);
+
+        /* Override height fijo del desktop */
+        height: auto;
+        max-height: calc(100vh - var(--topbar-height) - 1.5rem);
+
+        /* Oculto: fade + desliza 10px hacia arriba */
+        transform: translateX(-50%) translateY(-10px);
+        opacity: 0;
+        pointer-events: none;
+
+        border-radius: 1rem;
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.35),
+            0 2px 8px rgba(0, 0, 0, 0.2);
+
+        overflow-y: auto;
+        overflow-x: hidden;
+
+        transition:
+            transform .22s cubic-bezier(.4, 0, .2, 1),
+            opacity .18s ease;
+    }
+
+    /* Visible */
+
+    body.sidebar-toggled .sidebar {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Overlay — z-index entre topbar (1040) y sidebar (1050) */
+
+    body.sidebar-toggled .sidebar-overlay {
+        display: block;
+        z-index: 1045;
+    }
+
+    /* Bloquear scroll del fondo */
+
+    body.sidebar-toggled {
+        overflow: hidden;
+    }
+
+    /* Contenido ocupa toda la pantalla */
+
+    .page-content {
+        margin-left: 0;
+    }
+
+    /* ── Items principales ── */
+
+    .sidebar__link {
+        padding: 0.8rem 1.25rem;
+        min-height: 3.25rem;
+    }
+
+    /* ── Submenús: accordion en línea ── */
+
+    .sidebar__submenu {
+        padding-left: 0;
+        border-left: 2px solid rgba(255, 255, 255, 0.2);
+        margin-left: 1rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.25rem;
+        border-radius: 0 0 .5rem .5rem;
+    }
+
+    .sidebar__dropdown-item {
+        width: 100%;
+        padding: 0.7rem 1rem 0.7rem 1rem;
+        min-height: 2.875rem;
+        border-radius: 0;
+    }
+
+    .sidebar__dropdown-item:last-child {
+        border-radius: 0 0 .4rem .4rem;
+    }
+
+    /* ── Iconos ── */
+
+    .sidebar__icon,
+    .sidebar__dropdown-icon {
+        font-size: 1.15rem;
+        width: 1.35rem;
+        flex-shrink: 0;
+        text-align: center;
+    }
+
+    /* ── Texto ── */
+
+    .sidebar__text {
+        font-size: 0.9375rem;
+        margin-left: 0.875rem;
+    }
+
+    .sidebar__dropdown-text {
+        font-size: 0.875rem;
+        margin-left: 0.75rem;
+    }
+
+    /* ── Dropdown base (override margin negativo del desktop) ── */
+
+    .sidebar__dropdown {
+        width: 100%;
+        margin-top: 0;
+    }
+
+    /* ── Chevron ── */
+
+    .sidebar__link--toggle::after {
+        font-size: 0.75rem;
+    }
+}
+
+/* =========================================================
+   SMALL MOBILE (≤ 430px)
+========================================================= */
+
+@media (max-width: 430px) {
+
+    .sidebar {
+        width: min(94vw, 380px);
+    }
+
+    .sidebar__icon,
+    .sidebar__dropdown-icon {
+        font-size: 1.1rem;
+    }
+
+    .sidebar__text {
+        font-size: 0.9rem;
+    }
+
+    .sidebar__dropdown-text {
+        font-size: 0.85rem;
+    }
+}

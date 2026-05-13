@@ -1,0 +1,126 @@
+/* Variables para facilitar cambios de marca */
+:root {
+    --login-bg-gradient: linear-gradient(135deg, #0052cc, #2a73ff);
+    --login-primary: #2a73ff;
+    --login-card-radius: 16px;
+    --login-input-radius: 10px;
+}
+
+body.login-page {
+    background: var(--login-bg-gradient);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Nunito', sans-serif;
+}
+
+/* Estructura de la Card */
+.login-card {
+    border: none;
+    border-radius: var(--login-card-radius);
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.login-header {
+    background: var(--login-primary);
+    color: white;
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.login-header img {
+    width: 80px;
+    margin-bottom: 1rem;
+}
+
+.login-body {
+    padding: 2rem 1.8rem;
+}
+
+/* Refactorización del Icono de Usuario */
+.user-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.user-icon-circle {
+    width: 80px;
+    height: 80px;
+    background-color: var(--login-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Inputs y Botones */
+.login-form .form-control {
+    border-radius: var(--login-input-radius);
+    padding: 0.75rem;
+}
+
+.login-form .btn-login {
+    background-color: var(--login-primary);
+    border: none;
+    border-radius: var(--login-input-radius);
+    padding: 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+
+.login-form .btn-login:hover {
+    opacity: 0.9;
+}
+
+.small-link {
+    font-size: 0.85rem;
+    color: #6c757d;
+    text-decoration: none;
+}
+
+/* ==========================================================================
+   DARK MODE
+   ========================================================================== */
+
+[data-bs-theme="dark"] body.login-page {
+    background: linear-gradient(135deg, #0a1528, #162040);
+}
+
+[data-bs-theme="dark"] .login-card {
+    background-color: #2d2e35;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="dark"] .login-header {
+    background: #162040;
+}
+
+[data-bs-theme="dark"] .login-body {
+    background-color: #2d2e35;
+}
+
+[data-bs-theme="dark"] .login-form .form-control {
+    background-color: #3a3b45;
+    color: #dddfeb;
+    border-color: #6e707e;
+}
+
+[data-bs-theme="dark"] .login-form .form-control::placeholder {
+    color: #858796;
+}
+
+[data-bs-theme="dark"] .login-form .form-control:focus {
+    background-color: #3a3b45;
+    color: #dddfeb;
+    border-color: #4e73df;
+    box-shadow: 0 0 0 .2rem rgba(78, 115, 223, .3);
+}
+
+[data-bs-theme="dark"] .small-link {
+    color: #858796;
+}

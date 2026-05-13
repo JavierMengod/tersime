@@ -1,0 +1,227 @@
+.topbar{
+  width: 100%;
+  background-color: var(--topbar-background) !important;
+  color: var(--topbar-text);
+
+  border-bottom: 1px solid var(--border-color);
+
+  transition:
+    background-color .25s ease,
+    color .25s ease,
+    border-color .25s ease;
+}
+
+.topbar--fixed {
+  position: fixed;
+  top: 0;
+  z-index: 1040;
+}
+
+.topbar__inner {
+  min-height: 4.25rem;
+  gap: .75rem;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.topbar__logo {
+  display: block;
+  max-height: 2.5rem;
+  width: auto;
+  object-fit: contain;
+}
+
+.topbar__favorites {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: .15rem;
+  margin-left: auto;
+}
+
+.topbar__action {
+  display: flex;
+  align-items: center;
+}
+
+.topbar__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+
+  padding: .35rem;
+
+  border: 0;
+  background: transparent;
+
+  color: var(--topbar-text);
+
+  line-height: 1;
+  text-decoration: none;
+  position: relative;
+
+  border-radius: .5rem;
+
+  touch-action: manipulation;
+
+  transition:
+    background-color .2s ease,
+    color .2s ease;
+}
+
+.topbar__icon-button:hover,
+.topbar__icon-button:focus {
+  background-color: var(--hover-background);
+  color: var(--topbar-text);
+}
+
+.topbar__icon-svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.topbar__badge {
+  position: absolute;
+  top: 2vh;
+  right: 6px;
+  font-size: .65rem;
+  transform: none;
+}
+
+.topbar__icon-button.position-relative {
+  position: relative;
+}
+
+.topbar__divider {
+  flex: 0 0 auto;
+  width: 0;
+  height: 24px;
+  margin: 0 .5rem;
+  border-left: 1px solid var(--border-color);
+  opacity: 1;
+}
+
+.topbar__user-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+
+  color: var(--topbar-text);
+  text-decoration: none;
+}
+
+.topbar__user-toggle:hover {
+  color: var(--topbar-text);
+}
+
+.topbar__user-name {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--topbar-text);
+}
+
+.topbar__dropdown {
+  min-width: 14rem;
+
+  background-color: var(--dropdown-background);
+  color: var(--dropdown-text);
+
+  border: 1px solid var(--border-color);
+
+  transition:
+    background-color .25s ease,
+    color .25s ease,
+    border-color .25s ease;
+}
+
+.topbar__dropdown--languages {
+  min-width: 12.5rem;
+}
+
+.topbar__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+
+  color: var(--dropdown-text);
+}
+
+.topbar__dropdown-item:hover,
+.topbar__dropdown-item:focus {
+  background-color: var(--hover-background);
+  color: var(--dropdown-text);
+}
+
+.topbar__dropdown-text {
+  width: 200px;
+  color: var(--dropdown-text);
+}
+
+@media (max-width: 575.98px) {
+
+  .topbar__logo {
+    max-height: 2rem;
+  }
+
+  .topbar__favorites {
+    display: none;
+  }
+
+  .topbar__user-name {
+    display: none;
+  }
+
+  /*
+   * Dropdowns en móvil.
+   *
+   * Bootstrap marca los dropdowns dentro de .navbar con data-bs-popper="static"
+   * (posicionamiento CSS puro, sin Popper.js inline). Las reglas !important
+   * de abajo sobreescriben el CSS estático de Bootstrap y centran el menú.
+   */
+
+  .topbar .nav-item.dropdown {
+    position: static;
+  }
+
+  .topbar .dropdown-menu {
+    position: fixed !important;
+    inset: auto !important;
+    top: var(--topbar-height) !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    margin: 0 !important;
+    animation: none !important;
+
+    min-width: min(88vw, 300px);
+    max-width: min(94vw, 320px);
+    max-height: calc(100vh - var(--topbar-height) - 1rem);
+    overflow-y: auto;
+
+    border-radius: .75rem;
+  }
+}
+
+@media (min-width: 576px) {
+
+  .topbar__logo {
+    max-height: 2.5rem;
+  }
+}
