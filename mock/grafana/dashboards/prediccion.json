@@ -1,0 +1,98 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "bf3cexvuipxj4e" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6,
+            "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1,
+            "pointSize": 5, "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "value reales" }, "properties": [{ "id": "displayName", "value": "Reales" }] },
+          { "matcher": { "id": "byName", "options": "value predichos" }, "properties": [{ "id": "displayName", "value": "Predichos" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "cacheDurationSeconds": 300,
+          "datasource": { "type": "marcusolsson-json-datasource", "uid": "bf3cexvuipxj4e" },
+          "fields": [
+            { "jsonPath": "$[*].metric", "language": "jsonpath", "name": "" },
+            { "jsonPath": "$[*].time", "language": "jsonpath", "name": "", "type": "time" },
+            { "jsonPath": "$[*].value", "language": "jsonpath", "name": "" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "A",
+          "urlPath": "/monitorizacion-prediccion/obtener-datos?start=2025-11-01&stop=2025-11-07&device=$device&predic_hours=480"
+        }
+      ],
+      "title": "Visualizacion Prediccion",
+      "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }],
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 40,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": ["All"], "value": ["$__all"] },
+        "definition": "SHOW MEASUREMENTS",
+        "includeAll": true,
+        "multi": true,
+        "name": "device",
+        "options": [],
+        "query": { "query": "SHOW MEASUREMENTS", "refId": "InfluxVariableQueryEditor-VariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "2023-12-31T23:00:00.000Z", "to": "2024-12-01T22:59:59.000Z" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Prediccion (prototipo)",
+  "uid": "ee9tdrsio7wg0b",
+  "version": 17,
+  "weekStart": ""
+}

@@ -1,0 +1,306 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6,
+            "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1,
+            "pointSize": 5, "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "option timezone = \"Europe/Madrid\"\r\n\r\nfrom(bucket: \"PINZAS\")\r\n  |> range(start: time(v: \"${start}\"), stop: time(v: \"${end}\"))\r\n  |> filter(fn: (r) =>\r\n      r._measurement == \"hourly\" and\r\n      r._field == \"kwh\" and\r\n      contains(value: r.name, set: ${dispositivos:json})\r\n    )\r\n  |> aggregateWindow(every: 1h, fn: mean, createEmpty: true)\r\n  |> map(fn: (r) => ({\r\n       _time: r._time,\r\n       name: r.name,\r\n       inactive: if exists r._value and r._value > 0.0 then 0 else 1\r\n    }))\r\n  |> group(columns: [\"name\"])\r\n  |> sort(columns: [\"_time\"])\r\n  |> difference(columns: [\"inactive\"], keepFirst: true)\r\n  |> filter(fn: (r) => r.inactive == 1 or r.inactive == -1)\r\n  |> map(fn: (r) => ({\r\n       _time: r._time,\r\n       name: r.name,\r\n       event: if r.inactive == 1 then \"start_inactivity\" else \"end_inactivity\"\r\n    }))\r\n  |> keep(columns: [\"_time\", \"name\", \"event\"])\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Periodos sin actividad por dispositivo",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 0, "w": 24, "x": 0, "y": 0 },
+      "id": 2,
+      "options": {
+        "code": { "language": "plaintext", "showLineNumbers": false, "showMiniMap": false },
+        "content": "${dispositivos}",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.4.0",
+      "repeat": "dispositivos",
+      "repeatDirection": "h",
+      "title": "$dispositivos",
+      "type": "text"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6,
+            "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1,
+            "pointSize": 5, "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "mean_kwh" }, "properties": [{ "id": "displayName", "value": "Media de consumo" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "import \"date\"\r\n\r\noption timezone = \"Europe/Madrid\"\r\n\r\nfrom(bucket: \"PINZAS\")\r\n  |> range(start: time(v: \"${start}\"), stop: time(v: \"${end}\"))\r\n  |> filter(fn: (r) =>\r\n      r._measurement == \"hourly\" and\r\n      r._field == \"kwh\" and\r\n      contains(value: r.name, set: ${dispositivos:json})\r\n    )\r\n  |> map(fn: (r) => ({ r with hour: date.hour(t: r._time) }))\r\n  |> group(columns: [\"name\", \"hour\"])\r\n  |> mean(column: \"_value\")\r\n  |> keep(columns: [\"name\", \"hour\", \"_value\"])\r\n  |> map(fn: (r) => ({\r\n      r with hourStr: if r.hour < 10 then \"0\" + string(v: r.hour) else string(v: r.hour)\r\n    }))\r\n  |> map(fn: (r) => ({\r\n       r with _time: time(v: \"2025-01-01T\" + r.hourStr + \":00:00+01:00\")\r\n     }))\r\n  |> rename(columns: {_value: \"mean_kwh\"})\r\n  |> keep(columns: [\"_time\", \"name\", \"mean_kwh\"])\r\n  |> group(columns: [\"name\"])\r\n  |> sort(columns: [\"_time\"])\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Media por Horas Diaria Por Dispositivo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "bf3cexvuipxj4e" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6,
+            "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1,
+            "pointSize": 5, "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "value reales" }, "properties": [{ "id": "displayName", "value": "Reales" }] },
+          { "matcher": { "id": "byName", "options": "value predichos" }, "properties": [{ "id": "displayName", "value": "Predichos" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 4,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "cacheDurationSeconds": 300,
+          "datasource": { "type": "marcusolsson-json-datasource", "uid": "bf3cexvuipxj4e" },
+          "fields": [
+            { "jsonPath": "$[*].metric", "language": "jsonpath", "name": "" },
+            { "jsonPath": "$[*].time", "language": "jsonpath", "name": "", "type": "time" },
+            { "jsonPath": "$[*].value", "language": "jsonpath", "name": "" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "A",
+          "urlPath": "/monitorizacion-prediccion/obtener-datos?start=$start&stop=$end&device=$dispositivos&predic_hours=$predict_hours"
+        }
+      ],
+      "title": "Visualizacion Prediccion",
+      "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 3,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "auto", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: 0)\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"hourly\" and\r\n       r._field       == \"kwh\" and\r\n       r.name         != \"total\"\r\n     )\r\n  |> filter(fn: (r) => contains(value: r.name, set: ${dispositivos:json}))\r\n  |> group(columns: [\"name\"])\r\n  |> mean(column: \"_value\")\r\n  |> rename(columns: {_value: \"media_consumo\"})\r\n  |> keep(columns: [\"name\", \"media_consumo\"])  \r\n  |> group()\r\n  |> sort(columns: [\"media_consumo\"], desc: true)\r\n  |> yield(name: \"media_por_dispositivo\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Media consumo diario",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6,
+            "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1,
+            "pointSize": 5, "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/.*/"},
+            "properties": [{ "id": "displayName", "value": "${alias}" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "id": 1,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"hourly\")\r\n  |> filter(fn: (r) => r._field == \"kwh\")\r\n  |> filter(fn: (r) => contains(value: r.name, set: ${dispositivos:json}))\r\n  |> group(columns: [\"name\"])\r\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\r\n  |> yield(name: \"historico\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Tiempo real",
+      "transformations": [{ "id": "renameByRegex", "options": { "regex": "(.*)", "renamePattern": "$alias" } }],
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 40,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+        "definition": "from(bucket: \"PINZAS\")\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")",
+        "includeAll": true,
+        "label": "Dispositivos",
+        "multi": true,
+        "name": "dispositivos",
+        "options": [],
+        "query": { "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")" },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": true,
+        "name": "alias",
+        "options": [],
+        "query": "",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": { "text": "80", "value": "80" },
+        "name": "predict_hours",
+        "options": [{ "selected": true, "text": "80", "value": "80" }],
+        "query": "80",
+        "type": "textbox"
+      },
+      {
+        "current": { "text": "2025-10-01", "value": "2025-10-01" },
+        "name": "start",
+        "options": [{ "selected": true, "text": "2025-10-01", "value": "2025-10-01" }],
+        "query": "2025-10-01",
+        "type": "textbox"
+      },
+      {
+        "current": { "text": "2025-11-08", "value": "2025-11-08" },
+        "name": "end",
+        "options": [{ "selected": true, "text": "2025-11-08", "value": "2025-11-08" }],
+        "query": "2025-11-08",
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dashboard INITIOT",
+  "uid": "eegznxsjl47i8b",
+  "version": 41,
+  "weekStart": ""
+}

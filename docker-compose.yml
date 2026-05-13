@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+  server:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "81:80"
+    networks:
+      - app-network
+    volumes:
+      - ./:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - app-network
+    volumes:
+      - dbdata:/var/lib/mysql
+
+  app:
+    build: .
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - db
+    # Para desarrollo podrías añadir un volumen aquí si quieres hot-reload.
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    user: root
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influx:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=tersime2024
+      - DOCKER_INFLUXDB_INIT_ORG=tersime
+      - DOCKER_INFLUXDB_INIT_BUCKET=tersime
+      - DOCKER_INFLUXDB_INIT_RETENTION=0
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  renderer:
+    image: grafana/grafana-image-renderer:latest
+    container_name: grafana-renderer
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+    environment:
+      - GF_RENDERER_PLUGIN_SECURITY_PERMISSIVE=true
+      - GF_RENDERER_PLUGIN_SECURITY_ALLOW_EMBEDDING=true
+      - GF_RENDERER_PLUGIN_SECURITY_SKIP_AUTH=true
+
+  predictor:
+    build:
+      context: ./predictor
+      dockerfile: Dockerfile
+    container_name: predictor
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    networks:
+      - app-network
+    working_dir: /app
+    environment:
+      - PYTHONUNBUFFERED=1
+    # No montamos el código por defecto para asegurar que use la imagen construida.
+    # Si quieres desarrollo con hot-reload, descomenta la siguiente línea:
+    # volumes:
+    #   - ./predictor:/app
+    depends_on:
+      - db
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  dbdata:

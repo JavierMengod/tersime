@@ -1,0 +1,435 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "_value" }, "properties": [{ "id": "displayName", "value": "Factor Carga" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "id": 11,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "auto", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "hourly = from(bucket: \"PINZAS\")\r\n  |> range(start: -7d)\r\n  |> filter(fn: (r) =>\r\n      r._measurement == \"hourly\" and\r\n      r._field == \"kwh\" and\r\n      r.name =~ /^(${dispositivos:regex})$/\r\n  )\r\n  |> keep(columns: [\"_time\", \"_value\", \"name\"])\r\n\r\nmean_values =\r\n  hourly\r\n    |> group(columns: [\"name\"])\r\n    |> mean(column: \"_value\")\r\n    |> rename(columns: {_value: \"mean_kwh\"})\r\n\r\nmax_values =\r\n  hourly\r\n    |> group(columns: [\"name\"])\r\n    |> max(column: \"_value\")\r\n    |> rename(columns: {_value: \"max_kwh\"})\r\n\r\njoin(\r\n    tables: {mean: mean_values, max: max_values},\r\n    on: [\"name\"]\r\n)\r\n  |> map(fn: (r) => ({\r\n        name: r.name,\r\n        _time: now(),\r\n        _field: \"factor_carga\",\r\n        _value: float(v: r.mean_kwh) / float(v: r.max_kwh)\r\n    }))\r\n  |> sort(columns: [\"_value\"], desc: true)\r\n  |> yield(name: \"factor_carga\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Factor Carga",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [
+            { "options": { "from": 0, "result": { "color": "red", "index": 0, "text": "Apagado" }, "to": 0.1 }, "type": "range" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "_value" }, "properties": [{ "id": "displayName", "value": "Consumo actual" }] },
+          { "matcher": { "id": "byName", "options": "_field" }, "properties": [{ "id": "displayName", "value": "Dispositivo" }] },
+          { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Tiempo de captura" }] },
+          { "__systemRef": "hideSeriesFrom", "matcher": { "id": "byNames", "options": { "mode": "exclude", "names": ["Apagado"], "prefix": "All except:", "readOnly": true } }, "properties": [{ "id": "custom.hideFrom", "value": { "legend": false, "tooltip": false, "viz": true } }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "id": 10,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "horizontal", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: -7d)\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> last()\r\n  |> keep(columns: [\"_time\", \"_value\", \"name\"])\r\n  |> map(fn: (r) => ({\r\n      _time: r._time,\r\n      _value: float(v: r._value),\r\n      _field: r.name\r\n  }))\r\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\r\n  |> group()\r\n  |> sort(columns: [\"_value\"], desc: true)\r\n  |> yield(name: \"estado_actual_dispositivos\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Actividad Dispositivos",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "_value" }, "properties": [{ "id": "displayName", "value": "Horas activas" }] }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 18 },
+      "id": 9,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "auto", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "threshold = 0.1\r\n\r\nfrom(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n      exists r.name and\r\n      r._measurement == \"hourly\" and\r\n      r._field == \"kwh\" and\r\n      r.name != \"total\" and\r\n      r.name =~ /^(${dispositivos:regex})$/\r\n  )\r\n  |> map(fn: (r) => ({ _time: r._time, name: r.name, active_hour: if r._value > threshold then 1 else 0 }))\r\n  |> group(columns: [\"name\"])\r\n  |> sum(column: \"active_hour\")\r\n  |> map(fn: (r) => ({ _time: now(), name: r.name, _value: r.active_hour }))\r\n  |> group()\r\n  |> sort(columns: [\"_value\"], desc: true)\r\n  |> keep(columns: [\"name\", \"_value\"])\r\n  |> yield(name: \"duty_cycle_hours_sorted\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Horas activas por semana",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "_value" }, "properties": [{ "id": "displayName", "value": "Consumo total" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 27 },
+      "id": 8,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "horizontal", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       exists r.name and\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum(column: \"_value\")\r\n  |> group()\r\n  |> sort(columns: [\"_value\"], desc: true)\r\n  |> keep(columns: [\"name\", \"_value\"])\r\n  |> yield(name: \"consumo_total_semanal_ordenado\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Consumo total Semanal",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6,
+            "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1,
+            "pointSize": 5, "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 35 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "monthly_sum = \r\n  from(bucket: \"PINZAS\")\r\n    |> range(start: 0, stop: now())\r\n    |> filter(fn: (r) =>\r\n         r._measurement == \"hourly\" and\r\n         r._field == \"kwh\" and\r\n         r.name =~ /^(${dispositivos:regex})$/\r\n       )\r\n    |> group(columns: [\"name\"])\r\n    |> aggregateWindow(every: 1mo, fn: sum, createEmpty: true)\r\n    |> keep(columns: [\"_time\", \"name\", \"_value\"])\r\n    |> rename(columns: {_value: \"monthly_sum\"})\r\n\r\nmonthly_count_flag =\r\n  from(bucket: \"PINZAS\")\r\n    |> range(start: 0, stop: now())\r\n    |> filter(fn: (r) =>\r\n         r._measurement == \"hourly\" and\r\n         r._field == \"kwh\" and\r\n         r.name =~ /^(${dispositivos:regex})$/\r\n       )\r\n    |> group(columns: [\"name\"])\r\n    |> aggregateWindow(every: 1mo, fn: count, createEmpty: true)\r\n    |> keep(columns: [\"_time\", \"name\", \"_value\"])\r\n    |> rename(columns: {_value: \"has_count\"})\r\n    |> map(fn: (r) => ({\r\n         _time: r._time,\r\n         name: r.name,\r\n         has_count: if r.has_count > 0 then 1 else 0\r\n       }))\r\n    |> cumulativeSum(columns: [\"has_count\"])\r\n    |> rename(columns: {has_count: \"seen\"})\r\n\r\njoined =\r\n  join(\r\n    tables: {s: monthly_sum, v: monthly_count_flag},\r\n    on: [\"_time\", \"name\"],\r\n    method: \"inner\"\r\n  )\r\n  |> map(fn: (r) => ({\r\n       _time: r._time,\r\n       name: r.name,\r\n       monthly_sum: r.monthly_sum,\r\n       seen: r.seen\r\n     }))\r\n\r\nresult_ready =\r\n  joined\r\n    |> filter(fn: (r) => r.seen > 0)\r\n    |> map(fn: (r) => ({ _time: r._time, name: r.name, _value: r.monthly_sum }))\r\n\r\nresult_ready\r\n  |> group(columns: [\"name\"])\r\n  |> difference(nonNegative: false, columns: [\"_value\"])\r\n  |> map(fn: (r) => ({ _time: r._time, name: r.name, delta: r._value }))\r\n  |> yield(name: \"monthly_variation\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Variación mensual",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "dark-red" }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 45 },
+      "id": 2,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "orientation": "horizontal", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xField": "name", "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"daily\" and\r\n       r._field == \"kwh_total\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> group()\r\n  |> sort(desc: true, columns: [\"_value\"])\r\n  |> limit(n: 5)\r\n  |> keep(columns: [\"name\", \"_value\"])\r\n  |> rename(columns: {_value: \"consumo\"})\r\n  |> yield(name: \"top5_consumo\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "TOP 5 Dispositivos",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "_value" }, "properties": [{ "id": "displayName", "value": "Consumo medio" }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 53 },
+      "id": 3,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "auto", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"daily\" and\r\n       r._field == \"kwh_total\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> mean(column: \"_value\")\r\n  |> rename(columns: {_value: \"media_consumo\"})\r\n  |> keep(columns: [\"name\", \"media_consumo\"])\r\n  |> group()\r\n  |> sort(columns: [\"media_consumo\"], desc: true)\r\n  |> yield(name: \"media_por_dispositivo\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Consumo medio",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 63 },
+      "id": 4,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "auto", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "mean_tbl = from(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       exists r.name and\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> group()\r\n  |> mean()\r\n\r\nmean_val = (tableFind(fn: (key) => true, tables: mean_tbl) |> getRecord(idx: 0))._value\r\n\r\nfrom(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       exists r.name and\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> map(fn: (r) => ({\r\n       name: r.name,\r\n       delta_media: r._value - mean_val\r\n     }))\r\n  |> keep(columns: [\"name\", \"delta_media\"])\r\n  |> group()\r\n  |> sort(columns: [\"delta_media\"], desc: true)\r\n  |> yield(name: \"baseline_variance\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Desviación media (últimos 7 días)",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red" }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 70 },
+      "id": 5,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "orientation": "auto", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "mean_tbl = from(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> group()\r\n  |> mean()\r\n\r\nmean_val = (tableFind(fn: (key) => true, tables: mean_tbl) |> getRecord(idx: 0))._value\r\n\r\nfrom(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> map(fn: (r) => ({\r\n       name: r.name,\r\n       delta_media: r._value - mean_val\r\n     }))\r\n  |> filter(fn: (r) => r.delta_media > 0.0)\r\n  |> keep(columns: [\"name\", \"delta_media\"])\r\n  |> group()\r\n  |> sort(columns: [\"delta_media\"], desc: true)\r\n  |> yield(name: \"positive_variance\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Consumo anormalmente alto",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "", "axisPlacement": "auto", "fillOpacity": 80, "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1, "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 80 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 70 },
+      "id": 6,
+      "options": {
+        "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "orientation": "auto", "showValue": "auto", "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0, "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+          "query": "mean_tbl = from(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> group()\r\n  |> mean()\r\n\r\nmean_val = (tableFind(fn: (key) => true, tables: mean_tbl) |> getRecord(idx: 0))._value\r\n\r\nfrom(bucket: \"PINZAS\")\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> map(fn: (r) => ({\r\n       name: r.name,\r\n       delta: r._value - mean_val\r\n     }))\r\n  |> filter(fn: (r) => r.delta < 0.0)\r\n  |> map(fn: (r) => ({\r\n       name: r.name,\r\n       magnitud_baja: 0.0 - r.delta\r\n     }))\r\n  |> keep(columns: [\"name\", \"magnitud_baja\"])\r\n  |> group()\r\n  |> sort(columns: [\"magnitud_baja\"], desc: true)\r\n  |> yield(name: \"negative_variance_magnitude\")\r\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Consumo anormalmente bajo",
+      "type": "barchart"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 40,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+        "definition": "from(bucket: \"PINZAS\")\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")",
+        "includeAll": true,
+        "multi": true,
+        "name": "dispositivos",
+        "options": [],
+        "query": { "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")" },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dashboard principal",
+  "uid": "fek5yx516oyrkd",
+  "version": 26,
+  "weekStart": ""
+}

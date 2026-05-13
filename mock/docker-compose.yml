@@ -1,0 +1,53 @@
+version: "3.9"
+services:
+  influxdb-mock:
+    image: influxdb:2.7
+    container_name: influxdb-mock
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-mock-data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=tersime2024
+      - DOCKER_INFLUXDB_INIT_ORG=tersime
+      - DOCKER_INFLUXDB_INIT_BUCKET=PINZAS
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=tersime-mock-token-2024
+      - DOCKER_INFLUXDB_INIT_RETENTION=0
+    restart: unless-stopped
+
+  realtime:
+    image: python:3.12-alpine
+    container_name: influxdb-realtime
+    volumes:
+      - ./realtime.py:/realtime.py:ro
+    command: python /realtime.py
+    depends_on:
+      - influxdb-mock
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: grafana-mock
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-mock-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=tersime2024
+      - GF_INSTALL_PLUGINS=marcusolsson-json-datasource
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - influxdb-mock
+    restart: unless-stopped
+
+volumes:
+  influxdb-mock-data:
+  grafana-mock-data:

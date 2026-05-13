@@ -1,0 +1,24 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-PINZAS
+    type: influxdb
+    uid: feg5i5n3pjq4gf
+    access: proxy
+    url: http://influxdb-mock:8086
+    isDefault: true
+    editable: true
+    jsonData:
+      version: Flux
+      organization: tersime
+      defaultBucket: PINZAS
+      tlsSkipVerify: true
+    secureJsonData:
+      token: tersime-mock-token-2024
+
+  - name: JSON-API
+    type: marcusolsson-json-datasource
+    uid: bf3cexvuipxj4e
+    access: proxy
+    url: http://host.docker.internal:81
+    editable: true
