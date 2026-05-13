@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
     <link rel="stylesheet" href="{{ asset('assets/fonts/fontawesome-all.min.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}?v={{ filemtime(public_path('assets/css/main.css')) }}">
     <link rel="stylesheet" href="{{ asset('assets/css/layouts/sidebar.css') }}?v={{ filemtime(public_path('assets/css/layouts/sidebar.css')) }}">
     <link rel="stylesheet" href="{{ asset('assets/css/layouts/navgar.css') }}?v={{ filemtime(public_path('assets/css/layouts/navgar.css')) }}">

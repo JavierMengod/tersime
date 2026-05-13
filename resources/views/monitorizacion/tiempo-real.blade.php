@@ -81,8 +81,8 @@ const GRAFANA_BASE   = '{{ $grafanaBaseUrl }}/d-solo/eegznxsjl47i8b/dashboard-in
 const GRAFANA_PARAMS = 'orgId=1&timezone=browser&panelId=1&__feature.dashboardSceneSolo&theme={{ Auth::user()->theme ?? "light" }}';
 const MSG_SIN_DISPOSITIVO = '{{ __('Debes seleccionar al menos un dispositivo') }}';
 </script>
-<script src="{{ asset('js/grafana-utils.js') }}"></script>
-<script src="{{ asset('js/device-selector.js') }}"></script>
+<script src="{{ asset('assets/js/grafana-utils.js') }}"></script>
+<script src="{{ asset('assets/js/device-selector.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const iframe = document.getElementById('grafanaIframe');

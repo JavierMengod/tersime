@@ -110,7 +110,7 @@ const MSG_ERROR_GENERACION = '{{ __('El informe se generó, pero no se pudo desc
 const MSG_ERROR_INFORME    = '{{ __('Error generando el informe: ') }}';
 const CSRF_TOKEN           = '{{ csrf_token() }}';
 </script>
-<script src="{{ asset('js/device-selector.js') }}"></script>
+<script src="{{ asset('assets/js/device-selector.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
