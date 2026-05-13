@@ -228,8 +228,9 @@ body {
     --hover-background:   rgba(255, 255, 255, 0.08);
 }
 
-/* bg-white hardcodeado en card-headers y otros elementos */
-[data-bs-theme="dark"] .bg-white {
+/* bg-white / bg-light hardcodeados en card-headers y card-body */
+[data-bs-theme="dark"] .bg-white,
+[data-bs-theme="dark"] .bg-light {
     background-color: var(--bs-secondary-bg) !important;
     color: var(--text-color) !important;
 }

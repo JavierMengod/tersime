@@ -61,7 +61,7 @@
 
     <div class="card mb-4 border-0 shadow-sm">
       <div class="card-header bg-white fw-bold">{{ __('Previsualizar Grafana') }}</div>
-      <div class="card-body bg-light">
+      <div class="card-body">
         <div class="ratio ratio--grafana">
           <iframe id="grafanaIframe"
                   src=""
