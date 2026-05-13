@@ -456,3 +456,11 @@ body.sidebar-toggled {
         font-size: 0.85rem;
     }
 }
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+[data-bs-theme="dark"] .sidebar {
+    background: linear-gradient(180deg, #1a2348 10%, #0d1428 100%);
+}
