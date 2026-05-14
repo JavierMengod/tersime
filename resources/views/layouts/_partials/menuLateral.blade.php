@@ -129,7 +129,10 @@ $isConfig     = request()->routeIs('configuracion-*');
                     </a>
                     <a class="sidebar__dropdown-item {{ request()->routeIs('alertas-historial') ? 'active' : '' }}"
                        href="{{ route('alertas-historial') }}">
-                        <i class="sidebar__dropdown-icon fas fa-history"></i>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                            fill="currentColor" class="sidebar__dropdown-icon">
+                            <path d="M13 3C8.03 3 4 7.03 4 12H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06L6.64 18.36C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5.25l4.5 2.67.75-1.23-3.75-2.22V8H12z"/>
+                        </svg>
                         <span class="sidebar__dropdown-text">{{ __('Historial') }}</span>
                     </a>
                     <a class="sidebar__dropdown-item {{ request()->routeIs('alertas-medios') ? 'active' : '' }}"
