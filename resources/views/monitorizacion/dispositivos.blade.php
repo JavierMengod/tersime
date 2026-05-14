@@ -33,7 +33,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>{{ __('Nombre') }}</th>
-                            <th>{{ __('Identificador') }}</th>
+                            <th class="d-none d-md-table-cell">{{ __('Identificador') }}</th>
                             <th class="text-center">{{ __('Datos') }}</th>
                             <th class="text-end">{{ __('Acciones') }}</th>
                         </tr>
@@ -47,7 +47,7 @@
                                         <span class="badge bg-secondary ms-1">{{ __('Deshabilitado') }}</span>
                                     @endif
                                 </td>
-                                <td class="text-truncate {{ $device->pivot->habilitado ? '' : 'text-muted' }}" style="max-width: 260px;">
+                                <td class="text-truncate d-none d-md-table-cell {{ $device->pivot->habilitado ? '' : 'text-muted' }}" style="max-width: 260px;">
                                     {{ $device->influx_tag }}
                                 </td>
                                 <td class="text-center">
@@ -57,12 +57,15 @@
                                         <span class="badge bg-danger">{{ __('Sin datos') }}</span>
                                     @endif
                                 </td>
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
+                                    {{-- Texto en desktop, icono en móvil --}}
                                     <form action="{{ route('dispositivo.toggle', $device) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('PATCH')
-                                        <button class="btn btn-sm {{ $device->pivot->habilitado ? 'btn-outline-secondary' : 'btn-outline-success' }} me-1">
-                                            {{ $device->pivot->habilitado ? __('Deshabilitar') : __('Habilitar') }}
+                                        <button class="btn btn-sm {{ $device->pivot->habilitado ? 'btn-outline-secondary' : 'btn-outline-success' }} me-1"
+                                                title="{{ $device->pivot->habilitado ? __('Deshabilitar') : __('Habilitar') }}">
+                                            <span class="d-none d-md-inline">{{ $device->pivot->habilitado ? __('Deshabilitar') : __('Habilitar') }}</span>
+                                            <i class="d-md-none fas {{ $device->pivot->habilitado ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                         </button>
                                     </form>
                                     <button class="btn btn-sm btn-primary me-1"
@@ -70,15 +73,19 @@
                                             data-bs-target="#modal-device-edit"
                                             data-id="{{ $device->id }}"
                                             data-nombre="{{ $device->nombre }}"
-                                            data-influx-tag="{{ $device->influx_tag }}">
-                                        {{ __('Editar') }}
+                                            data-influx-tag="{{ $device->influx_tag }}"
+                                            title="{{ __('Editar') }}">
+                                        <span class="d-none d-md-inline">{{ __('Editar') }}</span>
+                                        <i class="d-md-none fas fa-pencil-alt"></i>
                                     </button>
                                     <button class="btn btn-sm btn-danger"
                                             data-bs-toggle="modal"
                                             data-bs-target="#modal-device-delete"
                                             data-id="{{ $device->id }}"
-                                            data-nombre="{{ $device->nombre }}">
-                                        {{ __('Eliminar') }}
+                                            data-nombre="{{ $device->nombre }}"
+                                            title="{{ __('Eliminar') }}">
+                                        <span class="d-none d-md-inline">{{ __('Eliminar') }}</span>
+                                        <i class="d-md-none fas fa-trash-alt"></i>
                                     </button>
                                 </td>
                             </tr>

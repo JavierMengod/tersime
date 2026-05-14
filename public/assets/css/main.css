@@ -175,18 +175,24 @@ body {
 
 /* Aspect-ratio para iframes de Grafana */
 .ratio--grafana {
-    --bs-aspect-ratio: 70%; /* móvil: ~265px en 375px de ancho */
+    --bs-aspect-ratio: 160%; /* móvil: ~580px en 375px de ancho */
 }
 
 @media (min-width: 576px) {
     .ratio--grafana {
-        --bs-aspect-ratio: 50%;
+        --bs-aspect-ratio: 100%; /* tablet pequeña: ~576px en 576px */
+    }
+}
+
+@media (min-width: 768px) {
+    .ratio--grafana {
+        --bs-aspect-ratio: 65%; /* tablet: ~499px en 768px */
     }
 }
 
 @media (min-width: 992px) {
     .ratio--grafana {
-        --bs-aspect-ratio: 30%;
+        --bs-aspect-ratio: 45%; /* desktop: ~447px en 992px */
     }
 }
 

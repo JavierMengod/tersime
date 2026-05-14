@@ -60,13 +60,20 @@
     </div>
 
     <div class="card mb-4 border-0 shadow-sm">
-      <div class="card-header bg-white fw-bold">{{ __('Previsualizar Grafana') }}</div>
+      <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+        <span>{{ __('Previsualizar Grafana') }}</span>
+        <a id="grafanaFullscreen" href="#" target="_blank" rel="noopener"
+           class="btn btn-sm btn-outline-secondary d-md-none"
+           title="{{ __('Abrir en pantalla completa') }}">
+          <i class="fas fa-expand-alt"></i>
+        </a>
+      </div>
       <div class="card-body bg-light">
         <div class="ratio ratio--grafana">
           <iframe id="grafanaIframe"
                   src=""
                   width="100%"
-                  height="300"
+                  height="100%"
                   frameborder="0"
                   loading="lazy"></iframe>
         </div>
@@ -104,16 +111,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function actualizarIframe() {
-        if (!selector.selection) { iframe.src = ''; return; }
+        if (!selector.selection) { iframe.src = ''; document.getElementById('grafanaFullscreen').href = '#'; return; }
         const w = iframe.clientWidth  || document.documentElement.clientWidth;
         const h = iframe.clientHeight || Math.round(window.innerHeight * 0.4);
-        iframe.src = buildPrediccionUrl(
+        const url = buildPrediccionUrl(
             GRAFANA_BASE, GRAFANA_PARAMS,
             selector.selection,
             document.getElementById('fromDate').value,
             document.getElementById('toDate').value,
             w, h
         );
+        iframe.src = url;
+        document.getElementById('grafanaFullscreen').href = url;
     }
 
     document.getElementById('fromDate').addEventListener('change', actualizarIframe);
