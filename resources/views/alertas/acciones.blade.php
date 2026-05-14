@@ -46,6 +46,11 @@
                     </thead>
                     <tbody>
                         @forelse($reglas as $regla)
+                        @php
+                            $states = $regla->dispositivos->pluck('pivot.alert_state')->toArray();
+                            $alertState = in_array('firing', $states) ? 'firing'
+                                : (in_array('pending', $states) ? 'pending' : 'ok');
+                        @endphp
                         <tr>
                             <td>{{ $regla->name }}</td>
                             <td class="d-none d-md-table-cell">{{ $regla->dispositivos->pluck('nombre')->join(', ') ?: '—' }}</td>
@@ -60,6 +65,11 @@
                                     <span class="badge bg-success">{{ __('Activo') }}</span>
                                 @else
                                     <span class="badge bg-danger">{{ __('Inactivo') }}</span>
+                                @endif
+                                @if($alertState === 'firing')
+                                    <span class="badge bg-danger">🔥 {{ __('Disparada') }}</span>
+                                @elseif($alertState === 'pending')
+                                    <span class="badge bg-warning text-dark">⏳ {{ __('Pendiente') }}</span>
                                 @endif
                             </td>
                             <td class="text-end">
@@ -93,13 +103,13 @@
     <x-modalAlerta
         :is-edit="true"
         :rule="[
-            'id'        => $regla->id,
-            'name'      => $regla->name,
-            'devices'   => $regla->dispositivos->pluck('id')->toArray(),
-            'operator'  => $regla->operator,
-            'value'     => $regla->comparison_value,
-            'duration'  => $regla->time_range,
-            'methods'   => [
+            'id'           => $regla->id,
+            'name'         => $regla->name,
+            'devices'      => $regla->dispositivos->pluck('id')->toArray(),
+            'operator'     => $regla->operator,
+            'value'        => $regla->comparison_value,
+            'for_duration' => $regla->for_duration,
+            'methods'      => [
                 'telegram' => $regla->telegram_enabled,
                 'email'    => $regla->email_enabled,
                 'discord'  => $regla->discord_enabled,

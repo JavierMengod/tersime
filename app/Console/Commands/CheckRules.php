@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class CheckRules extends Command
 {
     protected $signature   = 'rules:check';
-    protected $description = 'Revisar todas las reglas activas y enviar notificaciones si se cumplen';
+    protected $description = 'Revisar reglas activas y actualizar estados de alerta (ok / pending / firing)';
 
     public function handle(NotificationMethodController $notifier, InfluxController $influx)
     {
@@ -28,48 +28,64 @@ class CheckRules extends Command
             $username = $user ? $user->name : 'Desconocido';
 
             foreach ($rule->dispositivos as $dispositivo) {
-                $tag = $dispositivo->influx_tag;
-
-                // --- Obtener último valor desde InfluxDB ---
+                $tag          = $dispositivo->influx_tag;
                 $currentValue = $influx->ultimoValor($tag);
 
-                if ($currentValue === null) {
-                    $this->warn("[{$username}] Sin datos en las últimas 24h para {$dispositivo->nombre}");
-                    Log::warning('Dispositivo sin datos recientes', [
-                        'rule_id'     => $rule->id,
-                        'influx_tag'  => $tag,
-                        'device_name' => $dispositivo->nombre,
-                    ]);
+                // "no data" también es condición de alerta
+                $conditionMet = ($currentValue === null)
+                    || $this->evaluarCondicion($currentValue, $rule->operator, $rule->comparison_value);
 
-                    if ($this->enCooldown($rule, $dispositivo)) continue;
+                $state        = $dispositivo->pivot->alert_state ?? 'ok';
+                $pendingSince = $dispositivo->pivot->pending_since
+                    ? Carbon::parse($dispositivo->pivot->pending_since)
+                    : null;
 
-                    $texto = "🚨 Sin datos en las últimas 24 h para el dispositivo {$dispositivo->nombre}";
-                    $this->enviarNotificaciones($notifier, $rule, $user, $texto);
-                    $this->registrarDisparo($rule, $dispositivo);
-                    continue;
-                }
+                $valueLabel = $currentValue === null ? 'sin datos' : "{$currentValue} kWh";
+                $this->line("[{$username}] {$rule->name} | {$dispositivo->nombre} = {$valueLabel} | estado={$state} | condición=" . ($conditionMet ? 'SÍ' : 'NO'));
 
-                $this->info("[{$username}] Regla '{$rule->name}' — {$dispositivo->nombre} = {$currentValue}");
                 Log::info('Evaluando regla', [
                     'rule_id'       => $rule->id,
-                    'rule_name'     => $rule->name,
-                    'influx_tag'    => $tag,
+                    'device'        => $dispositivo->nombre,
                     'current_value' => $currentValue,
+                    'condition_met' => $conditionMet,
+                    'state'         => $state,
                 ]);
 
-                if (!$this->evaluarCondicion($currentValue, $rule->operator, $rule->comparison_value)) {
-                    $this->line("  → Condición no cumplida, sin notificación.");
-                    continue;
+                switch ($state) {
+                    case 'ok':
+                        if ($conditionMet) {
+                            if ($rule->for_duration === 0) {
+                                $this->transitionFiring($rule, $dispositivo, $notifier, $user, $currentValue);
+                            } else {
+                                $this->transitionPending($rule, $dispositivo);
+                                $this->line("  → Condición cumplida, esperando ventana de {$rule->for_duration} min.");
+                            }
+                        }
+                        break;
+
+                    case 'pending':
+                        if ($conditionMet) {
+                            $minutes = $pendingSince ? $pendingSince->diffInMinutes(Carbon::now()) : 0;
+                            if ($minutes >= $rule->for_duration) {
+                                $this->transitionFiring($rule, $dispositivo, $notifier, $user, $currentValue);
+                            } else {
+                                $remaining = $rule->for_duration - $minutes;
+                                $this->line("  → Pendiente, faltan {$remaining} min para confirmar.");
+                            }
+                        } else {
+                            $this->transitionOk($rule, $dispositivo);
+                            $this->line("  → Condición ya no cumplida, reseteo a OK (falsa alarma).");
+                        }
+                        break;
+
+                    case 'firing':
+                        if (!$conditionMet) {
+                            $this->transitionOkResolution($rule, $dispositivo, $notifier, $user, $currentValue);
+                        } else {
+                            $this->line("  → Sigue en FIRING, sin nueva notificación.");
+                        }
+                        break;
                 }
-
-                if ($this->enCooldown($rule, $dispositivo)) continue;
-
-                $this->info("  → Condición cumplida, enviando notificaciones.");
-
-                $textoPorDefecto = "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue} kWh)";
-
-                $this->enviarNotificaciones($notifier, $rule, $user, $textoPorDefecto);
-                $this->registrarDisparo($rule, $dispositivo);
             }
         }
 
@@ -77,7 +93,61 @@ class CheckRules extends Command
         Log::info('Fin de revisión de reglas');
     }
 
-    private function enviarNotificaciones(NotificationMethodController $notifier, Rule $rule, $user, string $textoPorDefecto)
+    private function transitionPending(Rule $rule, $dispositivo): void
+    {
+        $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
+            'alert_state'  => 'pending',
+            'pending_since' => Carbon::now()->toDateTimeString(),
+        ]);
+        Log::info('Estado → pending', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
+    }
+
+    private function transitionFiring(Rule $rule, $dispositivo, NotificationMethodController $notifier, $user, ?float $currentValue): void
+    {
+        $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
+            'alert_state'       => 'firing',
+            'pending_since'     => null,
+            'last_triggered_at' => Carbon::now()->toDateTimeString(),
+        ]);
+
+        $this->info("  → FIRING: enviando alerta.");
+
+        $textoDefault = $currentValue === null
+            ? "🚨 Sin datos en las últimas 24 h para {$dispositivo->nombre} (regla: {$rule->name})"
+            : "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue} kWh)";
+
+        $this->enviarNotificaciones($notifier, $rule, $user, $textoDefault);
+
+        Log::info('Estado → firing', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
+    }
+
+    private function transitionOk(Rule $rule, $dispositivo): void
+    {
+        $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
+            'alert_state'  => 'ok',
+            'pending_since' => null,
+        ]);
+        Log::info('Estado → ok', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
+    }
+
+    private function transitionOkResolution(Rule $rule, $dispositivo, NotificationMethodController $notifier, $user, ?float $currentValue): void
+    {
+        $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
+            'alert_state'  => 'ok',
+            'pending_since' => null,
+        ]);
+
+        $this->info("  → RESUELTO: enviando notificación de resolución.");
+
+        $valueLabel   = $currentValue === null ? 'sin datos' : "{$currentValue} kWh";
+        $textoDefault = "✅ Regla '{$rule->name}' resuelta en {$dispositivo->nombre} (valor actual={$valueLabel})";
+
+        $this->enviarNotificaciones($notifier, $rule, $user, $textoDefault);
+
+        Log::info('Estado → ok (resolución)', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
+    }
+
+    private function enviarNotificaciones(NotificationMethodController $notifier, Rule $rule, $user, string $textoPorDefecto): void
     {
         if ($rule->email_enabled && $rule->recipient_email && $user) {
             try {
@@ -108,34 +178,6 @@ class CheckRules extends Command
                 Log::error('Error enviando discord', ['rule_id' => $rule->id, 'error' => $e->getMessage()]);
             }
         }
-    }
-
-    private function enCooldown(Rule $rule, $dispositivo): bool
-    {
-        $lastTriggered = $dispositivo->pivot->last_triggered_at
-            ? Carbon::parse($dispositivo->pivot->last_triggered_at)
-            : null;
-
-        if ($lastTriggered === null) return false;
-
-        $dias = $lastTriggered->diffInDays(Carbon::now());
-        if ($dias < $rule->time_range) {
-            $this->line("  → En cooldown ({$dias}/{$rule->time_range} días) para {$dispositivo->nombre}.");
-            Log::info('Dispositivo en cooldown', [
-                'rule_id'     => $rule->id,
-                'influx_tag'  => $dispositivo->influx_tag,
-                'dias_restantes' => $rule->time_range - $dias,
-            ]);
-            return true;
-        }
-        return false;
-    }
-
-    private function registrarDisparo(Rule $rule, $dispositivo): void
-    {
-        $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
-            'last_triggered_at' => Carbon::now()->toDateTimeString(),
-        ]);
     }
 
     private function evaluarCondicion(float $valor, string $operador, $comparacion): bool

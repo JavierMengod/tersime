@@ -70,11 +70,18 @@
           </div>
         </div>
 
-        {{-- Duración --}}
+        {{-- Ventana de confirmación --}}
         <div class="mb-3">
-          <label class="form-label">{{ __('Cooldown (días entre notificaciones)') }}</label>
-          <input type="number" name="duration" class="form-control" min="1" step="1"
-                 value="{{ old('duration', $rule['duration'] ?? 1) }}">
+          <label class="form-label">
+            {{ __('Ventana de confirmación (minutos)') }}
+            <small class="text-muted ms-1">{{ __('0 = alerta instantánea') }}</small>
+          </label>
+          <div class="input-group">
+            <input type="number" name="for_duration" class="form-control" min="0" step="1"
+                   value="{{ old('for_duration', $rule['for_duration'] ?? 0) }}">
+            <span class="input-group-text">min</span>
+          </div>
+          <small class="text-muted">{{ __('La condición debe cumplirse durante este tiempo antes de enviar la alerta.') }}</small>
         </div>
 
         {{-- Canales --}}
