@@ -91,6 +91,10 @@ class PrediccionController extends Controller
             }
             foreach ($predichos as $p) {
                 $output[] = ['metric' => 'predichos', 'time' => $p['ds'], 'value' => $p['yhat']];
+                if ($p['yhat_lower'] !== null) {
+                    $output[] = ['metric' => 'predichos_lower', 'time' => $p['ds'], 'value' => $p['yhat_lower']];
+                    $output[] = ['metric' => 'predichos_upper', 'time' => $p['ds'], 'value' => $p['yhat_upper']];
+                }
             }
 
             Log::info('✅ [obtenerDatos] Respuesta enviada', ['total' => count($output)]);
@@ -109,19 +113,26 @@ class PrediccionController extends Controller
     // -------------------------------------------------------------
     // AUXILIARES
     // -------------------------------------------------------------
-    private function normalizePredictions($pred_raw)
+    private function normalizePredictions($pred_raw): array
     {
         $out = [];
-        if (!is_array($pred_raw))
-            return $out;
+        if (!is_array($pred_raw)) return $out;
 
         foreach ($pred_raw as $item) {
-            if (is_array($item)) {
-                $ds = $item['ds'] ?? $item['timestamp'] ?? $item[0] ?? null;
-                $y = $item['yhat'] ?? $item['value'] ?? $item[1] ?? null;
-                if ($ds && is_numeric($y)) {
-                    $out[] = ['ds' => (string) $ds, 'yhat' => (float) $y];
-                }
+            if (!is_array($item)) continue;
+
+            $ds    = $item['ds']         ?? $item['timestamp'] ?? $item[0] ?? null;
+            $y     = $item['yhat']       ?? $item['value']     ?? $item[1] ?? null;
+            $lower = $item['yhat_lower'] ?? $item[2] ?? null;
+            $upper = $item['yhat_upper'] ?? $item[3] ?? null;
+
+            if ($ds && is_numeric($y)) {
+                $out[] = [
+                    'ds'         => (string) $ds,
+                    'yhat'       => (float)  $y,
+                    'yhat_lower' => $lower !== null ? (float) $lower : null,
+                    'yhat_upper' => $upper !== null ? (float) $upper : null,
+                ];
             }
         }
         return $out;
