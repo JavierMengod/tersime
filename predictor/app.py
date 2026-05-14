@@ -38,19 +38,17 @@ def predict(req: PredictionRequest):
 
     pred_hours = int(req.predic_hours) if req.predic_hours else 24
 
-    # --- Detectar serie acumulada (contador) y diferenciarla ---
-    if len(df) >= 2:
-        diffs = df["y"].diff().fillna(0)
-        if (diffs >= 0).all():
-            span = df["y"].iloc[-1] - df["y"].iloc[0]
-            if span > max(df["y"].median(), 1) * 2:
-                df["y"] = df["y"].diff().fillna(0)
-
     # --- Resamplear a frecuencia horaria con límite de relleno ---
     df = df.set_index("ds").asfreq("H")
-    df["y"] = df["y"].ffill(limit=MAX_FFILL_HOURS).bfill(limit=MAX_FFILL_HOURS)
+    df["y"] = df["y"].ffill(limit=MAX_FFILL_HOURS)
     df = df.reset_index()
     df["y"] = df["y"].clip(lower=0)
+
+    # --- Filtro de outliers: z-score rodante 24 h ---
+    rolling_median = df["y"].rolling(window=24, center=True, min_periods=1).median()
+    rolling_std    = df["y"].rolling(window=24, center=True, min_periods=1).std().fillna(0)
+    upper_bound    = rolling_median + 3 * rolling_std.clip(lower=rolling_median * 0.1)
+    df["y"]        = df["y"].clip(upper=upper_bound)
 
     if df["y"].notna().sum() < MIN_POINTS:
         logger.warning("Datos insuficientes para Prophet (%d puntos válidos)", df["y"].notna().sum())
@@ -63,11 +61,10 @@ def predict(req: PredictionRequest):
         daily_seasonality=True,
         weekly_seasonality=True,
         yearly_seasonality=False,       # se añade manualmente si hay datos suficientes
-        changepoint_prior_scale=0.15,   # default 0.05 es conservador; 0.15 captura cambios
-                                        # reales sin perseguir ruido (antes era 0.8, incorrecto)
-        seasonality_mode="additive",    # kWh horario: swing diario fijo en valor absoluto,
-                                        # no proporcional al nivel → additive es más estable
+        changepoint_prior_scale=0.15,
+        seasonality_mode="additive",    # kWh horario: swing diario fijo → additive más estable
         interval_width=0.80,
+        uncertainty_samples=300,        # default 1000 es lento; 300 es preciso y rápido
     )
 
     # Estacionalidad anual solo con ≥18 meses para evitar overfitting con 1 ciclo
