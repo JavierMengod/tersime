@@ -2,18 +2,19 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\GrafanaController;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use App\Models\Rule;
-use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\InfluxController;
 use App\Http\Controllers\NotificationMethodController;
+use Illuminate\Support\Facades\Log;
 
 class CheckRules extends Command
 {
-    protected $signature = 'rules:check';
+    protected $signature   = 'rules:check';
     protected $description = 'Revisar todas las reglas activas y enviar notificaciones si se cumplen';
 
-    public function handle(NotificationMethodController $notifier)
+    public function handle(NotificationMethodController $notifier, InfluxController $influx)
     {
         $this->info('=== Inicio de revisión de reglas ===');
         Log::info('Inicio de revisión de reglas');
@@ -22,199 +23,65 @@ class CheckRules extends Command
             ->where('is_active', true)
             ->get();
 
-        // Obtenemos los dispositivos desde Grafana (estructura esperada: ['devices' => [...]] o directamente [...])
-        $dispositivosGrafanaRaw = GrafanaController::checkDevices();
-        $grafanaDevices = $dispositivosGrafanaRaw['devices'] ?? $dispositivosGrafanaRaw;
-        if (!is_array($grafanaDevices)) {
-            $grafanaDevices = [];
-        }
-
         foreach ($rules as $rule) {
-            $user = $rule->user;
+            $user     = $rule->user;
             $username = $user ? $user->name : 'Desconocido';
 
             foreach ($rule->dispositivos as $dispositivo) {
+                $tag = $dispositivo->influx_tag;
 
-                // Buscamos el dispositivo en la lista de Grafana por name o por dev_eui
-                $found = null;
-                foreach ($grafanaDevices as $gd) {
-                    // admitir diferentes keys que puedan venir del checkDevices
-                    $gdName = $gd['name'] ?? $gd['device_name'] ?? null;
-                    $gdEui = $gd['dev_eui'] ?? null;
+                // --- Obtener último valor desde InfluxDB ---
+                $currentValue = $influx->ultimoValor($tag);
 
-                    if ($gdName === $dispositivo->name || ($gdEui && $gdEui === ($dispositivo->dev_eui ?? null))) {
-                        $found = $gd;
-                        break;
-                    }
-                }
-
-                // Si no está o no tiene valor -> pérdida de comunicación
-                if (!$found || !array_key_exists('value', $found) || $found['value'] === null) {
-                    $this->warn("❌ [{$username}] No ha sido posible comunicarse con el dispositivo {$dispositivo->nombre}");
-                    Log::warning("Dispositivo sin comunicación", [
-                        'rule_id' => $rule->id,
-                        'device_id' => $dispositivo->id,
-                        'device_name' => $dispositivo->name,
-                        'device_dev_eui' => $dispositivo->dev_eui ?? null,
-                    ]);
-
-                    $textoMissing = "🚨 No ha sido posible comunicarse con el dispositivo {$dispositivo->nombre}";
-
-                    // Enviar notificaciones configuradas en la regla
-                    // Email (si está habilitado y hay destinatario)
-                    if ($rule->email_enabled && $rule->recipient_email) {
-                        try {
-                            $notifier->sendEmail($textoMissing, $user, $rule->recipient_email);
-                            Log::info("Email (sin comunicación) enviado correctamente", [
-                                'rule_id' => $rule->id,
-                                'user_id' => $user ? $user->id : null,
-                                'device_name' => $dispositivo->nombre,
-                            ]);
-                        } catch (\Exception $e) {
-                            $this->error("❌ Error enviando EMAIL (sin comunicación): " . $e->getMessage());
-                            Log::error("Error enviando EMAIL (sin comunicación): " . $e->getMessage());
-                        }
-                    }
-
-                    // Telegram (usar siempre el texto explícito de error, NO plantilla)
-                    if ($rule->telegram_enabled) {
-                        try {
-                            $notifier->sendTelegram($textoMissing, $user);
-                            Log::info("Telegram (sin comunicación) enviado correctamente", [
-                                'rule_id' => $rule->id,
-                                'user_id' => $user ? $user->id : null,
-                                'device_name' => $dispositivo->nombre,
-                            ]);
-                        } catch (\Exception $e) {
-                            $this->error("❌ Error enviando TELEGRAM (sin comunicación): " . $e->getMessage());
-                            Log::error("Error enviando TELEGRAM (sin comunicación): " . $e->getMessage());
-                        }
-                    }
-
-                    // Discord (usar siempre el texto explícito de error, NO plantilla)
-                    if ($rule->discord_enabled) {
-                        try {
-                            $notifier->sendDiscord($textoMissing, $user);
-                            Log::info("Discord (sin comunicación) enviado correctamente", [
-                                'rule_id' => $rule->id,
-                                'user_id' => $user ? $user->id : null,
-                                'device_name' => $dispositivo->nombre,
-                            ]);
-                        } catch (\Exception $e) {
-                            $this->error("❌ Error enviando DISCORD (sin comunicación): " . $e->getMessage());
-                            Log::error("Error enviando DISCORD (sin comunicación): " . $e->getMessage());
-                        }
-                    }
-
-                    // Pasamos al siguiente dispositivo
-                    continue;
-                }
-
-                // Si está y tiene value, lo usamos como currentValue
-                $rawValue = $found['value'];
-                $currentValue = is_numeric($rawValue) ? (float) $rawValue : null;
-
-                // Si value no es numérico -> tratamos como pérdida de comunicación
                 if ($currentValue === null) {
-                    $this->warn("❌ [{$username}] Valor no numérico para {$dispositivo->nombre}, se considera sin comunicación");
-                    Log::warning("Valor no numérico en grafana", [
-                        'rule_id' => $rule->id,
-                        'device_name' => $dispositivo->name,
-                        'raw_value' => $rawValue,
+                    $this->warn("[{$username}] Sin datos en las últimas 24h para {$dispositivo->nombre}");
+                    Log::warning('Dispositivo sin datos recientes', [
+                        'rule_id'     => $rule->id,
+                        'influx_tag'  => $tag,
+                        'device_name' => $dispositivo->nombre,
                     ]);
 
-                    $textoMissing = "🚨 No ha sido posible comunicarse con el dispositivo {$dispositivo->nombre} (valor inválido)";
-
-                    if ($rule->email_enabled && $rule->recipient_email) {
-                        try {
-                            $notifier->sendEmail($textoMissing, $user, $rule->recipient_email);
-                        } catch (\Exception $e) {
-                            Log::error("Error enviando EMAIL (valor inválido): " . $e->getMessage());
-                        }
-                    }
-
-                    if ($rule->telegram_enabled) {
-                        try {
-                            $notifier->sendTelegram($textoMissing, $user);
-                        } catch (\Exception $e) {
-                            Log::error("Error enviando TELEGRAM (valor inválido): " . $e->getMessage());
-                        }
-                    }
-
-                    if ($rule->discord_enabled) {
-                        try {
-                            $notifier->sendDiscord($textoMissing, $user);
-                        } catch (\Exception $e) {
-                            Log::error("Error enviando DISCORD (valor inválido): " . $e->getMessage());
-                        }
-                    }
-
+                    $texto = "🚨 Sin datos en las últimas 24 h para el dispositivo {$dispositivo->nombre}";
+                    $this->enviarNotificaciones($notifier, $rule, $user, $texto);
                     continue;
                 }
 
-                // Log y salida informativa usando el valor real de Grafana
-                $this->info("👤 Usuario: {$username} | Regla {$rule->name} en {$dispositivo->nombre} (valor={$currentValue})");
-                Log::info("Evaluando regla", [
-                    'user_id' => $rule->user_id,
-                    'username' => $username,
-                    'rule_id' => $rule->id,
-                    'rule_name' => $rule->name,
-                    'device_id' => $dispositivo->id,
-                    'device_name' => $dispositivo->nombre,
+                $this->info("[{$username}] Regla '{$rule->name}' — {$dispositivo->nombre} = {$currentValue}");
+                Log::info('Evaluando regla', [
+                    'rule_id'       => $rule->id,
+                    'rule_name'     => $rule->name,
+                    'influx_tag'    => $tag,
                     'current_value' => $currentValue,
                 ]);
 
-                if ($this->evaluateRule($currentValue, $rule->operator, $rule->comparison_value)) {
-                    $this->info("✅ [{$username}] Regla {$rule->name} cumplida para {$dispositivo->nombre}");
-
-                    $texto = $rule->template_email ?? "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue})";
-
-                    // Email
-                    if ($rule->email_enabled && $rule->recipient_email) {
-                        try {
-                            $notifier->sendEmail($texto, $user, $rule->recipient_email);
-                            Log::info("Email enviado correctamente", [
-                                'rule_id' => $rule->id,
-                                'user_id' => $user ? $user->id : null,
-                            ]);
-                        } catch (\Exception $e) {
-                            $this->error("❌ Error enviando EMAIL: " . $e->getMessage());
-                            Log::error("Error enviando EMAIL: " . $e->getMessage());
-                        }
-                    }
-
-                    // Telegram
-                    if ($rule->telegram_enabled) {
-                        try {
-                            $textoTelegram = $rule->template_telegram ?? $texto;
-                            $notifier->sendTelegram($textoTelegram, $user);
-                            Log::info("Telegram enviado correctamente", [
-                                'rule_id' => $rule->id,
-                                'user_id' => $user ? $user->id : null,
-                            ]);
-                        } catch (\Exception $e) {
-                            $this->error("❌ Error enviando TELEGRAM: " . $e->getMessage());
-                            Log::error("Error enviando TELEGRAM: " . $e->getMessage());
-                        }
-                    }
-
-                    // Discord
-                    if ($rule->discord_enabled) {
-                        try {
-                            $textoDiscord = $rule->template_discord ?? $texto;
-                            $notifier->sendDiscord($textoDiscord, $user);
-                            Log::info("Discord enviado correctamente", [
-                                'rule_id' => $rule->id,
-                                'user_id' => $user ? $user->id : null,
-                            ]);
-                        } catch (\Exception $e) {
-                            $this->error("❌ Error enviando DISCORD: " . $e->getMessage());
-                            Log::error("Error enviando DISCORD: " . $e->getMessage());
-                        }
-                    }
-                } else {
-                    $this->warn("⚠️ [{$username}] Regla {$rule->name} NO cumplida para {$dispositivo->name}");
+                if (!$this->evaluarCondicion($currentValue, $rule->operator, $rule->comparison_value)) {
+                    $this->line("  → Condición no cumplida, sin notificación.");
+                    continue;
                 }
+
+                // --- Cooldown: no volver a notificar hasta pasados time_range días ---
+                if ($rule->last_triggered_at !== null) {
+                    $diasDesdeUltimo = $rule->last_triggered_at->diffInDays(Carbon::now());
+                    if ($diasDesdeUltimo < $rule->time_range) {
+                        $this->line("  → Condición cumplida pero en cooldown ({$diasDesdeUltimo}/{$rule->time_range} días).");
+                        Log::info('Regla en cooldown', [
+                            'rule_id'          => $rule->id,
+                            'last_triggered_at' => $rule->last_triggered_at->toISOString(),
+                            'dias_restantes'   => $rule->time_range - $diasDesdeUltimo,
+                        ]);
+                        continue;
+                    }
+                }
+
+                $this->info("  → Condición cumplida, enviando notificaciones.");
+
+                $texto = $rule->template_email
+                    ?? "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue})";
+
+                $this->enviarNotificaciones($notifier, $rule, $user, $texto);
+
+                $rule->last_triggered_at = Carbon::now();
+                $rule->save();
             }
         }
 
@@ -222,18 +89,51 @@ class CheckRules extends Command
         Log::info('Fin de revisión de reglas');
     }
 
-    private function evaluateRule($currentValue, $operator, $comparisonValue)
+    private function enviarNotificaciones(NotificationMethodController $notifier, Rule $rule, $user, string $texto)
     {
-        $cv = is_numeric($comparisonValue) ? (float) $comparisonValue : $comparisonValue;
+        if ($rule->email_enabled && $rule->recipient_email && $user) {
+            try {
+                $notifier->sendEmail($rule->template_email ?? $texto, $user, $rule->recipient_email);
+                Log::info('Email enviado', ['rule_id' => $rule->id]);
+            } catch (\Exception $e) {
+                $this->error("Error email: " . $e->getMessage());
+                Log::error('Error enviando email', ['rule_id' => $rule->id, 'error' => $e->getMessage()]);
+            }
+        }
 
-        switch ($operator) {
-            case '>': return $currentValue > $cv;
-            case '<': return $currentValue < $cv;
-            case '==': return $currentValue == $cv;
-            case '!=': return $currentValue != $cv;
-            case '>=': return $currentValue >= $cv;
-            case '<=': return $currentValue <= $cv;
-            default: return false;
+        if ($rule->telegram_enabled && $user) {
+            try {
+                $notifier->sendTelegram($rule->template_telegram ?? $texto, $user);
+                Log::info('Telegram enviado', ['rule_id' => $rule->id]);
+            } catch (\Exception $e) {
+                $this->error("Error telegram: " . $e->getMessage());
+                Log::error('Error enviando telegram', ['rule_id' => $rule->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        if ($rule->discord_enabled && $user) {
+            try {
+                $notifier->sendDiscord($rule->template_discord ?? $texto, $user);
+                Log::info('Discord enviado', ['rule_id' => $rule->id]);
+            } catch (\Exception $e) {
+                $this->error("Error discord: " . $e->getMessage());
+                Log::error('Error enviando discord', ['rule_id' => $rule->id, 'error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    private function evaluarCondicion(float $valor, string $operador, $comparacion): bool
+    {
+        $cv = is_numeric($comparacion) ? (float) $comparacion : $comparacion;
+
+        switch ($operador) {
+            case '>':  return $valor >  $cv;
+            case '<':  return $valor <  $cv;
+            case '>=': return $valor >= $cv;
+            case '<=': return $valor <= $cv;
+            case '==': return $valor == $cv;
+            case '!=': return $valor != $cv;
+            default:   return false;
         }
     }
 }

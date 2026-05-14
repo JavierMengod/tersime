@@ -64,9 +64,7 @@
         :rule="[
             'id'        => $regla->id,
             'name'      => $regla->name,
-            'devices'   => $regla->dispositivo
-                              ? [$regla->dispositivo->id]
-                              : [],
+            'devices'   => $regla->dispositivos->pluck('id')->toArray(),
             'operator'  => $regla->operator,
             'value'     => $regla->comparison_value,
             'duration'  => $regla->time_range,

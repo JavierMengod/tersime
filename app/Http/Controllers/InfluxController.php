@@ -266,6 +266,62 @@ FLUX;
         return ['timestamps' => $timestamps, 'values' => $values];
     }
 
+    /**
+     * Devuelve el último valor kWh registrado en las últimas 24 h para un dispositivo.
+     * Retorna null si no hay datos o el dispositivo no responde.
+     */
+    public function ultimoValor(string $device): ?float
+    {
+        $influxUrl = env('INFLUXDB_URL', 'http://localhost:8086')
+            . '/api/v2/query?org=' . env('INFLUXDB_ORG', 'tersime');
+        $token = env('INFLUXDB_TOKEN', '');
+
+        $flux = <<<FLUX
+from(bucket: "{$this->bucket}")
+  |> range(start: -24h)
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
+  |> last()
+  |> keep(columns: ["_value"])
+FLUX;
+
+        $response = Http::withHeaders([
+            'Authorization' => "Token {$token}",
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/csv',
+        ])->timeout(10)->post($influxUrl, [
+            'query'   => $flux,
+            'dialect' => ['header' => true, 'delimiter' => ','],
+        ]);
+
+        if (!$response->successful()) {
+            Log::warning('[InfluxController] ultimoValor fallo HTTP', [
+                'device' => $device,
+                'status' => $response->status(),
+            ]);
+            return null;
+        }
+
+        $valueIdx   = null;
+        $headerSeen = false;
+
+        foreach (explode("\n", $response->body()) as $line) {
+            $line = trim($line);
+            if ($line === '' || strpos($line, '#') === 0) continue;
+
+            $cols = str_getcsv($line);
+            if (!$headerSeen) {
+                $headerSeen = true;
+                $valueIdx   = array_search('_value', $cols);
+                continue;
+            }
+
+            if ($valueIdx === false || !isset($cols[$valueIdx])) continue;
+            if (is_numeric($cols[$valueIdx])) return (float) $cols[$valueIdx];
+        }
+
+        return null;
+    }
+
     // ---------------------------------------------------------
     //  FLUX EXEC / HELPERS
     // ---------------------------------------------------------

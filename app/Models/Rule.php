@@ -8,12 +8,12 @@ class Rule extends Model
 {
     protected $fillable = [
         'name',
-        'device_id',
         'user_id',
         'operator',
         'time_range',
         'comparison_value',
         'is_active',
+        'last_triggered_at',
         'email_enabled',
         'telegram_enabled',
         'discord_enabled',
@@ -21,6 +21,10 @@ class Rule extends Model
         'template_telegram',
         'template_email',
         'template_discord',
+    ];
+
+    protected $casts = [
+        'last_triggered_at' => 'datetime',
     ];
 
     // Relación: una regla pertenece a un dispositivo

@@ -34,21 +34,6 @@ class NotificationMethodController extends Controller
         return view('settings.notifications', compact('methods'));
     }
 
-    public function send()
-    {
-        $chatId = '6336830304';
-        $botToken = 'TU_TOKEN_AQUI';
-
-        try {
-            $telegram = new BotApi($botToken);
-            $response = $telegram->sendMessage($chatId, '¡Hola desde Laravel!');
-            return response()->json($response);
-        } catch (\Exception $e) {
-            Log::error("Error enviando mensaje: " . $e->getMessage());
-            return response()->json(['error' => 'No se pudo enviar el mensaje.'], 500);
-        }
-    }
-
     public function update(Request $request, $type)
     {
         $user = $request->user();

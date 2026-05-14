@@ -9,6 +9,7 @@ use App\Http\Controllers\DispositivoController;
 use App\Http\Controllers\NotificationMethodController;
 use App\Http\Controllers\ReglaController;
 use App\Http\Controllers\PlantillaController;
+use App\Models\Plantilla;
 use App\Http\Controllers\InformeController;
 use App\Http\Controllers\InformeRegistroController;
 use App\Http\Controllers\TokenController;
@@ -101,7 +102,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/alertas-plantillas', function () {
         $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
-        return view('alertas.plantillas', compact('dispositivos'));
+        $plantillas   = Plantilla::where('user_id', auth()->id())->get()->groupBy('canal');
+        return view('alertas.plantillas', compact('dispositivos', 'plantillas'));
     })->name('alertas-plantillas');
 
     Route::get('/alertas-medios', function () {
