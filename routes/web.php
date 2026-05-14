@@ -9,6 +9,7 @@ use App\Http\Controllers\DispositivoController;
 use App\Http\Controllers\NotificationMethodController;
 use App\Http\Controllers\ReglaController;
 use App\Http\Controllers\PlantillaController;
+use App\Http\Controllers\AlertLogController;
 use App\Models\Plantilla;
 use App\Http\Controllers\InformeController;
 use App\Http\Controllers\InformeRegistroController;
@@ -110,6 +111,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/alertas-medios', function () {
         return view('alertas.notificacion');
     })->name('alertas-medios');
+
+    Route::get('/alertas-historial', [AlertLogController::class, 'index'])->name('alertas-historial');
 
     // Plantillas de alerta (crear / eliminar)
     Route::post('/plantillas/{canal}', [PlantillaController::class, 'create'])

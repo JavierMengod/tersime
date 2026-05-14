@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use App\Models\Rule;
+use App\Models\AlertLog;
 use App\Http\Controllers\InfluxController;
 use App\Http\Controllers\NotificationMethodController;
 use Illuminate\Support\Facades\Log;
@@ -117,6 +118,7 @@ class CheckRules extends Command
             : "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue} kWh)";
 
         $this->enviarNotificaciones($notifier, $rule, $user, $textoDefault);
+        $this->registrarLog($rule, $dispositivo, 'firing', $textoDefault);
 
         Log::info('Estado → firing', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
@@ -143,6 +145,7 @@ class CheckRules extends Command
         $textoDefault = "✅ Regla '{$rule->name}' resuelta en {$dispositivo->nombre} (valor actual={$valueLabel})";
 
         $this->enviarNotificaciones($notifier, $rule, $user, $textoDefault);
+        $this->registrarLog($rule, $dispositivo, 'resolution', $textoDefault);
 
         Log::info('Estado → ok (resolución)', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
@@ -178,6 +181,24 @@ class CheckRules extends Command
                 Log::error('Error enviando discord', ['rule_id' => $rule->id, 'error' => $e->getMessage()]);
             }
         }
+    }
+
+    private function registrarLog(Rule $rule, $dispositivo, string $type, string $message): void
+    {
+        $channels = collect(['telegram', 'email', 'discord'])
+            ->filter(fn($ch) => $rule->{"{$ch}_enabled"})
+            ->implode(',');
+
+        AlertLog::create([
+            'user_id'        => $rule->user_id,
+            'rule_id'        => $rule->id,
+            'rule_name'      => $rule->name,
+            'dispositivo_id' => $dispositivo->id,
+            'device_name'    => $dispositivo->nombre,
+            'type'           => $type,
+            'channels'       => $channels ?: null,
+            'message'        => $message,
+        ]);
     }
 
     private function evaluarCondicion(float $valor, string $operador, $comparacion): bool
