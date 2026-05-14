@@ -19,7 +19,7 @@ class NotificationMethodController extends Controller
         if ($type === 'telegram') {
             $cred = $user->telegramCredential;
 
-            // Toggle rápido
+            // Toggle rápido (solo envía 'active', sin 'chat_id')
             if ($request->has('active') && !$request->has('chat_id')) {
                 if (!$cred) {
                     return back()->withErrors('Primero configura Telegram antes de activar/desactivar.');
@@ -28,29 +28,38 @@ class NotificationMethodController extends Controller
                 return back()->with('status', 'Estado de Telegram actualizado.');
             }
 
-            $request->merge(['active' => $request->has('active')]);
             $data = $request->validate([
                 'chat_id'   => 'required|string',
-                'bot_token' => 'required|string',
-                'active'    => 'boolean',
+                'bot_token' => $cred ? 'nullable|string' : 'required|string',
             ]);
 
-            // Probar primero; guardar solo si el test pasa
+            // Resolver token: usar el nuevo si se proporcionó, o el existente
+            $rawToken = !empty($data['bot_token']) ? $data['bot_token'] : null;
+            if ($rawToken === null) {
+                if (!$cred) {
+                    return back()->withErrors('Se requiere el Bot Token para la configuración inicial.')
+                                 ->with('error_channel', 'telegram');
+                }
+                $rawToken = decrypt($cred->bot_token);
+            }
+
+            // Test primero, guardar solo si pasa
             try {
-                $telegram = new BotApi($data['bot_token']);
+                $telegram = new BotApi($rawToken);
                 $telegram->sendMessage($data['chat_id'], '✅ Credenciales de Telegram configuradas correctamente.');
             } catch (\Exception $e) {
                 Log::error("Error al enviar mensaje de prueba por Telegram: " . $e->getMessage());
-                return back()->withErrors('Error al enviar mensaje de prueba. Revisa el token y el chat ID.');
+                return back()->withErrors('Error al enviar mensaje de prueba. Revisa el token y el chat ID.')
+                             ->with('error_channel', 'telegram');
             }
 
             $user->telegramCredential()->updateOrCreate([], [
                 'chat_id'   => $data['chat_id'],
-                'bot_token' => encrypt($data['bot_token']),
-                'active'    => $data['active'],
+                'bot_token' => encrypt($rawToken),
+                'active'    => $cred ? $cred->active : true,
             ]);
 
-            return back()->with('status', 'Configuración de Telegram actualizada.');
+            return back()->with('status', 'Configuración de Telegram actualizada y verificada.');
         }
 
         /** ---------------- EMAIL ---------------- */
@@ -66,54 +75,63 @@ class NotificationMethodController extends Controller
                 return back()->with('status', 'Estado de Email actualizado.');
             }
 
-            $request->merge(['active' => $request->input('active') === '1']);
             $data = $request->validate([
                 'from_address' => 'required|email',
                 'smtp_host'    => 'required|string',
                 'smtp_port'    => 'required|integer',
                 'smtp_user'    => 'required|string',
-                'smtp_pass'    => 'required|string',
-                'active'       => 'boolean',
+                'smtp_pass'    => $cred ? 'nullable|string' : 'required|string',
             ]);
 
-            $config = $user->smtpCredential()->updateOrCreate(
+            // Resolver contraseña: usar la nueva si se proporcionó, o la existente
+            $rawPassword = !empty($data['smtp_pass']) ? $data['smtp_pass'] : null;
+            if ($rawPassword === null) {
+                if (!$cred) {
+                    return back()->withErrors('Se requiere contraseña SMTP para la configuración inicial.')
+                                 ->with('error_channel', 'email');
+                }
+                $rawPassword = decrypt($cred->password);
+            }
+
+            // Test primero con los datos del formulario
+            try {
+                config([
+                    'mail.default'                 => 'smtp',
+                    'mail.mailers.smtp.host'       => $data['smtp_host'],
+                    'mail.mailers.smtp.port'       => $data['smtp_port'],
+                    'mail.mailers.smtp.encryption' => 'tls',
+                    'mail.mailers.smtp.username'   => $data['smtp_user'],
+                    'mail.mailers.smtp.password'   => $rawPassword,
+                    'mail.from.address'            => $data['from_address'],
+                    'mail.from.name'               => 'Tersime',
+                ]);
+
+                Mail::raw('✅ Configuración SMTP de Tersime verificada correctamente.', function ($message) use ($data) {
+                    $message->to($data['from_address'])
+                            ->from($data['from_address'], 'Tersime')
+                            ->subject('✅ Tersime — Configuración de correo verificada');
+                });
+            } catch (\Exception $e) {
+                Log::error('Error enviando correo de prueba: ' . $e->getMessage());
+                return back()->withErrors('No se pudo enviar el correo de prueba: ' . $e->getMessage())
+                             ->with('error_channel', 'email');
+            }
+
+            // Guardar solo si el test pasó
+            $user->smtpCredential()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'host'         => $data['smtp_host'],
                     'port'         => $data['smtp_port'],
                     'username'     => $data['smtp_user'],
                     'from_address' => $data['from_address'],
-                    'password'     => encrypt($data['smtp_pass']),
+                    'password'     => encrypt($rawPassword),
                     'encryption'   => 'tls',
-                    'active'       => $data['active'],
+                    'active'       => $cred ? $cred->active : true,
                 ]
             );
 
-            if ($data['active']) {
-                try {
-                    config([
-                        'mail.default'                    => 'smtp',
-                        'mail.mailers.smtp.host'          => $config->host,
-                        'mail.mailers.smtp.port'          => $config->port,
-                        'mail.mailers.smtp.encryption'    => $config->encryption,
-                        'mail.mailers.smtp.username'      => $config->username,
-                        'mail.mailers.smtp.password'      => decrypt($config->password),
-                        'mail.from.address'               => $data['from_address'],
-                        'mail.from.name'                  => 'Tersime',
-                    ]);
-
-                    Mail::raw('✅ Configuración SMTP de Tersime verificada correctamente.', function ($message) use ($data) {
-                        $message->to($data['from_address'])
-                                ->from($data['from_address'], 'Tersime')
-                                ->subject('✅ Tersime — Configuración de correo verificada');
-                    });
-                } catch (\Exception $e) {
-                    Log::error('Error enviando correo de prueba: ' . $e->getMessage());
-                    return back()->withErrors('No se pudo enviar el correo de prueba: ' . $e->getMessage());
-                }
-            }
-
-            return back()->with('status', 'Configuración de correo actualizada.');
+            return back()->with('status', 'Configuración de correo actualizada y verificada.');
         }
 
         /** ---------------- DISCORD ---------------- */
@@ -129,35 +147,54 @@ class NotificationMethodController extends Controller
                 return back()->with('status', 'Estado de Discord actualizado.');
             }
 
-            $request->merge(['active' => $request->input('active') === '1']);
             $data = $request->validate([
                 'webhook_url' => 'required|url',
-                'active'      => 'boolean',
             ]);
 
-            $cred = $user->discordCredential()->updateOrCreate(
-                ['user_id' => $user->id],
-                ['webhook_url' => $data['webhook_url'], 'active' => $data['active']]
-            );
-
-            if ($data['active']) {
-                try {
-                    $response = Http::post($cred->webhook_url, [
-                        'content' => '✅ Configuración de Discord guardada correctamente.',
-                    ]);
-                    if ($response->failed()) {
-                        throw new \Exception("Discord respondió HTTP " . $response->status());
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Error enviando prueba a Discord: ' . $e->getMessage());
-                    return back()->withErrors('No se pudo enviar el mensaje de prueba a Discord: ' . $e->getMessage());
+            // Test primero
+            try {
+                $response = Http::post($data['webhook_url'], [
+                    'content' => '✅ Configuración de Discord verificada correctamente.',
+                ]);
+                if ($response->failed()) {
+                    throw new \Exception("Discord respondió HTTP " . $response->status());
                 }
+            } catch (\Exception $e) {
+                Log::error('Error enviando prueba a Discord: ' . $e->getMessage());
+                return back()->withErrors('No se pudo enviar el mensaje de prueba a Discord: ' . $e->getMessage())
+                             ->with('error_channel', 'discord');
             }
 
-            return back()->with('status', 'Configuración de Discord actualizada.');
+            // Guardar solo si el test pasó
+            $user->discordCredential()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'webhook_url' => $data['webhook_url'],
+                    'active'      => $cred ? $cred->active : true,
+                ]
+            );
+
+            return back()->with('status', 'Configuración de Discord actualizada y verificada.');
         }
 
         return back()->withErrors('Canal no reconocido.');
+    }
+
+    public function destroy(Request $request, $type)
+    {
+        $user  = $request->user();
+        $names = ['telegram' => 'Telegram', 'email' => 'Correo', 'discord' => 'Discord'];
+
+        if ($type === 'telegram' && $user->telegramCredential) {
+            $user->telegramCredential->delete();
+        } elseif ($type === 'email' && $user->smtpCredential) {
+            $user->smtpCredential->delete();
+        } elseif ($type === 'discord' && $user->discordCredential) {
+            $user->discordCredential->delete();
+        }
+
+        Log::info("Canal {$type} desconectado para usuario {$user->id}");
+        return back()->with('status', ($names[$type] ?? $type) . ' desconectado correctamente.');
     }
 
     public function sendEmail(string $text, User $user, string $recipientEmail, string $fromAddress = null)

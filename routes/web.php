@@ -132,6 +132,10 @@ Route::middleware('auth')->group(function () {
         ->where('type', 'telegram|email|discord')
         ->name('notifications.update');
 
+    Route::delete('settings/notifications/{type}', [NotificationMethodController::class, 'destroy'])
+        ->where('type', 'telegram|email|discord')
+        ->name('notifications.destroy');
+
     // ── Informes ───────────────────────────────────────────────────────────────
     Route::get('informes-programados', [InformeController::class, 'programados'])
         ->name('informes-programados');
