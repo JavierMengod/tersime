@@ -195,20 +195,6 @@ class NotificationMethodController extends Controller
         return back()->withErrors('Error al actualizar credenciales');
     }
 
-    public function sendAlert(UserMailer $userMailer)
-    {
-        $userId = 1;
-        $destino = 'jmengod10@gmail.com';
-        $mailable = new WelcomeUser();
-
-        try {
-            $userMailer->sendUsingUser($userId, $destino, $mailable);
-            return back()->with('status', 'Correo enviado correctamente.');
-        } catch (\Exception $e) {
-            return back()->withErrors($e->getMessage());
-        }
-    }
-
     /**
      * Enviar correo usando credenciales SMTP del usuario
      */

@@ -12,44 +12,75 @@
         </button>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>{{ __('Nombre') }}</th>
-                    <th>{{ __('Dispositivos') }}</th>
-                    <th>{{ __('Condición') }}</th>
-                    <th>{{ __('Canales') }}</th>
-                    <th>{{ __('Estado') }}</th>
-                    <th>{{ __('Acción') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach(auth()->user()->rules as $regla)
-                <tr>
-                    <td>{{ $regla->name }}</td>
-                    <td>{{ $regla->dispositivos->pluck('nombre')->join(', ') ?: '—' }}</td>
-                    <td><code>consumo {{ $regla->operator }} {{ $regla->comparison_value }} W</code></td>
-                    <td>
-                        @if($regla->telegram_enabled)<span class="badge bg-info text-dark">Telegram</span>@endif
-                        @if($regla->email_enabled)<span class="badge bg-warning text-dark">{{ __('Correo') }}</span>@endif
-                        @if($regla->discord_enabled)<span class="badge bg-secondary text-light">Discord</span>@endif
-                    </td>
-                    <td>
-                        @if($regla->is_active)<span class="badge bg-success">{{ __('Activo') }}</span>
-                        @else<span class="badge bg-danger">{{ __('Inactivo') }}</span>@endif
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modal-rule-{{ $regla->id }}">
-                            {{ __('Editar') }}
-                        </button>
-                    </td>
-                </tr>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
                 @endforeach
-            </tbody>
-        </table>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ __('Nombre') }}</th>
+                            <th class="d-none d-md-table-cell">{{ __('Dispositivos') }}</th>
+                            <th>{{ __('Condición') }}</th>
+                            <th class="d-none d-md-table-cell">{{ __('Canales') }}</th>
+                            <th>{{ __('Estado') }}</th>
+                            <th class="text-end">{{ __('Acción') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($reglas as $regla)
+                        <tr>
+                            <td>{{ $regla->name }}</td>
+                            <td class="d-none d-md-table-cell">{{ $regla->dispositivos->pluck('nombre')->join(', ') ?: '—' }}</td>
+                            <td><code>{{ $regla->operator }} {{ $regla->comparison_value }} kWh</code></td>
+                            <td class="d-none d-md-table-cell">
+                                @if($regla->telegram_enabled)<span class="badge bg-info text-dark">Telegram</span>@endif
+                                @if($regla->email_enabled)<span class="badge bg-warning text-dark">{{ __('Correo') }}</span>@endif
+                                @if($regla->discord_enabled)<span class="badge bg-secondary text-light">Discord</span>@endif
+                            </td>
+                            <td>
+                                @if($regla->is_active)
+                                    <span class="badge bg-success">{{ __('Activo') }}</span>
+                                @else
+                                    <span class="badge bg-danger">{{ __('Inactivo') }}</span>
+                                @endif
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modal-rule-{{ $regla->id }}">
+                                    {{ __('Editar') }}
+                                </button>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                {{ __('No hay reglas configuradas. Crea una para empezar.') }}
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
 {{-- Modal de creación --}}
@@ -58,7 +89,7 @@
     :devices-list="$dispositivos" />
 
 {{-- Modal de edición, uno por cada regla --}}
-@foreach(auth()->user()->rules as $regla)
+@foreach($reglas as $regla)
     <x-modalAlerta
         :is-edit="true"
         :rule="[

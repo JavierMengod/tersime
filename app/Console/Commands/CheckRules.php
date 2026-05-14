@@ -41,8 +41,20 @@ class CheckRules extends Command
                         'device_name' => $dispositivo->nombre,
                     ]);
 
+                    // Aplicar el mismo cooldown para no spamear si el dispositivo lleva días sin datos
+                    if ($rule->last_triggered_at !== null) {
+                        $dias = $rule->last_triggered_at->diffInDays(Carbon::now());
+                        if ($dias < $rule->time_range) {
+                            $this->line("  → Sin datos pero en cooldown ({$dias}/{$rule->time_range} días).");
+                            continue;
+                        }
+                    }
+
                     $texto = "🚨 Sin datos en las últimas 24 h para el dispositivo {$dispositivo->nombre}";
                     $this->enviarNotificaciones($notifier, $rule, $user, $texto);
+
+                    $rule->last_triggered_at = Carbon::now();
+                    $rule->save();
                     continue;
                 }
 
@@ -75,10 +87,9 @@ class CheckRules extends Command
 
                 $this->info("  → Condición cumplida, enviando notificaciones.");
 
-                $texto = $rule->template_email
-                    ?? "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue})";
+                $textoPorDefecto = "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue} kWh)";
 
-                $this->enviarNotificaciones($notifier, $rule, $user, $texto);
+                $this->enviarNotificaciones($notifier, $rule, $user, $textoPorDefecto);
 
                 $rule->last_triggered_at = Carbon::now();
                 $rule->save();
@@ -89,11 +100,11 @@ class CheckRules extends Command
         Log::info('Fin de revisión de reglas');
     }
 
-    private function enviarNotificaciones(NotificationMethodController $notifier, Rule $rule, $user, string $texto)
+    private function enviarNotificaciones(NotificationMethodController $notifier, Rule $rule, $user, string $textoPorDefecto)
     {
         if ($rule->email_enabled && $rule->recipient_email && $user) {
             try {
-                $notifier->sendEmail($rule->template_email ?? $texto, $user, $rule->recipient_email);
+                $notifier->sendEmail($rule->template_email ?: $textoPorDefecto, $user, $rule->recipient_email);
                 Log::info('Email enviado', ['rule_id' => $rule->id]);
             } catch (\Exception $e) {
                 $this->error("Error email: " . $e->getMessage());
@@ -103,7 +114,7 @@ class CheckRules extends Command
 
         if ($rule->telegram_enabled && $user) {
             try {
-                $notifier->sendTelegram($rule->template_telegram ?? $texto, $user);
+                $notifier->sendTelegram($rule->template_telegram ?: $textoPorDefecto, $user);
                 Log::info('Telegram enviado', ['rule_id' => $rule->id]);
             } catch (\Exception $e) {
                 $this->error("Error telegram: " . $e->getMessage());
@@ -113,7 +124,7 @@ class CheckRules extends Command
 
         if ($rule->discord_enabled && $user) {
             try {
-                $notifier->sendDiscord($rule->template_discord ?? $texto, $user);
+                $notifier->sendDiscord($rule->template_discord ?: $textoPorDefecto, $user);
                 Log::info('Discord enviado', ['rule_id' => $rule->id]);
             } catch (\Exception $e) {
                 $this->error("Error discord: " . $e->getMessage());

@@ -97,7 +97,8 @@ Route::middleware('auth')->group(function () {
     // ── Alertas ────────────────────────────────────────────────────────────────
     Route::get('/alertas-acciones', function () {
         $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
-        return view('alertas.acciones', compact('dispositivos'));
+        $reglas       = auth()->user()->rules()->with('dispositivos')->get();
+        return view('alertas.acciones', compact('dispositivos', 'reglas'));
     })->name('alertas-acciones');
 
     Route::get('/alertas-plantillas', function () {

@@ -61,20 +61,20 @@
             </select>
           </div>
           <div class="col-md-8">
-            <label class="form-label">{{ __('Valor (W)') }}</label>
+            <label class="form-label">{{ __('Valor (kWh)') }}</label>
             <div class="input-group">
-              <input type="number" name="value" class="form-control"
+              <input type="number" name="value" step="0.01" min="0" class="form-control"
                      value="{{ old('value', $rule['value'] ?? '') }}">
-              <span class="input-group-text">W</span>
+              <span class="input-group-text">kWh</span>
             </div>
           </div>
         </div>
 
         {{-- Duración --}}
         <div class="mb-3">
-          <label class="form-label">{{ __('Duración mínima (días)') }}</label>
-          <input type="number" name="duration" class="form-control"
-                 value="{{ old('duration', $rule['duration'] ?? '') }}">
+          <label class="form-label">{{ __('Cooldown (días entre notificaciones)') }}</label>
+          <input type="number" name="duration" class="form-control" min="1" step="1"
+                 value="{{ old('duration', $rule['duration'] ?? 1) }}">
         </div>
 
         {{-- Canales --}}
