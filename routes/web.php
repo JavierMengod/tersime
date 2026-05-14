@@ -124,10 +124,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/reglas/{id}', [ReglaController::class, 'destroy'])->name('reglas.destroy');
 
     // Medios de notificación
-    Route::get('settings/notifications', [NotificationMethodController::class, 'edit'])
-        ->name('notifications.edit');
-
-    Route::post('settings/notifications/{type}', [NotificationMethodController::class, 'update'])
+    Route::put('settings/notifications/{type}', [NotificationMethodController::class, 'update'])
         ->where('type', 'telegram|email|discord')
         ->name('notifications.update');
 

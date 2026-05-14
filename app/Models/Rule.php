@@ -27,10 +27,10 @@ class Rule extends Model
         'last_triggered_at' => 'datetime',
     ];
 
-    // Relación: una regla pertenece a un dispositivo
     public function dispositivos()
     {
-        return $this->belongsToMany(Dispositivo::class, 'dispositivo_rule', 'rule_id', 'dispositivo_id');
+        return $this->belongsToMany(Dispositivo::class, 'dispositivo_rule', 'rule_id', 'dispositivo_id')
+                    ->withPivot('last_triggered_at');
     }
 
     public function user()

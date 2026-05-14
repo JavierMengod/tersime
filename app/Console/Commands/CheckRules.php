@@ -41,20 +41,11 @@ class CheckRules extends Command
                         'device_name' => $dispositivo->nombre,
                     ]);
 
-                    // Aplicar el mismo cooldown para no spamear si el dispositivo lleva días sin datos
-                    if ($rule->last_triggered_at !== null) {
-                        $dias = $rule->last_triggered_at->diffInDays(Carbon::now());
-                        if ($dias < $rule->time_range) {
-                            $this->line("  → Sin datos pero en cooldown ({$dias}/{$rule->time_range} días).");
-                            continue;
-                        }
-                    }
+                    if ($this->enCooldown($rule, $dispositivo)) continue;
 
                     $texto = "🚨 Sin datos en las últimas 24 h para el dispositivo {$dispositivo->nombre}";
                     $this->enviarNotificaciones($notifier, $rule, $user, $texto);
-
-                    $rule->last_triggered_at = Carbon::now();
-                    $rule->save();
+                    $this->registrarDisparo($rule, $dispositivo);
                     continue;
                 }
 
@@ -71,28 +62,14 @@ class CheckRules extends Command
                     continue;
                 }
 
-                // --- Cooldown: no volver a notificar hasta pasados time_range días ---
-                if ($rule->last_triggered_at !== null) {
-                    $diasDesdeUltimo = $rule->last_triggered_at->diffInDays(Carbon::now());
-                    if ($diasDesdeUltimo < $rule->time_range) {
-                        $this->line("  → Condición cumplida pero en cooldown ({$diasDesdeUltimo}/{$rule->time_range} días).");
-                        Log::info('Regla en cooldown', [
-                            'rule_id'          => $rule->id,
-                            'last_triggered_at' => $rule->last_triggered_at->toISOString(),
-                            'dias_restantes'   => $rule->time_range - $diasDesdeUltimo,
-                        ]);
-                        continue;
-                    }
-                }
+                if ($this->enCooldown($rule, $dispositivo)) continue;
 
                 $this->info("  → Condición cumplida, enviando notificaciones.");
 
                 $textoPorDefecto = "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue} kWh)";
 
                 $this->enviarNotificaciones($notifier, $rule, $user, $textoPorDefecto);
-
-                $rule->last_triggered_at = Carbon::now();
-                $rule->save();
+                $this->registrarDisparo($rule, $dispositivo);
             }
         }
 
@@ -131,6 +108,34 @@ class CheckRules extends Command
                 Log::error('Error enviando discord', ['rule_id' => $rule->id, 'error' => $e->getMessage()]);
             }
         }
+    }
+
+    private function enCooldown(Rule $rule, $dispositivo): bool
+    {
+        $lastTriggered = $dispositivo->pivot->last_triggered_at
+            ? Carbon::parse($dispositivo->pivot->last_triggered_at)
+            : null;
+
+        if ($lastTriggered === null) return false;
+
+        $dias = $lastTriggered->diffInDays(Carbon::now());
+        if ($dias < $rule->time_range) {
+            $this->line("  → En cooldown ({$dias}/{$rule->time_range} días) para {$dispositivo->nombre}.");
+            Log::info('Dispositivo en cooldown', [
+                'rule_id'     => $rule->id,
+                'influx_tag'  => $dispositivo->influx_tag,
+                'dias_restantes' => $rule->time_range - $dias,
+            ]);
+            return true;
+        }
+        return false;
+    }
+
+    private function registrarDisparo(Rule $rule, $dispositivo): void
+    {
+        $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
+            'last_triggered_at' => Carbon::now()->toDateTimeString(),
+        ]);
     }
 
     private function evaluarCondicion(float $valor, string $operador, $comparacion): bool

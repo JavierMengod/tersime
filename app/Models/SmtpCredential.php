@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class SmtpCredential extends Model
 {
     protected $fillable = [
-        'user_id', 'host', 'port', 'username', 'password', 'encryption', 'active',
+        'user_id', 'host', 'port', 'username', 'from_address', 'password', 'encryption', 'active',
     ];
 
     public function user()
