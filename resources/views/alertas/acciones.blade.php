@@ -168,6 +168,12 @@
 
 @endforelse
 
+@if($reglas->hasPages())
+    <div class="mt-3">
+        {{ $reglas->links() }}
+    </div>
+@endif
+
 {{-- Modal de creación --}}
 <x-modalAlerta
     :is-edit="false"
