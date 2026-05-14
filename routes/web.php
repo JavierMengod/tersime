@@ -12,6 +12,7 @@ use App\Http\Controllers\PlantillaController;
 use App\Http\Controllers\InformeController;
 use App\Http\Controllers\InformeRegistroController;
 use App\Http\Controllers\TokenController;
+use App\Http\Controllers\GrafanaController;
 use App\Http\Controllers\PrediccionController;
 
 // ── Autenticación ──────────────────────────────────────────────────────────────
@@ -62,6 +63,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/monitorizacion-dispositivos', [DispositivoController::class, 'index'])
         ->name('monitorizacion-dispositivos');
+
+    Route::get('/monitorizacion/series', [GrafanaController::class, 'series'])
+        ->name('monitorizacion.series');
 
     Route::get('/monitorizacion-prediccion', [PrediccionController::class, 'index'])
         ->name('prediccion.index');

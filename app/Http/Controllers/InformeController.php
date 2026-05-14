@@ -82,7 +82,7 @@ class InformeController extends Controller
 
             foreach ($dispositivos as $dispositivo) {
                 try {
-                    $deviceName = $dispositivo->URL ?? $dispositivo->nombre ?? "device_{$dispositivo->id}";
+                    $deviceName = $dispositivo->influx_tag ?? $dispositivo->nombre ?? "device_{$dispositivo->id}";
 
                     $res = ['total' => 0.0, 'horas' => [], 'dias' => []];
                     try {
@@ -172,7 +172,7 @@ class InformeController extends Controller
                     $resumenPorDispositivo[] = [
                         'id' => $dispositivo->id ?? null,
                         'nombre' => $dispositivo->nombre ?? 'Desconocido',
-                        'device_key' => $dispositivo->URL ?? null,
+                        'device_key' => $dispositivo->influx_tag ?? null,
                         'error' => true,
                         'error_message' => $eDev->getMessage()
                     ];
@@ -203,7 +203,7 @@ class InformeController extends Controller
             $graficas = [];
             $datos = [];
             foreach ($dispositivos as $dispositivo) {
-                $url = $dispositivo->URL;
+                $url = $dispositivo->influx_tag;
                 $panelMediaHoraria =
                     "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
                     . "?orgId=1&var-start={$fechaInicio}&var-end={$fechaFin}&from=1735689600000&to=1735775999000&timezone=browser&var-dispositivos=$url&theme=light&panelId=panel-5";
@@ -214,23 +214,23 @@ class InformeController extends Controller
                     //"{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
                     //. "?orgId=1&var-start={$fechaInicio}&var-end={$fechaFin}&from={$fromMillis}&to={$fechaFinPrevisionMillis}&var-predict_hours=180&timezone=browser&var-dispositivos=$url&theme=light&panelId=panel-4";
                 
-                $graficas[$dispositivo->URL] = [
-                    'media-horaria' => $this->descargarGrafanaRenderer($panelMediaHoraria, "media-horaria-{$dispositivo->URL}"),
-                    'media-horaria-historico' => $this->descargarGrafanaRenderer($panelMediaHorariaHistorico, "media-horaria-historico-{$dispositivo->URL}")
-                    //'prevision' => $this->descargarGrafanaRenderer($panelPrevisionHoraria, "prevision-horaria-{$dispositivo->URL}")
+                $graficas[$dispositivo->influx_tag] = [
+                    'media-horaria' => $this->descargarGrafanaRenderer($panelMediaHoraria, "media-horaria-{$dispositivo->influx_tag}"),
+                    'media-horaria-historico' => $this->descargarGrafanaRenderer($panelMediaHorariaHistorico, "media-horaria-historico-{$dispositivo->influx_tag}")
+                    //'prevision' => $this->descargarGrafanaRenderer($panelPrevisionHoraria, "prevision-horaria-{$dispositivo->influx_tag}")
                 ];
                 $start = Carbon::parse($fechaInicio)->toDateString(); // "Y-m-d"
                 $end   = Carbon::parse($fechaFin)->toDateString();
-                $datos[$dispositivo->URL] = [
+                $datos[$dispositivo->influx_tag] = [
                     'media-horaria' => $this->influx->mediaPorHora($url, $start, $end),
                     'media-horaria-historico' => $this->influx->mediaPorHora($url, '2025-01-01', $end),
                     'bruto-dispositivo' => $this->influx->datosHorarios($url, $fechaInicio, $fechaFin),
                     'nombre-dispositivo' => $dispositivo->nombre
                 ];
 
-                Log::info("Panel Media Horaria ({$dispositivo->URL}): {$panelMediaHoraria}");
-                //Log::info("Panel Media Horaria Histórico ({$dispositivo->URL}): {$panelMediaHorariaHistorico}");
-                //Log::info("Datos del dispositivo {$dispositivo->URL}: " . json_encode($datos[$dispositivo->URL], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+                Log::info("Panel Media Horaria ({$dispositivo->influx_tag}): {$panelMediaHoraria}");
+                //Log::info("Panel Media Horaria Histórico ({$dispositivo->influx_tag}): {$panelMediaHorariaHistorico}");
+                //Log::info("Datos del dispositivo {$dispositivo->influx_tag}: " . json_encode($datos[$dispositivo->influx_tag], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
                 
                     
             }
@@ -326,8 +326,8 @@ class InformeController extends Controller
     {
         $query = '';
         foreach ($dispositivos as $dispositivo) {
-            if (!empty($dispositivo->URL)) {
-                $query .= "&var-dispositivos=" . urlencode($dispositivo->URL);
+            if (!empty($dispositivo->influx_tag)) {
+                $query .= "&var-dispositivos=" . urlencode($dispositivo->influx_tag);
             } else {
                 $query .= "&var-dispositivos=" . urlencode($dispositivo->nombre ?? "device_{$dispositivo->id}");
             }
@@ -545,11 +545,11 @@ class InformeController extends Controller
             if (is_string($dispositivo)) {
                 $deviceKey = $dispositivo;
             } elseif (is_array($dispositivo)) {
-                $deviceKey = $dispositivo['URL']
+                $deviceKey = $dispositivo['influx_tag']
                     ?? $dispositivo['nombre']
                     ?? (string) ($dispositivo['id'] ?? 'desconocido');
             } elseif (is_object($dispositivo)) {
-                $deviceKey = $dispositivo->URL
+                $deviceKey = $dispositivo->influx_tag
                     ?? $dispositivo->nombre
                     ?? "device_{$dispositivo->id}";
             } else {
@@ -663,11 +663,11 @@ class InformeController extends Controller
             if (is_string($dispositivo)) {
                 $deviceKey = $dispositivo;
             } elseif (is_array($dispositivo)) {
-                $deviceKey = $dispositivo['URL']
+                $deviceKey = $dispositivo['influx_tag']
                     ?? $dispositivo['nombre']
                     ?? (string) ($dispositivo['id'] ?? 'desconocido');
             } elseif (is_object($dispositivo)) {
-                $deviceKey = $dispositivo->URL
+                $deviceKey = $dispositivo->influx_tag
                     ?? $dispositivo->nombre
                     ?? "device_{$dispositivo->id}";
             } else {

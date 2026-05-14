@@ -173,9 +173,33 @@ body {
     flex-shrink: 0;
 }
 
-/* Aspect-ratio para iframes de Grafana (~30 % del viewport) */
+/* Aspect-ratio para iframes de Grafana */
 .ratio--grafana {
-    --bs-aspect-ratio: 30%;
+    --bs-aspect-ratio: 70%; /* móvil: ~265px en 375px de ancho */
+}
+
+@media (min-width: 576px) {
+    .ratio--grafana {
+        --bs-aspect-ratio: 50%;
+    }
+}
+
+@media (min-width: 992px) {
+    .ratio--grafana {
+        --bs-aspect-ratio: 30%;
+    }
+}
+
+/* Contenedor para gráficas Chart.js */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+@media (min-width: 768px) {
+    .chart-container {
+        height: 420px;
+    }
 }
 
 /* Spinner extra-grande para overlays de carga */

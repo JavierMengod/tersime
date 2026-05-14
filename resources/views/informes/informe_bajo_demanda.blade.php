@@ -229,11 +229,11 @@
 
             @foreach ($dispositivos as $dispositivo)
                 @php
-                    $nombreDispositivo = $dispositivo->URL;
+                    $nombreDispositivo = $dispositivo->influx_tag;
                     $graficasDispositivo = $graficas[$nombreDispositivo] ?? null;
                 @endphp
 
-                <h3>{{ $dispositivo->nombre ?? $nombreDispositivo }}</h3>
+                <h3>{{ $dispositivo->nombre }}</h3>
 
                 {{-- Media Horaria --}}
                 @php

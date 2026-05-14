@@ -39,7 +39,7 @@
                   <li>
                     <a class="dropdown-item dispositivo-opcion"
                        href="#"
-                       data-url="{{ $d->URL }}">
+                       data-url="{{ $d->influx_tag }}">
                       {{ $d->nombre }}
                     </a>
                   </li>

@@ -7,7 +7,7 @@
     $devicesList = auth()->user()->dispositivos->map(function($d){
         return [
             'id' => $d->id,
-            'name' => $d->name ?? $d->nombre ?? $d->URL ?? 'Dispositivo'
+            'name' => $d->name ?? $d->nombre ?? $d->influx_tag ?? 'Dispositivo'
         ];
     })->toArray();
 
@@ -58,7 +58,7 @@
             <td>
               @if($informe->dispositivos && $informe->dispositivos->count() > 0)
                 {{ $informe->dispositivos->map(function($d){
-                    return $d->name ?? $d->nombre ?? $d->URL ?? 'Dispositivo';
+                    return $d->name ?? $d->nombre ?? $d->influx_tag ?? 'Dispositivo';
                 })->implode(', ') }}
               @else
                 <em>-</em>

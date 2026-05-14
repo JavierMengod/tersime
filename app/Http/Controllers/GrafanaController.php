@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -9,6 +10,44 @@ use GuzzleHttp\Client;
 
 class GrafanaController extends Controller
 {
+    /**
+     * Devuelve series temporales de consumo para los dispositivos solicitados,
+     * con el nombre amigable del usuario en lugar del identificador de InfluxDB.
+     */
+    public function series(Request $request, InfluxController $influx): JsonResponse
+    {
+        $urls = array_filter((array) $request->input('devices', []));
+        $from = $request->input('from', '');
+        $to   = $request->input('to', '');
+
+        if (empty($urls) || !$from || !$to) {
+            return response()->json([]);
+        }
+
+        $nameMap = auth()->user()->dispositivos
+            ->whereIn('influx_tag', $urls)
+            ->mapWithKeys(fn($d) => [$d->influx_tag => $d->pivot->nombre])
+            ->toArray();
+
+        $datasets = [];
+        foreach ($urls as $url) {
+            $datos = $influx->datosHorarios($url, $from, $to);
+
+            $points = [];
+            foreach ($datos as $ts => $val) {
+                $points[] = ['x' => $ts, 'y' => round((float) $val, 4)];
+            }
+
+            $datasets[] = [
+                'label' => $nameMap[$url] ?? $url,
+                'data'  => $points,
+            ];
+        }
+
+        return response()->json($datasets);
+    }
+
+
     public function dispositivos()
     {
         $dispositivos = auth()->user()->dispositivos;
@@ -22,8 +61,7 @@ class GrafanaController extends Controller
         // Endpoint directo de InfluxDB
         $influxUrl = env('INFLUXDB_URL', 'http://localhost:8086') . '/api/v2/query?org=' . env('INFLUXDB_ORG', 'tersime');
 
-        // Token de InfluxDB
-        $token = "eG1Qd0LpqdfldWqyAl5VqLXu2yfU3usMrSiHschms7B3e8wd1upvF3oq1zSJ_EiJBAESgAWMpCv4yPN-7cCNCw==";
+        $token = env('INFLUXDB_TOKEN', '');
 
         // Consulta Flux
         $fluxQuery = <<<'FLUX'

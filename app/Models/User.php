@@ -48,7 +48,9 @@ class User extends Authenticatable
 
     public function dispositivos()
     {
-        return $this->belongsToMany(Dispositivo::class, 'user_dispositivo');
+        return $this->belongsToMany(Dispositivo::class, 'user_dispositivo')
+                    ->withPivot('nombre')
+                    ->withTimestamps();
     }
 
     public function smtpCredential()

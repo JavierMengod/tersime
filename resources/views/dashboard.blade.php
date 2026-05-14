@@ -13,7 +13,7 @@
                 use Carbon\Carbon;
 
                 $deviceParams = collect($dispositivos ?? [])->map(function ($d) {
-                    return 'var-dispositivos=' . rawurlencode($d->URL);
+                    return 'var-dispositivos=' . rawurlencode($d->influx_tag);
                 })->implode('&');
 
                 $deviceQuery = $deviceParams ? '&' . $deviceParams : '';

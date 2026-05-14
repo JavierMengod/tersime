@@ -5,84 +5,81 @@ namespace App\Http\Controllers;
 use App\Models\Dispositivo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\GrafanaController;
 
 class DispositivoController extends Controller
 {
-    protected GrafanaController $grafana;
-
     public function index()
     {
-        Log::info('Entrando en DispositivoController@index');
+        $dispositivos        = Auth::user()->dispositivos()->paginate(10);
+        $asignados           = Auth::user()->dispositivos()->pluck('influx_tag')->toArray();
+        $dispositivosGrafana = array_values(array_diff(GrafanaController::dispositivosGrafana(), $asignados));
 
-        $dispositivos = Auth::user()->dispositivos;
-        $dispositivosGrafana = GrafanaController::dispositivosGrafana();
-
-        return view('monitorizacion.dispositivos', compact(
-            'dispositivos',
-            'dispositivosGrafana'
-        ));
+        return view('monitorizacion.dispositivos', compact('dispositivos', 'dispositivosGrafana'));
     }
 
     public function store(Request $request)
     {
-        Log::info('Entrando en DispositivoController@store', ['request' => $request->all()]);
-
         $data = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'URL' => 'required|string|max:255',
+            'nombre'     => 'required|string|max:255',
+            'influx_tag' => 'required|string|max:255',
         ]);
 
-        $dispositivo = Dispositivo::create($data);
-        Auth::user()->dispositivos()->attach($dispositivo->id);
+        $dispositivo = Dispositivo::firstOrCreate(['influx_tag' => $data['influx_tag']]);
+
+        if (Auth::user()->dispositivos()->where('dispositivos.id', $dispositivo->id)->exists()) {
+            return redirect()
+                ->route('monitorizacion-dispositivos')
+                ->with('error', 'Ya tienes este dispositivo asignado.');
+        }
+
+        Auth::user()->dispositivos()->attach($dispositivo->id, ['nombre' => $data['nombre']]);
 
         return redirect()
-            ->route('dispositivo.index')
+            ->route('monitorizacion-dispositivos')
             ->with('success', 'Dispositivo creado correctamente.');
     }
 
-    public function update(Request $request)
+    public function update(Request $request, Dispositivo $dispositivo)
     {
-        Log::info('Entrando en DispositivoController@update', ['request' => $request->all()]);
-
         $data = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'nombre_original' => 'required|string|max:255',
-            'URL' => 'required|string|max:255',
+            'nombre'     => 'required|string|max:255',
+            'influx_tag' => 'required|string|max:255',
         ]);
 
-        // Buscar el dispositivo por nombre
-        $dispositivo = Dispositivo::where('nombre', $data['nombre_original'])->first();
+        $user = Auth::user();
 
-        if (!$dispositivo) {
-            Log::warning('Dispositivo no encontrado para actualizar', ['nombre' => $data['nombre']]);
-            return redirect()
-                ->route('dispositivo.index')
-                ->with('error', 'Dispositivo no encontrado.');
+        if ($data['influx_tag'] === $dispositivo->influx_tag) {
+            $user->dispositivos()->updateExistingPivot($dispositivo->id, ['nombre' => $data['nombre']]);
+        } else {
+            $user->dispositivos()->detach($dispositivo->id);
+
+            if ($dispositivo->usuarios()->count() === 0) {
+                $dispositivo->delete();
+            }
+
+            $nuevo = Dispositivo::firstOrCreate(['influx_tag' => $data['influx_tag']]);
+            $user->dispositivos()->attach($nuevo->id, ['nombre' => $data['nombre']]);
         }
 
-        // Actualizar campos
-        $dispositivo->update($data);
-
         return redirect()
-            ->route('dispositivo.index')
+            ->route('monitorizacion-dispositivos')
             ->with('success', 'Dispositivo actualizado correctamente.');
     }
 
-
     public function destroy(Dispositivo $dispositivo)
     {
-        Log::info('Entrando en DispositivoController@destroy', [
-            'id' => $dispositivo->id,
-            'nombre' => $dispositivo->nombre
-        ]);
+        $user   = Auth::user();
+        $pivot  = $user->dispositivos()->where('dispositivos.id', $dispositivo->id)->first();
+        $nombre = $pivot ? $pivot->pivot->nombre : $dispositivo->influx_tag;
 
-        $nombre = $dispositivo->nombre;
-        $dispositivo->delete();
+        $user->dispositivos()->detach($dispositivo->id);
+
+        if ($dispositivo->usuarios()->count() === 0) {
+            $dispositivo->delete();
+        }
 
         return redirect()
-            ->route('dispositivo.index')
-            ->with('success', 'Dispositivo "' . $nombre . '" eliminado correctamente.');
+            ->route('monitorizacion-dispositivos')
+            ->with('success', "Dispositivo \"{$nombre}\" eliminado correctamente.");
     }
 }

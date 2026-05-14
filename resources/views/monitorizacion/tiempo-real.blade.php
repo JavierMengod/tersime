@@ -39,7 +39,7 @@
                   <li>
                     <a class="dropdown-item dispositivo-opcion"
                        href="#"
-                       data-url="{{ $d->URL }}">
+                       data-url="{{ $d->influx_tag }}">
                       {{ $d->nombre }}
                     </a>
                   </li>
@@ -62,6 +62,7 @@
     <div class="card mb-4 border-0 shadow-sm">
       <div class="card-header bg-white fw-bold">{{ __('Previsualizar Grafana') }}</div>
       <div class="card-body">
+
         <div class="ratio ratio--grafana">
           <iframe id="grafanaIframe"
                   src=""
@@ -70,6 +71,11 @@
                   frameborder="0"
                   loading="lazy"></iframe>
         </div>
+
+        {{-- Leyenda con nombres amigables, en el mismo orden que las series de Grafana --}}
+        <div id="grafanaLeyenda" class="d-none d-flex flex-wrap gap-3 mt-3 pt-3 border-top">
+        </div>
+
       </div>
     </div>
 
@@ -77,7 +83,7 @@
 
 @push('scripts')
 <script>
-const GRAFANA_BASE   = '{{ $grafanaBaseUrl }}/d-solo/eegznxsjl47i8b/dashboard-initiot';
+const GRAFANA_BASE   = '{{ $grafanaBaseUrl }}/d-solo/tersime-tr-embed/dashboard-initiot-embed';
 const GRAFANA_PARAMS = 'orgId=1&timezone=browser&panelId=1&__feature.dashboardSceneSolo&theme={{ Auth::user()->theme ?? "light" }}';
 const MSG_SIN_DISPOSITIVO = '{{ __('Debes seleccionar al menos un dispositivo') }}';
 </script>
@@ -85,23 +91,37 @@ const MSG_SIN_DISPOSITIVO = '{{ __('Debes seleccionar al menos un dispositivo') 
 <script src="{{ asset('assets/js/device-selector.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const iframe = document.getElementById('grafanaIframe');
+    const iframe  = document.getElementById('grafanaIframe');
+    const leyenda = document.getElementById('grafanaLeyenda');
 
+    // Paleta en el mismo orden que la Classic Palette de Grafana
+    const PALETTE = [
+        '#7EB26D', '#EAB839', '#6ED0E0', '#EF843C',
+        '#E24D42', '#1F78C1', '#BA43A9', '#705DA0',
+        '#508642', '#CCA300',
+    ];
+
+    // ── Fechas por defecto ─────────────────────────────────────────────────────
     const today = new Date();
     const from  = new Date();
     from.setDate(today.getDate() - 7);
     document.getElementById('fromDate').value = formatLocalDate(from);
     document.getElementById('toDate').value   = formatLocalDate(today);
 
+    // ── Selector de dispositivos ───────────────────────────────────────────────
     const selector = new MultiDeviceSelector({
         containerId:  'dispositivosSeleccionados',
         itemSelector: '.dispositivo-opcion',
         msgEmpty:     MSG_SIN_DISPOSITIVO,
         getData:      el => ({ key: el.dataset.url, label: el.textContent.trim() }),
         hideSelected: true,
-        onChange:     () => actualizarIframe(),
+        onChange:     () => {
+            actualizarIframe();
+            actualizarLeyenda(selector.selections);
+        },
     });
 
+    // ── Iframe ─────────────────────────────────────────────────────────────────
     function actualizarIframe() {
         const url = buildTiempoRealUrl(
             GRAFANA_BASE, GRAFANA_PARAMS,
@@ -112,8 +132,36 @@ document.addEventListener('DOMContentLoaded', () => {
         iframe.src = url ?? '';
     }
 
+    // ── Leyenda ────────────────────────────────────────────────────────────────
+    function actualizarLeyenda(selections) {
+        leyenda.innerHTML = '';
+
+        if (!selections.length) {
+            leyenda.classList.add('d-none');
+            return;
+        }
+
+        selections.forEach((sel, i) => {
+            const color = PALETTE[i % PALETTE.length];
+            const item  = document.createElement('span');
+            item.className = 'd-flex align-items-center gap-2 small fw-medium';
+
+            const dot = document.createElement('span');
+            dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${color};flex-shrink:0`;
+
+            const texto = document.createElement('span');
+            texto.textContent = sel.label;
+
+            item.appendChild(dot);
+            item.appendChild(texto);
+            leyenda.appendChild(item);
+        });
+
+        leyenda.classList.remove('d-none');
+    }
+
     document.getElementById('fromDate').addEventListener('change', actualizarIframe);
-    document.getElementById('toDate').addEventListener('change', actualizarIframe);
+    document.getElementById('toDate').addEventListener('change',   actualizarIframe);
     actualizarIframe();
 });
 </script>

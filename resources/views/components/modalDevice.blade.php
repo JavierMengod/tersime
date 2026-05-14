@@ -32,9 +32,6 @@
                             value="{{ old('nombre', $device->nombre ?? '') }}" required>
                     </div>
 
-                    @if ($isEdit)
-                        <input type="hidden" name="nombre_original" value="{{ $device->nombre }}">
-                    @endif
                     {{-- URL Grafana --}}
                     <div class="mb-3">
                         <label class="form-label">{{ __('URL Grafana') }}</label>
