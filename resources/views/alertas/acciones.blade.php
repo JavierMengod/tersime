@@ -121,9 +121,9 @@
                 </div>
             </div>
 
-            {{-- Canales + botón editar --}}
-            <div class="col-12 col-md-2 d-flex align-items-center justify-content-between justify-content-md-end gap-3">
-                <div class="d-flex gap-2">
+            {{-- Canales + acciones --}}
+            <div class="col-12 col-md-2 d-flex align-items-center justify-content-between justify-content-md-end gap-2 flex-wrap">
+                <div class="d-flex gap-2 me-1">
                     @foreach($channels as $ch)
                         <span title="{{ $ch['label'] }}" class="{{ $ch['color'] }} fs-5"><i class="{{ $ch['icon'] }}"></i></span>
                     @endforeach
@@ -131,11 +131,23 @@
                         <span class="text-muted small">—</span>
                     @endif
                 </div>
-                <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                {{-- Toggle activo/inactivo --}}
+                <form action="{{ route('reglas.toggle', $regla->id) }}" method="POST" class="d-inline">
+                    @csrf @method('PATCH')
+                    <button type="submit"
+                            class="btn btn-sm {{ $regla->is_active ? 'btn-outline-secondary' : 'btn-outline-success' }}"
+                            title="{{ $regla->is_active ? __('Desactivar') : __('Activar') }}">
+                        <i class="fas {{ $regla->is_active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                        <span class="d-none d-lg-inline ms-1">{{ $regla->is_active ? __('Desactivar') : __('Activar') }}</span>
+                    </button>
+                </form>
+                {{-- Editar --}}
+                <button class="btn btn-sm btn-outline-primary"
                         data-bs-toggle="modal"
-                        data-bs-target="#modal-rule-{{ $regla->id }}">
+                        data-bs-target="#modal-rule-{{ $regla->id }}"
+                        title="{{ __('Editar') }}">
                     <i class="fas fa-pencil-alt"></i>
-                    <span class="d-none d-md-inline">{{ __('Editar') }}</span>
+                    <span class="d-none d-lg-inline ms-1">{{ __('Editar') }}</span>
                 </button>
             </div>
 

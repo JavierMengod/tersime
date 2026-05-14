@@ -121,6 +121,7 @@ Route::middleware('auth')->group(function () {
     // Reglas de alerta
     Route::post('/reglas/update', [ReglaController::class, 'guardar'])->name('reglas.guardar');
     Route::put('/reglas/{id}', [ReglaController::class, 'update'])->name('reglas.update');
+    Route::patch('/reglas/{id}/toggle', [ReglaController::class, 'toggle'])->name('reglas.toggle');
     Route::delete('/reglas/{id}', [ReglaController::class, 'destroy'])->name('reglas.destroy');
 
     // Medios de notificación

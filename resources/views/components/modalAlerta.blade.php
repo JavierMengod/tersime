@@ -211,25 +211,17 @@
       </div>
 
       {{-- FOOTER --}}
-      <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center">
-        <div class="form-check form-switch mb-0">
-          <input class="form-check-input" type="checkbox" name="active"
-                 id="{{ $modalId }}-active"
-                 {{ old('active', $rule['active'] ?? true) ? 'checked' : '' }}>
-          <label class="form-check-label small" for="{{ $modalId }}-active">{{ __('Regla activa') }}</label>
-        </div>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('Cancelar') }}</button>
-          @if ($isEdit)
-            <button type="button" class="btn btn-outline-danger btn-sm"
-                    onclick="if(confirm('{{ __('¿Eliminar esta regla definitivamente?') }}')) { document.getElementById('delete-rule-{{ $rule['id'] }}').submit(); }">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          @endif
-          <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
-            <i class="fas fa-save"></i> {{ __('Guardar') }}
+      <div class="modal-footer border-0 pt-0 justify-content-end gap-2">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('Cancelar') }}</button>
+        @if ($isEdit)
+          <button type="button" class="btn btn-outline-danger btn-sm"
+                  onclick="if(confirm('{{ __('¿Eliminar esta regla definitivamente?') }}')) { document.getElementById('delete-rule-{{ $rule['id'] }}').submit(); }">
+            <i class="fas fa-trash-alt"></i>
           </button>
-        </div>
+        @endif
+        <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+          <i class="fas fa-save"></i> {{ __('Guardar') }}
+        </button>
       </div>
     </form>
 

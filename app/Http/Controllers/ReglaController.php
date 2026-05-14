@@ -38,7 +38,7 @@ class ReglaController extends Controller
             'comparison_value' => $validated['value'],
             'for_duration' => $validated['for_duration'],
             'time_range' => 0,
-            'is_active' => $request->has('active'),
+            'is_active' => true,
             'email_enabled' => in_array('email', $methods, true),
             'telegram_enabled' => in_array('telegram', $methods, true),
             'discord_enabled' => in_array('discord', $methods, true),
@@ -85,7 +85,6 @@ class ReglaController extends Controller
             'operator' => $validated['operator'],
             'comparison_value' => $validated['value'],
             'for_duration' => $validated['for_duration'],
-            'is_active' => $request->has('active'),
             'email_enabled' => in_array('email', $methods, true),
             'telegram_enabled' => in_array('telegram', $methods, true),
             'discord_enabled' => in_array('discord', $methods, true),
@@ -103,6 +102,17 @@ class ReglaController extends Controller
         Log::info("Regla ID {$id} actualizada correctamente");
 
         return redirect()->back()->with('success', 'Regla actualizada correctamente.');
+    }
+
+    public function toggle($id)
+    {
+        $rule = Rule::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+        $rule->update(['is_active' => !$rule->is_active]);
+
+        $msg = $rule->is_active ? 'Regla activada.' : 'Regla desactivada.';
+        Log::info("Regla ID {$id} " . ($rule->is_active ? 'activada' : 'desactivada'));
+
+        return back()->with('success', $msg);
     }
 
     public function destroy(Request $request, $id)
