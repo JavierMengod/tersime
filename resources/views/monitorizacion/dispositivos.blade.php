@@ -34,17 +34,37 @@
                         <tr>
                             <th>{{ __('Nombre') }}</th>
                             <th>{{ __('Identificador') }}</th>
+                            <th class="text-center">{{ __('Datos') }}</th>
                             <th class="text-end">{{ __('Acciones') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($dispositivos as $device)
                             <tr>
-                                <td>{{ $device->nombre }}</td>
-                                <td class="text-truncate" style="max-width: 300px;">
+                                <td class="{{ $device->pivot->habilitado ? '' : 'text-muted' }}">
+                                    {{ $device->nombre }}
+                                    @if(!$device->pivot->habilitado)
+                                        <span class="badge bg-secondary ms-1">{{ __('Deshabilitado') }}</span>
+                                    @endif
+                                </td>
+                                <td class="text-truncate {{ $device->pivot->habilitado ? '' : 'text-muted' }}" style="max-width: 260px;">
                                     {{ $device->influx_tag }}
                                 </td>
+                                <td class="text-center">
+                                    @if($device->activo)
+                                        <span class="badge bg-success">{{ __('Activo') }}</span>
+                                    @else
+                                        <span class="badge bg-danger">{{ __('Sin datos') }}</span>
+                                    @endif
+                                </td>
                                 <td class="text-end">
+                                    <form action="{{ route('dispositivo.toggle', $device) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button class="btn btn-sm {{ $device->pivot->habilitado ? 'btn-outline-secondary' : 'btn-outline-success' }} me-1">
+                                            {{ $device->pivot->habilitado ? __('Deshabilitar') : __('Habilitar') }}
+                                        </button>
+                                    </form>
                                     <button class="btn btn-sm btn-primary me-1"
                                             data-bs-toggle="modal"
                                             data-bs-target="#modal-device-edit"
@@ -64,7 +84,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="text-center text-muted py-4">
+                                <td colspan="4" class="text-center text-muted py-4">
                                     {{ __('No hay dispositivos dados de alta.') }}
                                 </td>
                             </tr>

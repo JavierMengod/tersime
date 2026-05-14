@@ -20,5 +20,5 @@ datasources:
     type: marcusolsson-json-datasource
     uid: bf3cexvuipxj4e
     access: proxy
-    url: http://host.docker.internal:81
+    url: http://host.docker.internal:8888
     editable: true

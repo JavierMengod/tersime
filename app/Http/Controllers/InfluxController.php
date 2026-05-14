@@ -194,6 +194,78 @@ FLUX;
         }
     }
 
+    /**
+     * Consulta InfluxDB directamente (sin pasar por Grafana) y devuelve
+     * timestamps + valores horarios del último año para un dispositivo.
+     * Usado exclusivamente por PrediccionController.
+     */
+    public function datosParaPrediccion(string $device, string $stop): array
+    {
+        $influxUrl = env('INFLUXDB_URL', 'http://localhost:8086')
+            . '/api/v2/query?org=' . env('INFLUXDB_ORG', 'tersime');
+        $token    = env('INFLUXDB_TOKEN', '');
+        $stopFlux = $this->fluxTimeLiteral($stop, false);
+
+        $flux = <<<FLUX
+from(bucket: "{$this->bucket}")
+  |> range(start: -1y, stop: {$stopFlux})
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
+  |> sort(columns: ["_time"])
+  |> keep(columns: ["_time", "_value"])
+FLUX;
+
+        $response = Http::withHeaders([
+            'Authorization' => "Token {$token}",
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/csv',
+        ])->timeout(30)->post($influxUrl, [
+            'query'   => $flux,
+            'dialect' => ['header' => true, 'delimiter' => ','],
+        ]);
+
+        if (!$response->successful()) {
+            Log::error('[InfluxController] datosParaPrediccion ERROR', [
+                'status' => $response->status(),
+                'body'   => substr($response->body(), 0, 500),
+            ]);
+            return ['timestamps' => [], 'values' => []];
+        }
+
+        $timestamps = [];
+        $values     = [];
+        $timeIdx    = null;
+        $valueIdx   = null;
+        $headerSeen = false;
+
+        foreach (explode("\n", $response->body()) as $line) {
+            $line = trim($line);
+            if ($line === '' || strpos($line, '#') === 0) continue;
+
+            $cols = str_getcsv($line);
+
+            if (!$headerSeen) {
+                $headerSeen = true;
+                $timeIdx    = array_search('_time', $cols);
+                $valueIdx   = array_search('_value', $cols);
+                continue;
+            }
+
+            if ($timeIdx === false || $valueIdx === false) continue;
+            if (!isset($cols[$timeIdx], $cols[$valueIdx])) continue;
+            if (!is_numeric($cols[$valueIdx])) continue;
+
+            $timestamps[] = $cols[$timeIdx];
+            $values[]     = (float) $cols[$valueIdx];
+        }
+
+        Log::info('[InfluxController] datosParaPrediccion OK', [
+            'device' => $device,
+            'puntos' => count($timestamps),
+        ]);
+
+        return ['timestamps' => $timestamps, 'values' => $values];
+    }
+
     // ---------------------------------------------------------
     //  FLUX EXEC / HELPERS
     // ---------------------------------------------------------

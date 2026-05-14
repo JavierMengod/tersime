@@ -12,6 +12,8 @@ class Dispositivo extends Model
 
     protected $fillable = ['influx_tag'];
 
+    protected $casts = ['activo' => 'boolean'];
+
     /**
      * Devuelve el nombre amigable del usuario para este dispositivo.
      * Cuando el modelo viene cargado a través de la relación del usuario (withPivot),

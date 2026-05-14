@@ -49,7 +49,7 @@ class User extends Authenticatable
     public function dispositivos()
     {
         return $this->belongsToMany(Dispositivo::class, 'user_dispositivo')
-                    ->withPivot('nombre')
+                    ->withPivot('nombre', 'habilitado')
                     ->withTimestamps();
     }
 

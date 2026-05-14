@@ -22,12 +22,19 @@ Route::controller(AuthController::class)->group(function () {
     Route::get('/logout', 'logout')->name('logout');
 });
 
+// ── Rutas públicas de datos (llamadas desde Grafana JSON-API sin sesión) ────────
+Route::get('/prediccion/obtener', [PrediccionController::class, 'obtenerDatos'])
+    ->name('prediccion.obtener');
+
+// Alias legacy que tenía configurado el panel de Grafana
+Route::get('/monitorizacion-prediccion/obtener-datos', [PrediccionController::class, 'obtenerDatos']);
+
 // ── Rutas autenticadas ─────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/inicio', function () {
-        $dispositivos = auth()->user()->dispositivos;
+        $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
         return view('dashboard', compact('dispositivos'));
     })->name('dashboard');
 
@@ -56,7 +63,7 @@ Route::middleware('auth')->group(function () {
 
     // ── Monitorización ─────────────────────────────────────────────────────────
     Route::get('/monitorizacion-tiempo-real', function () {
-        $dispositivos   = auth()->user()->dispositivos;
+        $dispositivos   = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
         $grafanaBaseUrl = config('app.grafana_base_url');
         return view('monitorizacion.tiempo-real', compact('dispositivos', 'grafanaBaseUrl'));
     })->name('monitorizacion-tiempo-real');
@@ -70,9 +77,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/monitorizacion-prediccion', [PrediccionController::class, 'index'])
         ->name('prediccion.index');
 
-    Route::get('/prediccion/obtener', [PrediccionController::class, 'obtenerDatos'])
-        ->name('prediccion.obtener');
-
     Route::post('/predecir', [PrediccionController::class, 'predecir'])
         ->name('prediccion.predecir');
 
@@ -83,17 +87,20 @@ Route::middleware('auth')->group(function () {
     Route::put('/dispositivos/{dispositivo}', [DispositivoController::class, 'update'])
         ->name('dispositivo.update');
 
+    Route::patch('/dispositivos/{dispositivo}/toggle', [DispositivoController::class, 'toggle'])
+        ->name('dispositivo.toggle');
+
     Route::delete('/dispositivos/{dispositivo}', [DispositivoController::class, 'destroy'])
         ->name('dispositivo.destroy');
 
     // ── Alertas ────────────────────────────────────────────────────────────────
     Route::get('/alertas-acciones', function () {
-        $dispositivos = auth()->user()->dispositivos;
+        $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
         return view('alertas.acciones', compact('dispositivos'));
     })->name('alertas-acciones');
 
     Route::get('/alertas-plantillas', function () {
-        $dispositivos = auth()->user()->dispositivos;
+        $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
         return view('alertas.plantillas', compact('dispositivos'));
     })->name('alertas-plantillas');
 

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dispositivo;
+use App\Models\DispositivoEstadoLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DispositivoController extends Controller
 {
@@ -32,7 +34,21 @@ class DispositivoController extends Controller
                 ->with('error', 'Ya tienes este dispositivo asignado.');
         }
 
-        Auth::user()->dispositivos()->attach($dispositivo->id, ['nombre' => $data['nombre']]);
+        $now = now();
+
+        DB::transaction(function () use ($dispositivo, $data, $now) {
+            Auth::user()->dispositivos()->attach($dispositivo->id, [
+                'nombre'     => $data['nombre'],
+                'habilitado' => 1,
+            ]);
+
+            DispositivoEstadoLog::create([
+                'user_id'        => Auth::id(),
+                'dispositivo_id' => $dispositivo->id,
+                'habilitado'     => true,
+                'changed_at'     => $now,
+            ]);
+        });
 
         return redirect()
             ->route('monitorizacion-dispositivos')
@@ -58,12 +74,41 @@ class DispositivoController extends Controller
             }
 
             $nuevo = Dispositivo::firstOrCreate(['influx_tag' => $data['influx_tag']]);
-            $user->dispositivos()->attach($nuevo->id, ['nombre' => $data['nombre']]);
+            $user->dispositivos()->attach($nuevo->id, ['nombre' => $data['nombre'], 'habilitado' => 1]);
         }
 
         return redirect()
             ->route('monitorizacion-dispositivos')
             ->with('success', 'Dispositivo actualizado correctamente.');
+    }
+
+    public function toggle(Dispositivo $dispositivo)
+    {
+        $user  = Auth::user();
+        $pivot = $user->dispositivos()->where('dispositivos.id', $dispositivo->id)->first();
+
+        if (!$pivot) {
+            abort(404);
+        }
+
+        $habilitado    = (bool) $pivot->pivot->habilitado;
+        $nuevoEstado   = !$habilitado;
+        $now           = now();
+
+        DB::transaction(function () use ($user, $dispositivo, $nuevoEstado, $now) {
+            $user->dispositivos()->updateExistingPivot($dispositivo->id, ['habilitado' => $nuevoEstado]);
+
+            DispositivoEstadoLog::create([
+                'user_id'        => $user->id,
+                'dispositivo_id' => $dispositivo->id,
+                'habilitado'     => $nuevoEstado,
+                'changed_at'     => $now,
+            ]);
+        });
+
+        $msg = $habilitado ? 'Dispositivo deshabilitado.' : 'Dispositivo habilitado.';
+
+        return redirect()->route('monitorizacion-dispositivos')->with('success', $msg);
     }
 
     public function destroy(Dispositivo $dispositivo)
