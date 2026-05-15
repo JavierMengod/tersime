@@ -380,7 +380,7 @@
           "method": "GET",
           "queryParams": "",
           "refId": "A",
-          "urlPath": "/monitorizacion-prediccion/obtener-datos?start=$start&stop=$end&device=$dispositivos&predic_hours=$predict_hours"
+          "urlPath": "/api/prediction?start=$start&stop=$end&device=$dispositivos&predic_hours=$predict_hours"
         }
       ],
       "title": "Visualizacion Prediccion",

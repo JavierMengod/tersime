@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\RuleController;
 use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ConsumptionController;
+use App\Http\Controllers\Api\PrediccionController;
 
 // ── Auth (pública) ──────────────────────────────────────────────────────────────
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -43,4 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Consumption
     Route::get('/consumption/summary', [ConsumptionController::class, 'summary']);
     Route::get('/consumption/cost',    [ConsumptionController::class, 'cost']);
+
+    // Prediction (Grafana JSON datasource)
+    Route::get('/prediction', [PrediccionController::class, 'index']);
 });
