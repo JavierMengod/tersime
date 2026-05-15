@@ -9,15 +9,11 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class PrediccionApiTest extends TestCase
 {
     use RefreshDatabase;
-
-    private User $user;
-    private Dispositivo $dispositivo;
 
     protected function setUp(): void
     {
@@ -26,19 +22,21 @@ class PrediccionApiTest extends TestCase
         Setting::set('predictor_url', 'http://predictor:5000/predict');
         Setting::set('predictor_timeout', '30');
         Setting::set('predictor_default_hours', '24');
-
-        $this->user        = User::factory()->create();
-        $this->dispositivo = Dispositivo::factory()->create(['influx_tag' => 'DEV-001']);
-        $this->user->dispositivos()->attach($this->dispositivo->id, ['habilitado' => 1]);
     }
 
-    // ── Autenticación ──────────────────────────────────────────────────────────
+    // ── Acceso público ─────────────────────────────────────────────────────────
 
     /** @test */
-    public function unauthenticated_request_returns_401(): void
+    public function endpoint_is_publicly_accessible_without_token(): void
     {
+        $this->mock(InfluxController::class, function ($m) {
+            $m->shouldReceive('datosParaPrediccion')
+              ->andReturn(['timestamps' => [], 'values' => []]);
+        });
+
+        // Sin autenticación → no 401 sino respuesta de negocio (422 sin datos)
         $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001')
-             ->assertStatus(401);
+             ->assertStatus(422);
     }
 
     // ── Validación de parámetros ───────────────────────────────────────────────
@@ -46,8 +44,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function missing_start_returns_422(): void
     {
-        Sanctum::actingAs($this->user);
-
         $this->getJson('/api/prediction?stop=2024-01-31&device=DEV-001')
              ->assertStatus(422)
              ->assertJsonValidationErrors('start');
@@ -56,8 +52,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function missing_stop_returns_422(): void
     {
-        Sanctum::actingAs($this->user);
-
         $this->getJson('/api/prediction?start=2024-01-01&device=DEV-001')
              ->assertStatus(422)
              ->assertJsonValidationErrors('stop');
@@ -66,8 +60,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function missing_device_returns_422(): void
     {
-        Sanctum::actingAs($this->user);
-
         $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31')
              ->assertStatus(422)
              ->assertJsonValidationErrors('device');
@@ -79,7 +71,6 @@ class PrediccionApiTest extends TestCase
     public function returns_503_when_predictor_url_not_configured(): void
     {
         Setting::set('predictor_url', '');
-        Sanctum::actingAs($this->user);
 
         $this->mock(InfluxController::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
@@ -94,8 +85,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function returns_422_when_no_historical_data(): void
     {
-        Sanctum::actingAs($this->user);
-
         $this->mock(InfluxController::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => [], 'values' => []]);
@@ -109,8 +98,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function returns_502_when_predictor_service_fails(): void
     {
-        Sanctum::actingAs($this->user);
-
         $this->mock(InfluxController::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => ['2024-01-01T00:00:00Z'], 'values' => [1.0]]);
@@ -128,8 +115,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function returns_json_array_with_metric_time_value_keys(): void
     {
-        Sanctum::actingAs($this->user);
-
         Carbon::setTestNow('2024-01-15 12:00:00');
 
         $this->mock(InfluxController::class, function ($m) {
@@ -149,12 +134,10 @@ class PrediccionApiTest extends TestCase
         $response = $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001');
 
         $response->assertStatus(200);
-        $data = $response->json();
-
-        $this->assertIsArray($data);
-        $this->assertArrayHasKey('metric', $data[0]);
-        $this->assertArrayHasKey('time',   $data[0]);
-        $this->assertArrayHasKey('value',  $data[0]);
+        $item = $response->json()[0];
+        $this->assertArrayHasKey('metric', $item);
+        $this->assertArrayHasKey('time',   $item);
+        $this->assertArrayHasKey('value',  $item);
 
         Carbon::setTestNow();
     }
@@ -162,11 +145,8 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function real_data_is_filtered_to_start_stop_range(): void
     {
-        Sanctum::actingAs($this->user);
-
         Carbon::setTestNow('2024-01-15 12:00:00');
 
-        // timestamps: one inside range, one outside
         $this->mock(InfluxController::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn([
@@ -179,10 +159,10 @@ class PrediccionApiTest extends TestCase
 
         $response = $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001');
 
-        $reales = array_filter($response->json(), fn($r) => $r['metric'] === 'reales');
+        $reales = array_values(array_filter($response->json(), fn($r) => $r['metric'] === 'reales'));
 
         $this->assertCount(1, $reales);
-        $this->assertSame('2024-01-10T00:00:00Z', array_values($reales)[0]['time']);
+        $this->assertSame('2024-01-10T00:00:00Z', $reales[0]['time']);
 
         Carbon::setTestNow();
     }
@@ -190,8 +170,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function past_predictions_are_excluded(): void
     {
-        Sanctum::actingAs($this->user);
-
         Carbon::setTestNow('2024-01-15 12:00:00');
 
         $this->mock(InfluxController::class, function ($m) {
@@ -201,16 +179,16 @@ class PrediccionApiTest extends TestCase
 
         Http::fake(['http://predictor:5000/predict' => Http::response([
             'predichos' => [
-                ['ds' => '2024-01-14T00:00:00Z', 'yhat' => 1.0, 'yhat_lower' => null, 'yhat_upper' => null], // past
-                ['ds' => '2024-01-16T00:00:00Z', 'yhat' => 2.0, 'yhat_lower' => null, 'yhat_upper' => null], // future
+                ['ds' => '2024-01-14T00:00:00Z', 'yhat' => 1.0, 'yhat_lower' => null, 'yhat_upper' => null],
+                ['ds' => '2024-01-16T00:00:00Z', 'yhat' => 2.0, 'yhat_lower' => null, 'yhat_upper' => null],
             ],
         ], 200)]);
 
         $response  = $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001');
-        $predichos = array_filter($response->json(), fn($r) => $r['metric'] === 'predichos');
+        $predichos = array_values(array_filter($response->json(), fn($r) => $r['metric'] === 'predichos'));
 
         $this->assertCount(1, $predichos);
-        $this->assertSame('2024-01-16T00:00:00Z', array_values($predichos)[0]['time']);
+        $this->assertSame('2024-01-16T00:00:00Z', $predichos[0]['time']);
 
         Carbon::setTestNow();
     }
@@ -218,8 +196,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function predictions_with_bounds_produce_three_series(): void
     {
-        Sanctum::actingAs($this->user);
-
         Carbon::setTestNow('2024-01-15 12:00:00');
 
         $this->mock(InfluxController::class, function ($m) {
@@ -233,10 +209,11 @@ class PrediccionApiTest extends TestCase
             ],
         ], 200)]);
 
-        $response = $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001');
-        $data     = $response->json();
+        $metrics = array_column(
+            $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001')->json(),
+            'metric'
+        );
 
-        $metrics = array_column($data, 'metric');
         $this->assertContains('predichos',       $metrics);
         $this->assertContains('predichos_lower', $metrics);
         $this->assertContains('predichos_upper', $metrics);
@@ -247,8 +224,6 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function predictions_without_bounds_produce_only_main_series(): void
     {
-        Sanctum::actingAs($this->user);
-
         Carbon::setTestNow('2024-01-15 12:00:00');
 
         $this->mock(InfluxController::class, function ($m) {
@@ -262,8 +237,10 @@ class PrediccionApiTest extends TestCase
             ],
         ], 200)]);
 
-        $response = $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001');
-        $metrics  = array_column($response->json(), 'metric');
+        $metrics = array_column(
+            $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31&device=DEV-001')->json(),
+            'metric'
+        );
 
         $this->assertContains('predichos', $metrics);
         $this->assertNotContains('predichos_lower', $metrics);

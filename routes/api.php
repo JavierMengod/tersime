@@ -9,8 +9,11 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ConsumptionController;
 use App\Http\Controllers\Api\PrediccionController;
 
-// ── Auth (pública) ──────────────────────────────────────────────────────────────
+// ── Rutas públicas ─────────────────────────────────────────────────────────────
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+// Consumida por el datasource JSON-API de Grafana (sin sesión de usuario)
+Route::get('/prediction', [PrediccionController::class, 'index']);
 
 // ── Rutas protegidas con Sanctum ────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -45,6 +48,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/consumption/summary', [ConsumptionController::class, 'summary']);
     Route::get('/consumption/cost',    [ConsumptionController::class, 'cost']);
 
-    // Prediction (Grafana JSON datasource)
-    Route::get('/prediction', [PrediccionController::class, 'index']);
 });
