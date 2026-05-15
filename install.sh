@@ -74,10 +74,29 @@ echo ""
 
 # ── Si ya existe .env preguntar ───────────────────────────────────────────────
 SKIP_CONFIG=0
-if [ -f .env ] && [ "$NON_INTERACTIVE" = "0" ]; then
-    echo -e "${YELLOW}  .env ya existe.${NC}"
-    read -rp "  ¿Sobrescribir la configuración? [s/N]: " OVERWRITE
-    [[ "$OVERWRITE" =~ ^[sS]$ ]] || SKIP_CONFIG=1
+if [ -f .env ]; then
+    if grep -q "DOCKER_INFLUXDB_INIT_PASSWORD" .env 2>/dev/null; then
+        # .env ya tiene config Docker — preguntar si reconfigurar
+        if [ "$NON_INTERACTIVE" = "0" ]; then
+            echo -e "${YELLOW}  .env Docker ya existe.${NC}"
+            read -rp "  ¿Reconfigurar desde cero? [s/N]: " OVERWRITE
+            [[ "$OVERWRITE" =~ ^[sS]$ ]] || SKIP_CONFIG=1
+        else
+            SKIP_CONFIG=1
+        fi
+    else
+        # .env existe pero es de desarrollo local (sin vars Docker) — avisar y preguntar
+        warn ".env existente no tiene configuración Docker."
+        if [ "$NON_INTERACTIVE" = "0" ]; then
+            echo -e "  ${DIM}Se sobrescribirá con la configuración Docker (se hará una copia de seguridad).${NC}"
+            read -rp "  ¿Continuar? [S/n]: " OVERWRITE
+            if [[ "$OVERWRITE" =~ ^[nN]$ ]]; then
+                error "Instalación cancelada. Mueve o renombra tu .env antes de continuar."
+            fi
+        fi
+        cp .env .env.bak
+        info ".env local guardado como .env.bak"
+    fi
 fi
 
 # ── Configuración ─────────────────────────────────────────────────────────────
