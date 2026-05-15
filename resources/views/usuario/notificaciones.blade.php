@@ -55,7 +55,7 @@
         @endif
     </div>
     @if ($noLeidas > 0)
-        <form method="POST" action="{{ route('notificaciones.read-all') }}">
+        <form method="POST" action="{{ route('notificaciones.read_all') }}">
             @csrf
             @method('PATCH')
             <button type="submit" class="btn btn-sm btn-outline-secondary">

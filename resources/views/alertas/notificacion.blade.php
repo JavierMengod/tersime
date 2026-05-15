@@ -71,7 +71,7 @@
                             <i class="fas fa-cog me-1"></i>{{ __('Configurar') }}
                         </button>
                         @if ($tg)
-                            <form method="POST" action="{{ route('medios.update', 'telegram') }}">
+                            <form method="POST" action="{{ route('alertas.medios.update', 'telegram') }}">
                                 @csrf @method('PUT')
                                 <input type="hidden" name="active" value="{{ $tg->active ? 0 : 1 }}">
                                 <button type="submit"
@@ -80,7 +80,7 @@
                                     <i class="fas {{ $tg->active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                 </button>
                             </form>
-                            <form method="POST" action="{{ route('medios.destroy', 'telegram') }}"
+                            <form method="POST" action="{{ route('alertas.medios.destroy', 'telegram') }}"
                                   onsubmit="return confirm('{{ __('¿Desconectar Telegram? Se borrarán las credenciales guardadas.') }}')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('Desconectar') }}">
@@ -133,7 +133,7 @@
                             <i class="fas fa-cog me-1"></i>{{ __('Configurar') }}
                         </button>
                         @if ($smtp)
-                            <form method="POST" action="{{ route('medios.update', 'email') }}">
+                            <form method="POST" action="{{ route('alertas.medios.update', 'email') }}">
                                 @csrf @method('PUT')
                                 <input type="hidden" name="active" value="{{ $smtp->active ? 0 : 1 }}">
                                 <button type="submit"
@@ -142,7 +142,7 @@
                                     <i class="fas {{ $smtp->active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                 </button>
                             </form>
-                            <form method="POST" action="{{ route('medios.destroy', 'email') }}"
+                            <form method="POST" action="{{ route('alertas.medios.destroy', 'email') }}"
                                   onsubmit="return confirm('{{ __('¿Desconectar el correo? Se borrarán las credenciales SMTP guardadas.') }}')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('Desconectar') }}">
@@ -192,7 +192,7 @@
                             <i class="fas fa-cog me-1"></i>{{ __('Configurar') }}
                         </button>
                         @if ($dc)
-                            <form method="POST" action="{{ route('medios.update', 'discord') }}">
+                            <form method="POST" action="{{ route('alertas.medios.update', 'discord') }}">
                                 @csrf @method('PUT')
                                 <input type="hidden" name="active" value="{{ $dc->active ? 0 : 1 }}">
                                 <button type="submit"
@@ -201,7 +201,7 @@
                                     <i class="fas {{ $dc->active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                 </button>
                             </form>
-                            <form method="POST" action="{{ route('medios.destroy', 'discord') }}"
+                            <form method="POST" action="{{ route('alertas.medios.destroy', 'discord') }}"
                                   onsubmit="return confirm('{{ __('¿Desconectar Discord? Se borrará el webhook guardado.') }}')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('Desconectar') }}">
@@ -226,7 +226,7 @@
 {{-- Modal Telegram --}}
 <div class="modal fade" id="modal-telegram" tabindex="-1" aria-labelledby="modalTelegramLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form method="POST" action="{{ route('medios.update', 'telegram') }}" class="modal-content">
+        <form method="POST" action="{{ route('alertas.medios.update', 'telegram') }}" class="modal-content">
             @csrf @method('PUT')
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title d-flex align-items-center gap-2" id="modalTelegramLabel">
@@ -273,7 +273,7 @@
 {{-- Modal Correo --}}
 <div class="modal fade" id="modal-email" tabindex="-1" aria-labelledby="modalEmailLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form method="POST" action="{{ route('medios.update', 'email') }}" class="modal-content">
+        <form method="POST" action="{{ route('alertas.medios.update', 'email') }}" class="modal-content">
             @csrf @method('PUT')
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title d-flex align-items-center gap-2" id="modalEmailLabel">
@@ -339,7 +339,7 @@
 {{-- Modal Discord --}}
 <div class="modal fade" id="modal-discord" tabindex="-1" aria-labelledby="modalDiscordLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form method="POST" action="{{ route('medios.update', 'discord') }}" class="modal-content">
+        <form method="POST" action="{{ route('alertas.medios.update', 'discord') }}" class="modal-content">
             @csrf @method('PUT')
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title d-flex align-items-center gap-2" id="modalDiscordLabel">

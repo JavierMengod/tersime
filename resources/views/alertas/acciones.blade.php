@@ -132,7 +132,7 @@
                     @endif
                 </div>
                 {{-- Toggle activo/inactivo --}}
-                <form action="{{ route('reglas.toggle', $regla->id) }}" method="POST" class="d-inline">
+                <form action="{{ route('alertas.reglas.toggle', $regla->id) }}" method="POST" class="d-inline">
                     @csrf @method('PATCH')
                     <button type="submit"
                             class="btn btn-sm {{ $regla->is_active ? 'btn-outline-secondary' : 'btn-outline-success' }}"

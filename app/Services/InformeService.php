@@ -309,7 +309,7 @@ class InformeService
         }
 
         $absolutePath = storage_path('app/' . $storagePath);
-        $downloadUrl  = route('informes.demanda.descargar', ['filename' => $filename]);
+        $downloadUrl  = route('informes.demanda.download', ['filename' => $filename]);
 
         Log::info('[InformeService] PDF generado', ['filename' => $filename, 'user_id' => $user->id]);
 

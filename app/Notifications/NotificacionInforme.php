@@ -14,7 +14,7 @@ class NotificacionInforme extends Notification
     {
         $this->titulo      = 'Informe generado';
         $this->mensaje     = "Tu informe del período {$fromDate} al {$toDate} está listo.";
-        $this->downloadUrl = route('informes.demanda.descargar', ['filename' => $filename]);
+        $this->downloadUrl = route('informes.demanda.download', ['filename' => $filename]);
     }
 
     public function via($notifiable): array

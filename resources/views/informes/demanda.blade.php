@@ -12,7 +12,7 @@
     <div class="card mb-4 border-0 shadow-sm">
       <div class="card-header bg-white fw-bold">{{ __('Filtros') }}</div>
       <div class="card-body">
-        <form id="formGenerar" method="POST" action="{{ route('informes.demanda.generar') }}">
+        <form id="formGenerar" method="POST" action="{{ route('informes.demanda.store') }}">
           @csrf
           <div class="row gy-3 align-items-end">
 

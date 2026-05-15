@@ -198,7 +198,7 @@ class ConfigControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-             ->post(route('configuracion.sistema.purgar-alertas'))
+             ->post(route('configuracion.sistema.purgar_alertas'))
              ->assertRedirect();
 
         $this->assertDatabaseHas('alert_logs', ['id' => $recent->id]);
@@ -218,7 +218,7 @@ class ConfigControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-             ->post(route('configuracion.sistema.purgar-alertas'))
+             ->post(route('configuracion.sistema.purgar_alertas'))
              ->assertRedirect();
 
         $this->assertDatabaseCount('alert_logs', 0);

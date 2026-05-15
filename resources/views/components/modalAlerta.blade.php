@@ -5,7 +5,7 @@
 ])
 
 @php
-    $action  = $isEdit ? route('reglas.update', $rule['id']) : route('reglas.store');
+    $action  = $isEdit ? route('alertas.reglas.update', $rule['id']) : route('alertas.reglas.store');
     $modalId = $isEdit ? "modal-rule-{$rule['id']}" : 'modal-rule-create';
     $title   = $isEdit ? __('Editar regla') : __('Nueva regla de alerta');
 
@@ -227,7 +227,7 @@
 
     @if ($isEdit)
       <form id="delete-rule-{{ $rule['id'] }}" method="POST"
-            action="{{ route('reglas.destroy', $rule['id']) }}">
+            action="{{ route('alertas.reglas.destroy', $rule['id']) }}">
         @csrf @method('DELETE')
       </form>
     @endif

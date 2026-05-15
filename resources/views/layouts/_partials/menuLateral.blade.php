@@ -1,8 +1,8 @@
 @php
-$isMonitoring = request()->routeIs('monitorizacion.*') || request()->routeIs('prediccion.*');
+$isMonitoring = request()->routeIs('monitorizacion.*');
 $isAlertas    = request()->routeIs('alertas.*');
 $isInformes   = request()->routeIs('informes.*') || request()->routeIs('programaciones.*');
-$isUsuarios   = request()->routeIs('usuarios.*') || request()->routeIs('tokens.*') || request()->routeIs('notificaciones.*');
+$isUsuarios   = request()->routeIs('usuarios.*') || request()->routeIs('notificaciones.*');
 $isConfig     = request()->routeIs('configuracion.*');
 @endphp
 
@@ -59,8 +59,8 @@ $isConfig     = request()->routeIs('configuracion.*');
                     <span class="sidebar__text">{{ __('Monitorización') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isMonitoring ? 'show' : '' }}" id="sidebarMonitorizacion">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion.tiempo-real') ? 'active' : '' }}"
-                       href="{{ route('monitorizacion.tiempo-real') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion.tiempo_real') ? 'active' : '' }}"
+                       href="{{ route('monitorizacion.tiempo_real') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
                             stroke-linejoin="round"
@@ -74,8 +74,8 @@ $isConfig     = request()->routeIs('configuracion.*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Tiempo real') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('prediccion.*') ? 'active' : '' }}"
-                       href="{{ route('prediccion.index') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion.prediccion.*') ? 'active' : '' }}"
+                       href="{{ route('monitorizacion.prediccion.index') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
                             class="sidebar__dropdown-icon">
                             <path d="M3 3 V13" fill="none" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/>
@@ -113,8 +113,8 @@ $isConfig     = request()->routeIs('configuracion.*');
                     <span class="sidebar__text">{{ __('Alertas') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isAlertas ? 'show' : '' }}" id="sidebarAlertas">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas.acciones') ? 'active' : '' }}"
-                       href="{{ route('alertas.acciones') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas.reglas*') ? 'active' : '' }}"
+                       href="{{ route('alertas.reglas') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="none" class="sidebar__dropdown-icon">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -230,8 +230,8 @@ $isConfig     = request()->routeIs('configuracion.*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Usuarios') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('tokens.*') ? 'active' : '' }}"
-                       href="{{ route('tokens.index') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios.tokens.*') ? 'active' : '' }}"
+                       href="{{ route('usuarios.tokens.index') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor"
                             viewBox="0 0 16 16" class="sidebar__dropdown-icon bi bi-key-fill">
                             <path d="M3.5 11.5a3.5 3.5 0 1 1 3.163-5H14L15.5 8 14 9.5l-1-1-1 1-1-1-1 1-1-1-1 1H6.663a3.5 3.5 0 0 1-3.163 2zM2.5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2"></path>

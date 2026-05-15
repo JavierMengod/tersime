@@ -84,7 +84,7 @@
                     <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
                         <h6 class="mb-0 text-uppercase small fw-bold text-muted">{{ __('Notificaciones') }}</h6>
                         @if($unreadCount > 0)
-                            <form method="POST" action="{{ route('notificaciones.read-all') }}">
+                            <form method="POST" action="{{ route('notificaciones.read_all') }}">
                                 @csrf @method('PATCH')
                                 <button type="submit" class="btn btn-link btn-sm p-0 text-muted" style="font-size:.7rem;">
                                     {{ __('Marcar todas leídas') }}
@@ -185,7 +185,7 @@
                 </button>
 
                 <div class="dropdown-menu shadow dropdown-menu-end animated--grow-in topbar__dropdown topbar__dropdown--user">
-                    <a class="dropdown-item" href="{{ route('perfil') }}">
+                    <a class="dropdown-item" href="{{ route('configuracion.cuenta') }}">
                         <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
                         {{ __('Perfil') }}
                     </a>

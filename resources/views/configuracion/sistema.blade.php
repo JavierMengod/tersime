@@ -114,7 +114,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ __('Cancelar') }}</button>
-                <form method="POST" action="{{ route('configuracion.sistema.purgar-alertas') }}">
+                <form method="POST" action="{{ route('configuracion.sistema.purgar_alertas') }}">
                     @csrf
                     <button type="submit" class="btn btn-danger btn-sm">{{ __('Purgar') }}</button>
                 </form>
@@ -139,7 +139,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ __('Cancelar') }}</button>
-                <form method="POST" action="{{ route('configuracion.sistema.purgar-informes') }}">
+                <form method="POST" action="{{ route('configuracion.sistema.purgar_informes') }}">
                     @csrf
                     <button type="submit" class="btn btn-danger btn-sm">{{ __('Purgar') }}</button>
                 </form>

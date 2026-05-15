@@ -63,7 +63,7 @@
                                     class="btn btn-sm btn-outline-danger py-0 px-2 btn-eliminar-token"
                                     data-token-id="{{ $token->id }}"
                                     data-token-name="{{ $token->name }}"
-                                    data-url="{{ route('tokens.destroy', $token->id) }}"
+                                    data-url="{{ route('usuarios.tokens.destroy', $token->id) }}"
                                     title="{{ __('Eliminar') }}">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -345,7 +345,7 @@
                 <h5 class="modal-title"><i class="bi bi-key me-1"></i>{{ __('Nuevo token de API') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('tokens.store') }}">
+            <form method="POST" action="{{ route('usuarios.tokens.store') }}">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">

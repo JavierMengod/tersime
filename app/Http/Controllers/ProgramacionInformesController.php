@@ -31,13 +31,13 @@ class ProgramacionInformesController extends Controller
             ->with('success', 'Programación creada correctamente.');
     }
 
-    public function update(Request $request, ProgramacionInformes $programacionInformes)
+    public function update(Request $request, ProgramacionInformes $programacion)
     {
-        abort_unless((int) $programacionInformes->user_id === (int) Auth::id(), 403);
+        abort_unless((int) $programacion->user_id === (int) Auth::id(), 403);
 
         $data = $this->validar($request);
 
-        $programacionInformes->update([
+        $programacion->update([
             'nombre'         => $data['nombre'],
             'tipo_periodo'   => $data['tipo_periodo'],
             'valor_periodo'  => $data['valor_periodo'],
@@ -49,27 +49,27 @@ class ProgramacionInformesController extends Controller
             'activo'         => $request->has('activo'),
         ]);
 
-        $programacionInformes->dispositivos()->sync($data['dispositivos']);
+        $programacion->dispositivos()->sync($data['dispositivos']);
 
         return redirect()->route('informes.programados')
             ->with('success', 'Programación actualizada correctamente.');
     }
 
-    public function destroy(ProgramacionInformes $programacionInformes)
+    public function destroy(ProgramacionInformes $programacion)
     {
-        abort_unless((int) $programacionInformes->user_id === (int) Auth::id(), 403);
+        abort_unless((int) $programacion->user_id === (int) Auth::id(), 403);
 
-        $programacionInformes->delete();
+        $programacion->delete();
 
         return redirect()->route('informes.programados')
             ->with('success', 'Programación eliminada correctamente.');
     }
 
-    public function toggle(ProgramacionInformes $programacionInformes)
+    public function toggle(ProgramacionInformes $programacion)
     {
-        abort_unless((int) $programacionInformes->user_id === (int) Auth::id(), 403);
+        abort_unless((int) $programacion->user_id === (int) Auth::id(), 403);
 
-        $programacionInformes->update(['activo' => !$programacionInformes->activo]);
+        $programacion->update(['activo' => !$programacion->activo]);
 
         return back();
     }

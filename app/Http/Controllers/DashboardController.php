@@ -10,4 +10,9 @@ class DashboardController extends Controller
 
         return view('dashboard', compact('dispositivos'));
     }
+
+    public function datosBd()
+    {
+        return view('dashboard');
+    }
 }
