@@ -19,8 +19,8 @@
                 $deviceQuery = $deviceParams ? '&' . $deviceParams : '';
 
                 $grafanaTheme   = Auth::user()->theme ?? 'light';
-                $grafanaBase    = config('app.grafana_base_url') . '/d-solo/fek5yx516oyrkd/dashboard-principal';
-                $grafanaBaseAlt = config('app.grafana_base_url') . '/d-solo/eegznxsjl47i8b/dashboard-initiot';
+                $grafanaBase    = '/grafana/d-solo/fek5yx516oyrkd/dashboard-principal';
+                $grafanaBaseAlt = '/grafana/d-solo/eegznxsjl47i8b/dashboard-initiot';
 
                 $now          = Carbon::now('Europe/Madrid');
                 $toNowMs      = $now->getTimestamp() * 1000;

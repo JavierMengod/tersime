@@ -12,9 +12,10 @@ use App\Http\Controllers\PlantillaController;
 use App\Http\Controllers\AlertLogController;
 use App\Models\Plantilla;
 use App\Http\Controllers\InformeController;
-use App\Http\Controllers\InformeRegistroController;
+use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\GrafanaController;
+use App\Http\Controllers\GrafanaProxyController;
 use App\Http\Controllers\PrediccionController;
 
 // ── Autenticación ──────────────────────────────────────────────────────────────
@@ -45,29 +46,25 @@ Route::middleware('auth')->group(function () {
     })->name('perfil');
 
     // ── Configuración ──────────────────────────────────────────────────────────
-    Route::get('/configuracion-iu', function () {
-        return view('configuracion.iu');
-    })->name('configuracion-iu');
+    Route::get('/configuracion/cuenta',  [ConfigController::class, 'cuenta'])->name('configuracion-cuenta');
+    Route::post('/configuracion/cuenta', [ConfigController::class, 'updateCuenta'])->name('configuracion-cuenta.update');
 
-    Route::get('/configuracion-registro', function () {
-        return view('configuracion.registro');
-    })->name('configuracion-registro');
+    Route::get('/configuracion/sistema',           [ConfigController::class, 'sistema'])->name('configuracion-sistema');
+    Route::post('/configuracion/sistema',          [ConfigController::class, 'updateSistema'])->name('configuracion-sistema.update');
+    Route::post('/configuracion/sistema/purgar-alertas',  [ConfigController::class, 'purgarAlertas'])->name('configuracion-sistema.purgar-alertas');
+    Route::post('/configuracion/sistema/purgar-informes', [ConfigController::class, 'purgarInformes'])->name('configuracion-sistema.purgar-informes');
 
-    Route::get('/configuracion-limpieza', function () {
-        return view('configuracion.limpieza');
-    })->name('configuracion-limpieza');
+    Route::get('/configuracion/conexiones',  [ConfigController::class, 'conexiones'])->name('configuracion-conexiones');
+    Route::post('/configuracion/conexiones', [ConfigController::class, 'updateConexiones'])->name('configuracion-conexiones.update');
 
-    Route::get('/configuracion-otras', function () {
-        return view('configuracion.otras');
-    })->name('configuracion-otras');
-
-    Route::post('/config/update', [ConfigController::class, 'update'])->name('config.update');
+    Route::get('/configuracion/logs',          [ConfigController::class, 'logs'])->name('configuracion-logs');
+    Route::post('/configuracion/logs/clear',   [ConfigController::class, 'clearLogs'])->name('configuracion-logs.clear');
+    Route::get('/configuracion/logs/download', [ConfigController::class, 'downloadLog'])->name('configuracion-logs.download');
 
     // ── Monitorización ─────────────────────────────────────────────────────────
     Route::get('/monitorizacion-tiempo-real', function () {
-        $dispositivos   = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
-        $grafanaBaseUrl = config('app.grafana_base_url');
-        return view('monitorizacion.tiempo-real', compact('dispositivos', 'grafanaBaseUrl'));
+        $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
+        return view('monitorizacion.tiempo-real', compact('dispositivos'));
     })->name('monitorizacion-tiempo-real');
 
     Route::get('/monitorizacion-dispositivos', [DispositivoController::class, 'index'])
@@ -127,6 +124,18 @@ Route::middleware('auth')->group(function () {
     Route::patch('/reglas/{id}/toggle', [ReglaController::class, 'toggle'])->name('reglas.toggle');
     Route::delete('/reglas/{id}', [ReglaController::class, 'destroy'])->name('reglas.destroy');
 
+    // Notificaciones internas (campana)
+    Route::patch('/notificaciones/{id}/read', function (string $id) {
+        $n = auth()->user()->notifications()->findOrFail($id);
+        $n->markAsRead();
+        return response()->noContent();
+    })->name('notifications.read');
+
+    Route::patch('/notificaciones/read-all', function () {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notifications.read-all');
+
     // Medios de notificación
     Route::put('settings/notifications/{type}', [NotificationMethodController::class, 'update'])
         ->where('type', 'telegram|email|discord')
@@ -155,15 +164,12 @@ Route::middleware('auth')->group(function () {
         return response()->download($path);
     })->name('informes.demanda.descargar');
 
-    // Registros de informes generados (PDF bajo demanda)
-    Route::get('informes-registros', [InformeRegistroController::class, 'index'])
-        ->name('informes.registros.index');
+    // Descarga y borrado de informes generados
+    Route::get('/informes/{informe}/download', [InformeController::class, 'download'])
+        ->name('informes.download');
 
-    Route::get('/informes/registros/{registro}/download', [InformeRegistroController::class, 'download'])
-        ->name('informes.registros.download');
-
-    Route::delete('/informes/registros/{registro}', [InformeRegistroController::class, 'destroy'])
-        ->name('informes.registros.destroy');
+    Route::delete('/informes/{informe}', [InformeController::class, 'destroy'])
+        ->name('informes.destroy');
 
     // Programaciones de informes
     Route::post('/programaciones', [ProgramacionInformesController::class, 'store'])
@@ -175,25 +181,39 @@ Route::middleware('auth')->group(function () {
     Route::delete('/programaciones/{programacionInformes}', [ProgramacionInformesController::class, 'destroy'])
         ->name('programaciones.destroy');
 
+    Route::patch('/programaciones/{programacionInformes}/toggle', [ProgramacionInformesController::class, 'toggle'])
+        ->name('programaciones.toggle');
+
+    // ── Notificaciones ────────────────────────────────────────────────────────
+    Route::get('/usuario/notificaciones', [NotificacionesController::class, 'index'])
+        ->name('notificaciones.index');
+
     // ── Usuarios ───────────────────────────────────────────────────────────────
     Route::get('/usuarios', [UserController::class, 'index'])->name('usuarios');
-    Route::post('/user/create', [UserController::class, 'create'])->name('user.create');
+    Route::post('/usuarios', [UserController::class, 'store'])->name('user.store');
+    Route::put('/usuarios/{user}', [UserController::class, 'update'])->name('user.update');
+    Route::delete('/usuarios/{user}', [UserController::class, 'destroy'])->name('user.destroy');
+    Route::patch('/usuarios/{user}/toggle', [UserController::class, 'toggle'])->name('user.toggle');
     Route::put('/user/language', [AuthController::class, 'updateLanguage'])->name('user.update.language');
 
-    Route::get('/usuarios-grupos', function () {
-        return view('usuarios.grupos');
-    })->name('usuarios-grupos');
 
     Route::get('/usuarios-tokens', [TokenController::class, 'index'])->name('tokens.index');
     Route::post('/usuarios-tokens', [TokenController::class, 'store'])->name('tokens.store');
     Route::delete('/usuarios-tokens/{id}', [TokenController::class, 'destroy'])->name('tokens.destroy');
 
     // ── Placeholders pendientes de implementar ─────────────────────────────────
-    Route::get('/datos-grupos-dispositivos', function () {
-        return view('dashboard');
-    })->name('datos-grupos-dispositivos');
 
     Route::get('/datos-bd', function () {
         return view('dashboard');
     })->name('datos-bd');
+
+    // ── Proxy autenticado hacia Grafana (Auth Proxy) ───────────────────────────
+    // El navegador nunca habla con Grafana directamente: toda petición pasa por
+    // aquí y Laravel inyecta X-WEBAUTH-USER antes de reenviarla a Grafana.
+    // Requiere que Grafana tenga serve_from_sub_path = true y [auth.proxy] activo.
+    Route::any('/grafana', [GrafanaProxyController::class, 'proxy'])
+        ->defaults('path', '');
+
+    Route::any('/grafana/{path}', [GrafanaProxyController::class, 'proxy'])
+        ->where('path', '.*');
 });
