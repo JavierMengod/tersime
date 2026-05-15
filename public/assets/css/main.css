@@ -270,3 +270,10 @@ body {
     background-color: var(--background-color);
     color: var(--text-color);
 }
+/* Device checkbox hover in rule modals */
+.form-check-hoverable {
+    cursor: pointer;
+}
+.form-check-hoverable:hover {
+    background: var(--hover-background);
+}

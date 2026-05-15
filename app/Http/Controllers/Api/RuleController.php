@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RuleRequest;
 use App\Models\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,23 +23,9 @@ class RuleController extends Controller
         return response()->json($rules);
     }
 
-    public function store(Request $request)
+    public function store(RuleRequest $request)
     {
-        $data = $request->validate([
-            'name'               => 'required|string|max:100',
-            'devices'            => 'required|array|min:1',
-            'devices.*'          => 'integer|exists:dispositivos,id',
-            'operator'           => 'required|in:>,<,==,!=,>=,<=',
-            'value'              => 'required|numeric',
-            'for_duration'       => 'required|integer|min:0',
-            'methods'            => 'nullable|array',
-            'methods.*'          => 'in:telegram,email,discord',
-            'template_telegram'  => 'nullable|string',
-            'template_email'     => 'nullable|string',
-            'template_discord'   => 'nullable|string',
-            'recipient_email'    => 'nullable|email',
-        ]);
-
+        $data    = $request->validated();
         $methods = $data['methods'] ?? [];
 
         $rule = Rule::create([
@@ -72,21 +59,7 @@ class RuleController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $data = $request->validate([
-            'name'               => 'required|string|max:100',
-            'devices'            => 'required|array|min:1',
-            'devices.*'          => 'integer|exists:dispositivos,id',
-            'operator'           => 'required|in:>,<,==,!=,>=,<=',
-            'value'              => 'required|numeric',
-            'for_duration'       => 'required|integer|min:0',
-            'methods'            => 'nullable|array',
-            'methods.*'          => 'in:telegram,email,discord',
-            'template_telegram'  => 'nullable|string',
-            'template_email'     => 'nullable|string',
-            'template_discord'   => 'nullable|string',
-            'recipient_email'    => 'nullable|email',
-        ]);
-
+        $data    = $request->validate(RuleRequest::validationRules());
         $methods = $data['methods'] ?? [];
 
         $rule->fill([

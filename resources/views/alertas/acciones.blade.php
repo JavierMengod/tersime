@@ -35,23 +35,7 @@
 @endif
 
 @forelse($reglas as $regla)
-@php
-    $alertStates  = $regla->dispositivos->pluck('pivot.alert_state')->toArray();
-    $alertState   = in_array('firing', $alertStates) ? 'firing'
-        : (in_array('pending', $alertStates) ? 'pending' : 'ok');
-    $borderColor  = $alertState === 'firing'  ? '#dc3545'
-        : ($alertState === 'pending' ? '#ffc107' : ($regla->is_active ? '#198754' : '#adb5bd'));
-    $channels = [];
-    if ($regla->telegram_enabled) $channels[] = ['icon' => 'fab fa-telegram', 'color' => 'text-info',    'label' => 'Telegram'];
-    if ($regla->email_enabled)    $channels[] = ['icon' => 'fas fa-envelope',  'color' => 'text-warning', 'label' => 'Correo'];
-    if ($regla->discord_enabled)  $channels[] = ['icon' => 'fab fa-discord',   'color' => 'text-secondary','label' => 'Discord'];
-
-    $operatorLabels = ['>' => 'mayor que', '<' => 'menor que', '>=' => 'mayor o igual que',
-                       '<=' => 'menor o igual que', '==' => 'igual a', '!=' => 'distinto de'];
-    $opLabel = $operatorLabels[$regla->operator] ?? $regla->operator;
-@endphp
-
-<div class="card border-0 shadow-sm mb-3" style="border-left: 4px solid {{ $borderColor }} !important;">
+<div class="card border-0 shadow-sm mb-3" style="border-left: 4px solid {{ $regla->border_color }} !important;">
     <div class="card-body">
         <div class="row align-items-center g-3">
 
@@ -59,9 +43,9 @@
             <div class="col-12 col-md-3">
                 <div class="d-flex align-items-start gap-2">
                     <div class="mt-1">
-                        @if($alertState === 'firing')
+                        @if($regla->alert_state === 'firing')
                             <span class="text-danger"><i class="fas fa-bell fa-lg"></i></span>
-                        @elseif($alertState === 'pending')
+                        @elseif($regla->alert_state === 'pending')
                             <span class="text-warning"><i class="fas fa-clock fa-lg"></i></span>
                         @elseif($regla->is_active)
                             <span class="text-success"><i class="fas fa-shield-alt fa-lg"></i></span>
@@ -77,9 +61,9 @@
                             @else
                                 <span class="badge rounded-pill" style="background:#f3f4f6;color:#6b7280;font-size:.7rem;">{{ __('Inactiva') }}</span>
                             @endif
-                            @if($alertState === 'firing')
+                            @if($regla->alert_state === 'firing')
                                 <span class="badge rounded-pill bg-danger" style="font-size:.7rem;">🔥 {{ __('Disparada') }}</span>
-                            @elseif($alertState === 'pending')
+                            @elseif($regla->alert_state === 'pending')
                                 <span class="badge rounded-pill bg-warning text-dark" style="font-size:.7rem;">⏳ {{ __('Pendiente') }}</span>
                             @endif
                         </div>
@@ -94,7 +78,7 @@
                     <span class="badge bg-light text-dark border" style="font-size:.8rem;">
                         <i class="fas fa-bolt me-1 text-warning"></i>valor
                     </span>
-                    <span class="fw-semibold text-primary" style="font-size:.85rem;">{{ $regla->operator }}</span>
+                    <span class="fw-semibold text-primary" style="font-size:.85rem;">{{ $regla->operator_label }}</span>
                     <span class="badge bg-light text-dark border" style="font-size:.8rem;">
                         {{ $regla->comparison_value }} kWh
                     </span>
@@ -124,10 +108,10 @@
             {{-- Canales + acciones --}}
             <div class="col-12 col-md-2 d-flex align-items-center justify-content-between justify-content-md-end gap-2 flex-wrap">
                 <div class="d-flex gap-2 me-1">
-                    @foreach($channels as $ch)
+                    @foreach($regla->channels as $ch)
                         <span title="{{ $ch['label'] }}" class="{{ $ch['color'] }} fs-5"><i class="{{ $ch['icon'] }}"></i></span>
                     @endforeach
-                    @if(empty($channels))
+                    @if(empty($regla->channels))
                         <span class="text-muted small">—</span>
                     @endif
                 </div>
@@ -144,7 +128,26 @@
                 {{-- Editar --}}
                 <button class="btn btn-sm btn-outline-primary"
                         data-bs-toggle="modal"
-                        data-bs-target="#modal-rule-{{ $regla->id }}"
+                        data-bs-target="#modal-rule-edit"
+                        data-rule="{{ json_encode([
+                            'id'             => $regla->id,
+                            'name'           => $regla->name,
+                            'devices'        => $regla->dispositivos->pluck('id')->toArray(),
+                            'operator'       => $regla->operator,
+                            'value'          => $regla->comparison_value,
+                            'for_duration'   => $regla->for_duration,
+                            'methods'        => [
+                                'telegram' => $regla->telegram_enabled,
+                                'email'    => $regla->email_enabled,
+                                'discord'  => $regla->discord_enabled,
+                            ],
+                            'templates' => [
+                                'telegram' => $regla->template_telegram,
+                                'email'    => $regla->template_email,
+                                'discord'  => $regla->template_discord,
+                            ],
+                            'recipient_email' => $regla->recipient_email,
+                        ]) }}"
                         title="{{ __('Editar') }}">
                     <i class="fas fa-pencil-alt"></i>
                     <span class="d-none d-lg-inline ms-1">{{ __('Editar') }}</span>
@@ -175,35 +178,13 @@
 @endif
 
 {{-- Modal de creación --}}
-<x-modalAlerta
-    :is-edit="false"
-    :devices-list="$dispositivos" />
+<x-modalAlerta :devices-list="$dispositivos" />
 
-{{-- Modales de edición --}}
-@foreach($reglas as $regla)
-    <x-modalAlerta
-        :is-edit="true"
-        :rule="[
-            'id'             => $regla->id,
-            'name'           => $regla->name,
-            'devices'        => $regla->dispositivos->pluck('id')->toArray(),
-            'operator'       => $regla->operator,
-            'value'          => $regla->comparison_value,
-            'for_duration'   => $regla->for_duration,
-            'methods'        => [
-                'telegram' => $regla->telegram_enabled,
-                'email'    => $regla->email_enabled,
-                'discord'  => $regla->discord_enabled,
-            ],
-            'templates' => [
-                'telegram' => $regla->template_telegram,
-                'email'    => $regla->template_email,
-                'discord'  => $regla->template_discord,
-            ],
-            'active'         => $regla->is_active,
-            'recipient_email'=> $regla->recipient_email,
-        ]"
-        :devices-list="$dispositivos" />
-@endforeach
+{{-- Modal de edición único + modal de borrado --}}
+@include('alertas.partials.modals-regla')
+
+@push('scripts')
+<script src="{{ asset('assets/js/alertas-acciones.js') }}"></script>
+@endpush
 
 @endsection

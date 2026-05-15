@@ -2,17 +2,6 @@
 
 @section('title', __('Historial de alertas'))
 
-@php
-function sortUrl(string $column, string $currentSort, string $currentDir): string {
-    $dir = ($currentSort === $column && $currentDir === 'desc') ? 'asc' : 'desc';
-    return request()->fullUrlWithQuery(['sort' => $column, 'dir' => $dir, 'page' => 1]);
-}
-function sortIcon(string $column, string $currentSort, string $currentDir): string {
-    if ($currentSort !== $column) return 'fa-sort text-muted';
-    return $currentDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
-}
-@endphp
-
 @section('contenido')
 
 <div class="d-flex justify-content-between align-items-center mb-4">
