@@ -366,54 +366,7 @@
 </div>
 
 @push('scripts')
-<script>
-document.querySelectorAll('.btn-eliminar-token').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        document.getElementById('modal-token-nombre').textContent = this.dataset.tokenName;
-        document.getElementById('form-eliminar-token').action = this.dataset.url;
-        new bootstrap.Modal(document.getElementById('modal-eliminar-token')).show();
-    });
-});
-
-@if(session('token_creado'))
-(function () {
-    function copyFallback(text) {
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        try { document.execCommand('copy'); } catch (e) {}
-        document.body.removeChild(ta);
-    }
-
-    document.getElementById('btnCopiar').addEventListener('click', function () {
-        var btn = this;
-        var token = document.getElementById('tokenTexto').innerText.trim();
-
-        function onCopied() {
-            btn.innerHTML = '<i class="bi bi-clipboard-check"></i> {{ __("Copiado") }}';
-            btn.classList.replace('btn-outline-secondary', 'btn-success');
-            setTimeout(function () {
-                btn.innerHTML = '<i class="bi bi-clipboard"></i> {{ __("Copiar") }}';
-                btn.classList.replace('btn-success', 'btn-outline-secondary');
-            }, 2000);
-        }
-
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(token).then(onCopied).catch(function () {
-                copyFallback(token);
-                onCopied();
-            });
-        } else {
-            copyFallback(token);
-            onCopied();
-        }
-    });
-}());
-@endif
-</script>
+<script src="{{ asset('assets/js/usuarios-tokens.js') }}"></script>
 @endpush
 
 @endsection

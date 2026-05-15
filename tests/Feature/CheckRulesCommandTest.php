@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\InfluxController;
-use App\Http\Controllers\NotificationMethodController;
+use App\Services\NotificationService;
 use App\Models\AlertLog;
 use App\Models\Dispositivo;
 use App\Models\Rule;
@@ -51,7 +51,7 @@ class CheckRulesCommandTest extends TestCase
 
     private function fakeNotifier(): void
     {
-        $this->mock(NotificationMethodController::class, function ($m) {
+        $this->mock(NotificationService::class, function ($m) {
             $m->shouldReceive('sendEmail')->andReturn(null);
             $m->shouldReceive('sendTelegram')->andReturn(null);
             $m->shouldReceive('sendDiscord')->andReturn(null);
@@ -492,7 +492,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeInflux(200.0);
         Notification::fake();
 
-        $notifier = $this->mock(NotificationMethodController::class, function ($m) {
+        $notifier = $this->mock(NotificationService::class, function ($m) {
             $m->shouldReceive('sendEmail')
               ->once()
               ->withArgs(function ($msg, $user, $email) {
@@ -517,7 +517,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeInflux(200.0);
         Notification::fake();
 
-        $notifier = $this->mock(NotificationMethodController::class, function ($m) {
+        $notifier = $this->mock(NotificationService::class, function ($m) {
             $m->shouldReceive('sendEmail')->never();
             $m->shouldReceive('sendTelegram')->never();
             $m->shouldReceive('sendDiscord')->never();

@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Storage;
 class InformeController extends Controller
 {
     protected InformeService $informeService;
-    protected NotificationMethodController $notifier;
+    protected \App\Services\NotificationService $notifier;
 
-    public function __construct(InformeService $informeService, NotificationMethodController $notifier)
+    public function __construct(InformeService $informeService, \App\Services\NotificationService $notifier)
     {
         $this->informeService = $informeService;
         $this->notifier       = $notifier;

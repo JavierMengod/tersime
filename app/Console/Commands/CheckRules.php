@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 use App\Models\Rule;
 use App\Models\AlertLog;
 use App\Http\Controllers\InfluxController;
-use App\Http\Controllers\NotificationMethodController;
+use App\Services\NotificationService;
 use App\Notifications\NotificacionAlerta;
 use Illuminate\Support\Facades\Log;
 
@@ -16,7 +16,7 @@ class CheckRules extends Command
     protected $signature   = 'rules:check';
     protected $description = 'Revisar reglas activas y actualizar estados de alerta (ok / pending / firing)';
 
-    public function handle(NotificationMethodController $notifier, InfluxController $influx)
+    public function handle(NotificationService $notifier, InfluxController $influx)
     {
         $this->info('=== Inicio de revisión de reglas ===');
         Log::info('Inicio de revisión de reglas');
@@ -104,7 +104,7 @@ class CheckRules extends Command
         Log::info('Estado → pending', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function transitionFiring(Rule $rule, $dispositivo, NotificationMethodController $notifier, $user, ?float $currentValue): void
+    private function transitionFiring(Rule $rule, $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'       => 'firing',
@@ -141,7 +141,7 @@ class CheckRules extends Command
         Log::info('Estado → ok', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function transitionOkResolution(Rule $rule, $dispositivo, NotificationMethodController $notifier, $user, ?float $currentValue): void
+    private function transitionOkResolution(Rule $rule, $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'  => 'ok',
@@ -167,7 +167,7 @@ class CheckRules extends Command
         Log::info('Estado → ok (resolución)', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function enviarNotificaciones(NotificationMethodController $notifier, Rule $rule, $user, string $textoPorDefecto): void
+    private function enviarNotificaciones(NotificationService $notifier, Rule $rule, $user, string $textoPorDefecto): void
     {
         if ($rule->email_enabled && $rule->recipient_email && $user) {
             try {

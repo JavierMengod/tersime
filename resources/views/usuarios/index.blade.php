@@ -5,9 +5,7 @@
 @section('contenido')
 
 @php
-    $editUser    = session('edit_user_id') ? $users->firstWhere('id', session('edit_user_id')) : null;
-    $openCreate  = $errors->has('name') || $errors->has('password') || $errors->has('password_confirmation');
-    $openEdit    = $editUser && $errors->isNotEmpty() && !$openCreate;
+    $openCreate = $errors->has('name') || $errors->has('password') || $errors->has('password_confirmation');
 @endphp
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -103,7 +101,16 @@
                                 {{-- Editar --}}
                                 <button class="btn btn-sm btn-outline-primary py-0 px-2"
                                         data-bs-toggle="modal"
-                                        data-bs-target="#modal-editar-{{ $user->id }}"
+                                        data-bs-target="#modal-editar"
+                                        data-user="{{ json_encode([
+                                            'id'       => $user->id,
+                                            'name'     => $user->name,
+                                            'language' => $user->language ?? 'es',
+                                            'timezone' => $user->timezone ?? 'Europe/Madrid',
+                                            'theme'    => $user->theme ?? 'light',
+                                            'admin'    => (bool)$user->admin,
+                                            'url'      => route('usuarios.update', $user),
+                                        ]) }}"
                                         title="{{ __('Editar') }}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -223,66 +230,60 @@
 </div>
 
 
-{{-- ── Modales EDITAR (uno por usuario) ───────────────────────────────────── --}}
-@foreach($users as $user)
-<div class="modal fade" id="modal-editar-{{ $user->id }}" tabindex="-1" aria-hidden="true">
+{{-- ── Modal EDITAR (único, poblado por JS) ────────────────────────────────── --}}
+<div class="modal fade" id="modal-editar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">{{ __('Editar') }}: {{ $user->name }}</h5>
+                <h5 class="modal-title">{{ __('Editar') }}: <span id="modal-editar-nombre"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('usuarios.update', $user) }}">
+            <form method="POST" id="form-editar-usuario" action="">
                 @csrf @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">{{ __('Nombre de usuario') }}</label>
-                        <input type="text" name="name" class="form-control" required
-                               value="{{ old('name', $user->name) }}" autocomplete="off">
+                        <input type="text" name="name" id="edit-name" class="form-control" required autocomplete="off">
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label">{{ __('Nueva contraseña') }}</label>
-                            <input type="password" name="password" class="form-control"
+                            <input type="password" name="password" id="edit-password" class="form-control"
                                    placeholder="{{ __('Dejar en blanco para no cambiar') }}" autocomplete="new-password">
                         </div>
                         <div class="col-6">
                             <label class="form-label">{{ __('Confirmar contraseña') }}</label>
-                            <input type="password" name="password_confirmation" class="form-control">
+                            <input type="password" name="password_confirmation" id="edit-password-confirm" class="form-control">
                         </div>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label">{{ __('Idioma') }}</label>
-                            <select name="language" class="form-select">
-                                <option value="es" {{ $user->language === 'es' ? 'selected' : '' }}>{{ __('Español') }}</option>
-                                <option value="en" {{ $user->language === 'en' ? 'selected' : '' }}>{{ __('Inglés') }}</option>
-                                <option value="fr" {{ $user->language === 'fr' ? 'selected' : '' }}>{{ __('Francés') }}</option>
+                            <select name="language" id="edit-language" class="form-select">
+                                <option value="es">{{ __('Español') }}</option>
+                                <option value="en">{{ __('Inglés') }}</option>
+                                <option value="fr">{{ __('Francés') }}</option>
                             </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label">{{ __('Tema') }}</label>
-                            <select name="theme" class="form-select">
-                                <option value="light" {{ $user->theme === 'light' ? 'selected' : '' }}>{{ __('Claro') }}</option>
-                                <option value="dark"  {{ $user->theme === 'dark'  ? 'selected' : '' }}>{{ __('Oscuro') }}</option>
+                            <select name="theme" id="edit-theme" class="form-select">
+                                <option value="light">{{ __('Claro') }}</option>
+                                <option value="dark">{{ __('Oscuro') }}</option>
                             </select>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('Zona horaria') }}</label>
-                        <select name="timezone" class="form-select">
+                        <select name="timezone" id="edit-timezone" class="form-select">
                             @foreach($timezones as $value => $label)
-                                <option value="{{ $value }}" {{ $user->timezone === $value ? 'selected' : '' }}>
-                                    {{ $label }}
-                                </option>
+                                <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" name="admin" id="editar-admin-{{ $user->id }}"
-                               class="form-check-input" value="1"
-                               {{ $user->admin ? 'checked' : '' }}>
-                        <label class="form-check-label" for="editar-admin-{{ $user->id }}">{{ __('Administrador') }}</label>
+                        <input type="checkbox" name="admin" id="edit-admin" class="form-check-input" value="1">
+                        <label class="form-check-label" for="edit-admin">{{ __('Administrador') }}</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -293,7 +294,6 @@
         </div>
     </div>
 </div>
-@endforeach
 
 
 {{-- Modal confirmar eliminar usuario --}}
@@ -322,20 +322,8 @@
 @endsection
 
 @push('scripts')
-<script>
-document.querySelectorAll('.btn-eliminar-usuario').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        document.getElementById('modal-usuario-nombre').textContent = this.dataset.userName;
-        document.getElementById('form-eliminar-usuario').action = this.dataset.url;
-        new bootstrap.Modal(document.getElementById('modal-eliminar-usuario')).show();
-    });
-});
-</script>
+<script src="{{ asset('assets/js/usuarios-index.js') }}"></script>
 @if($openCreate)
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    new bootstrap.Modal(document.getElementById('modal-crear')).show();
-});
-</script>
+<script>document.addEventListener('DOMContentLoaded', () => new bootstrap.Modal(document.getElementById('modal-crear')).show());</script>
 @endif
 @endpush

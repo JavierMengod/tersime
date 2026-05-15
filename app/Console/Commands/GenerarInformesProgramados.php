@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\NotificationMethodController;
+use App\Services\NotificationService;
 use App\Models\ProgramacionInformes;
 use App\Notifications\NotificacionInforme;
 use App\Services\InformeService;
@@ -15,7 +15,7 @@ class GenerarInformesProgramados extends Command
     protected $signature   = 'informes:programados';
     protected $description = 'Genera los informes programados que están vencidos';
 
-    public function handle(InformeService $service, NotificationMethodController $notifier)
+    public function handle(InformeService $service, NotificationService $notifier)
     {
         $ahora = Carbon::now();
 
