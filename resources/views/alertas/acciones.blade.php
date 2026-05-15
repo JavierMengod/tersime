@@ -177,10 +177,7 @@
     </div>
 @endif
 
-{{-- Modal de creación --}}
-<x-modalAlerta :devices-list="$dispositivos" />
-
-{{-- Modal de edición único + modal de borrado --}}
+{{-- Modales: crear, editar y borrar --}}
 @include('alertas.partials.modals-regla')
 
 @push('scripts')

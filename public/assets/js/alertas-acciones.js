@@ -5,6 +5,14 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    // ── Create modal — channel toggles ─────────────────────────────────────────
+    ['telegram', 'email', 'discord'].forEach(channel => {
+        const cb = document.getElementById(`create-ch-${channel}`);
+        if (cb) cb.addEventListener('change', () => {
+            document.getElementById(`create-tpl-${channel}`).style.display = cb.checked ? '' : 'none';
+        });
+    });
+
     // ── Edit modal ─────────────────────────────────────────────────────────────
     const editModal = document.getElementById('modal-rule-edit');
     if (editModal) {
