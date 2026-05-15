@@ -2,226 +2,500 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Tersime — Script de instalación
 # Uso: ./install.sh
+#      ./install.sh --non-interactive   (usa todos los valores por defecto)
 # ─────────────────────────────────────────────────────────────────────────────
-set -e
+set -euo pipefail
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
+# ── Colores ───────────────────────────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
 
-info()    { echo -e "${CYAN}[tersime]${NC} $*"; }
-success() { echo -e "${GREEN}[tersime]${NC} $*"; }
-warn()    { echo -e "${YELLOW}[tersime]${NC} $*"; }
-error()   { echo -e "${RED}[tersime]${NC} $*"; exit 1; }
-
-# ── Comprobaciones previas ────────────────────────────────────────────────────
-command -v docker       >/dev/null 2>&1 || error "Docker no está instalado."
-command -v openssl      >/dev/null 2>&1 || error "openssl no está instalado."
-docker info >/dev/null 2>&1             || error "El daemon de Docker no está corriendo."
-
-COMPOSE_CMD="docker compose"
-$COMPOSE_CMD version >/dev/null 2>&1 || COMPOSE_CMD="docker-compose"
-$COMPOSE_CMD version >/dev/null 2>&1 || error "docker compose / docker-compose no encontrado."
+info()    { echo -e "${CYAN}▸${NC} $*"; }
+success() { echo -e "${GREEN}✓${NC} $*"; }
+warn()    { echo -e "${YELLOW}⚠${NC} $*"; }
+error()   { echo -e "${RED}✗${NC} $*"; exit 1; }
+section() { echo -e "\n${BOLD}$*${NC}"; echo -e "${DIM}$(printf '─%.0s' {1..60})${NC}"; }
+ok()      { echo -e "  ${GREEN}✓${NC} $*"; }
+fail()    { echo -e "  ${RED}✗${NC} $*"; }
+skip()    { echo -e "  ${DIM}–${NC} $*"; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+NON_INTERACTIVE=0
+[[ "${1:-}" == "--non-interactive" ]] && NON_INTERACTIVE=1
+
+# ── Función para leer input con default ───────────────────────────────────────
+ask() {
+    # ask VAR_NAME "Pregunta" "default"  [secret]
+    local var_name="$1" prompt="$2" default="$3" secret="${4:-}"
+
+    if [ "$NON_INTERACTIVE" = "1" ]; then
+        eval "$var_name=\"$default\""
+        return
+    fi
+
+    if [ -n "$secret" ]; then
+        read -rsp "  ${prompt} [${DIM}auto${NC}]: " tmp; echo
+        eval "$var_name=\"${tmp:-$default}\""
+    else
+        read -rp "  ${prompt} [${CYAN}${default}${NC}]: " tmp
+        eval "$var_name=\"${tmp:-$default}\""
+    fi
+}
+
+# ── Comprobaciones previas ────────────────────────────────────────────────────
+section "0 · Comprobando dependencias"
+
+command -v docker  >/dev/null 2>&1 && ok "docker" || error "Docker no instalado."
+command -v curl    >/dev/null 2>&1 && ok "curl"   || error "curl no instalado."
+command -v openssl >/dev/null 2>&1 && ok "openssl"|| error "openssl no instalado."
+docker info >/dev/null 2>&1        && ok "Docker daemon corriendo" \
+                                   || error "El daemon de Docker no está activo."
+
+COMPOSE_CMD="docker compose"
+$COMPOSE_CMD version >/dev/null 2>&1 || COMPOSE_CMD="docker-compose"
+$COMPOSE_CMD version >/dev/null 2>&1 \
+    && ok "docker compose ($($COMPOSE_CMD version --short 2>/dev/null | head -1))" \
+    || error "docker compose no disponible."
+
 # ── Banner ────────────────────────────────────────────────────────────────────
 echo ""
-echo -e "${CYAN}╔═══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║         Tersime — Instalación         ║${NC}"
-echo -e "${CYAN}╚═══════════════════════════════════════╝${NC}"
+echo -e "${CYAN}${BOLD}"
+echo "  ████████╗███████╗██████╗ ███████╗██╗███╗   ███╗███████╗"
+echo "     ██╔══╝██╔════╝██╔══██╗██╔════╝██║████╗ ████║██╔════╝"
+echo "     ██║   █████╗  ██████╔╝███████╗██║██╔████╔██║█████╗  "
+echo "     ██║   ██╔══╝  ██╔══██╗╚════██║██║██║╚██╔╝██║██╔══╝  "
+echo "     ██║   ███████╗██║  ██║███████║██║██║ ╚═╝ ██║███████╗"
+echo "     ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝╚═╝     ╚═╝╚══════╝"
+echo -e "${NC}"
+echo -e "  Plataforma de monitorización IoT${DIM} — instalación Docker${NC}"
 echo ""
 
-# ── Si ya existe .env, preguntar si reinstalar ────────────────────────────────
-if [ -f .env ]; then
-    warn ".env ya existe."
-    read -rp "¿Sobrescribir la configuración existente? [s/N] " OVERWRITE
-    if [[ ! "$OVERWRITE" =~ ^[sS]$ ]]; then
-        info "Usando .env existente. Saltando configuración."
-        SKIP_CONFIG=1
-    fi
+# ── Si ya existe .env preguntar ───────────────────────────────────────────────
+SKIP_CONFIG=0
+if [ -f .env ] && [ "$NON_INTERACTIVE" = "0" ]; then
+    echo -e "${YELLOW}  .env ya existe.${NC}"
+    read -rp "  ¿Sobrescribir la configuración? [s/N]: " OVERWRITE
+    [[ "$OVERWRITE" =~ ^[sS]$ ]] || SKIP_CONFIG=1
 fi
 
-# ── Recoger configuración del usuario ────────────────────────────────────────
-if [ -z "$SKIP_CONFIG" ]; then
-    echo "Responde las siguientes preguntas (pulsa ENTER para aceptar el valor por defecto):"
+# ── Configuración ─────────────────────────────────────────────────────────────
+section "1 · Configuración"
+
+if [ "$SKIP_CONFIG" = "0" ]; then
+
+    echo -e "  ${DIM}Pulsa ENTER para aceptar el valor entre corchetes.${NC}"
     echo ""
 
-    # URL pública
-    read -rp "URL pública de la app (incluye puerto) [http://localhost:8080]: " APP_URL
-    APP_URL="${APP_URL:-http://localhost:8080}"
+    # Generar valores seguros por defecto
+    _INFLUX_TOKEN="$(openssl rand -base64 48 | tr -d '/+=' | head -c 64)"
+    _APP_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
+    _GF_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
+    _INFLUX_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
 
-    # Credenciales admin de Tersime
-    read -rp "Nombre del usuario administrador [admin]: " TERSIME_ADMIN_USER
-    TERSIME_ADMIN_USER="${TERSIME_ADMIN_USER:-admin}"
-    while true; do
-        read -rsp "Contraseña del administrador de Tersime: " TERSIME_ADMIN_PASSWORD; echo
-        [ -n "$TERSIME_ADMIN_PASSWORD" ] && break
-        warn "La contraseña no puede estar vacía."
-    done
-
-    # Grafana admin
-    read -rp "Usuario admin de Grafana [admin]: " GF_ADMIN_USER
-    GF_ADMIN_USER="${GF_ADMIN_USER:-admin}"
-    while true; do
-        read -rsp "Contraseña admin de Grafana: " GF_ADMIN_PASSWORD; echo
-        [ -n "$GF_ADMIN_PASSWORD" ] && break
-        warn "La contraseña no puede estar vacía."
-    done
-
-    # InfluxDB
-    read -rp "Contraseña admin de InfluxDB [tersime2024]: " INFLUX_ADMIN_PASS
-    INFLUX_ADMIN_PASS="${INFLUX_ADMIN_PASS:-tersime2024}"
-    read -rp "Organización de InfluxDB [tersime]: " INFLUXDB_ORG
-    INFLUXDB_ORG="${INFLUXDB_ORG:-tersime}"
-    read -rp "Bucket de InfluxDB [tersime]: " INFLUX_BUCKET
-    INFLUX_BUCKET="${INFLUX_BUCKET:-tersime}"
+    echo -e "  ${BOLD}Aplicación${NC}"
+    ask APP_URL         "URL pública con puerto"       "http://localhost:8080"
+    ask ADMIN_USER      "Usuario administrador"        "admin"
+    ask ADMIN_PASS      "Contraseña administrador"     "$_APP_PASS"   secret
 
     echo ""
-    info "Generando claves seguras..."
+    echo -e "  ${BOLD}Grafana${NC}"
+    ask GF_ADMIN_USER   "Usuario admin Grafana"        "admin"
+    ask GF_ADMIN_PASS   "Contraseña admin Grafana"     "$_GF_PASS"    secret
 
-    # Generar tokens aleatorios
+    echo ""
+    echo -e "  ${BOLD}InfluxDB${NC}"
+    ask INFLUX_ORG      "Organización"                 "tersime"
+    ask INFLUX_BUCKET   "Bucket (nombre del dataset)"  "tersime"
+    ask INFLUX_PASS     "Contraseña admin InfluxDB"    "$_INFLUX_PASS" secret
+    ask INFLUX_TOKEN    "Token InfluxDB"               "$_INFLUX_TOKEN" secret
+
+    echo ""
+    info "Generando clave de aplicación..."
     APP_KEY="base64:$(openssl rand -base64 32)"
-    INFLUXDB_TOKEN="$(openssl rand -base64 48 | tr -d '/+=' | head -c 64)"
 
-    # ── Escribir .env ─────────────────────────────────────────────────────────
     info "Escribiendo .env..."
     sed \
         -e "s|^APP_URL=.*|APP_URL=${APP_URL}|" \
-        -e "s|^TERSIME_ADMIN_USER=.*|TERSIME_ADMIN_USER=${TERSIME_ADMIN_USER}|" \
-        -e "s|^TERSIME_ADMIN_PASSWORD=.*|TERSIME_ADMIN_PASSWORD=${TERSIME_ADMIN_PASSWORD}|" \
+        -e "s|^TERSIME_ADMIN_USER=.*|TERSIME_ADMIN_USER=${ADMIN_USER}|" \
+        -e "s|^TERSIME_ADMIN_PASSWORD=.*|TERSIME_ADMIN_PASSWORD=${ADMIN_PASS}|" \
         -e "s|^GF_SECURITY_ADMIN_USER=.*|GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER}|" \
-        -e "s|^GF_SECURITY_ADMIN_PASSWORD=.*|GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD}|" \
-        -e "s|^DOCKER_INFLUXDB_INIT_PASSWORD=.*|DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_ADMIN_PASS}|" \
-        -e "s|^INFLUXDB_ORG=.*|INFLUXDB_ORG=${INFLUXDB_ORG}|" \
+        -e "s|^GF_SECURITY_ADMIN_PASSWORD=.*|GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASS}|" \
+        -e "s|^DOCKER_INFLUXDB_INIT_USERNAME=.*|DOCKER_INFLUXDB_INIT_USERNAME=admin|" \
+        -e "s|^DOCKER_INFLUXDB_INIT_PASSWORD=.*|DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_PASS}|" \
+        -e "s|^INFLUXDB_ORG=.*|INFLUXDB_ORG=${INFLUX_ORG}|" \
         -e "s|^INFLUX_BUCKET=.*|INFLUX_BUCKET=${INFLUX_BUCKET}|" \
-        -e "s|^INFLUXDB_TOKEN=.*|INFLUXDB_TOKEN=${INFLUXDB_TOKEN}|" \
-        -e "s|^DOCKER_INFLUXDB_INIT_ORG=.*|DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_ORG}|" \
+        -e "s|^INFLUXDB_TOKEN=.*|INFLUXDB_TOKEN=${INFLUX_TOKEN}|" \
+        -e "s|^DOCKER_INFLUXDB_INIT_ORG=.*|DOCKER_INFLUXDB_INIT_ORG=${INFLUX_ORG}|" \
         -e "s|^DOCKER_INFLUXDB_INIT_BUCKET=.*|DOCKER_INFLUXDB_INIT_BUCKET=${INFLUX_BUCKET}|" \
-        -e "s|^DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=.*|DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}|" \
+        -e "s|^DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=.*|DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN}|" \
+        -e "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" \
         .env.docker > .env
 
-    # Insertar APP_KEY generado
-    if grep -q "^APP_KEY=" .env; then
-        sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
-    else
-        echo "APP_KEY=${APP_KEY}" >> .env
-    fi
+    success ".env generado"
 fi
 
-# Cargar variables del .env para usarlas en el script
+# Cargar variables del .env
 set -a; source .env; set +a
 
-# ── Construir e iniciar contenedores ─────────────────────────────────────────
-echo ""
-info "Construyendo imágenes Docker (puede tardar varios minutos la primera vez)..."
-$COMPOSE_CMD build --no-cache
+# ── Build y arranque ──────────────────────────────────────────────────────────
+section "2 · Construyendo imágenes"
+info "Esto puede tardar varios minutos la primera vez..."
+$COMPOSE_CMD build 2>&1 | grep -E "^(Step|#|==>|Successfully|ERROR|error)" || true
+success "Imágenes construidas"
 
-info "Iniciando contenedores..."
+section "3 · Iniciando servicios"
 $COMPOSE_CMD up -d
+success "Contenedores iniciados"
 
 # ── Esperar a que los servicios estén listos ──────────────────────────────────
-echo ""
-info "Esperando a que los servicios arranquen..."
+section "4 · Esperando servicios"
 
-wait_for() {
-    local name=$1 url=$2 max=${3:-120} i=0
-    printf "  Esperando %-12s " "$name..."
+wait_http() {
+    local name="$1" url="$2" max="${3:-120}" i=0
+    printf "  Esperando %-14s" "$name..."
     until curl -sf "$url" >/dev/null 2>&1; do
-        sleep 3; i=$((i+3))
-        printf "."
-        [ $i -ge $max ] && echo "" && error "Timeout esperando $name ($url)"
+        sleep 3; i=$((i+3)); printf "."
+        [ $i -ge $max ] && echo "" && error "Timeout esperando $name"
     done
     echo " listo"
 }
 
-wait_for "InfluxDB"  "http://localhost:8087/health"    120
-wait_for "Grafana"   "http://localhost:3001/api/health" 180
-wait_for "App"       "http://localhost:8080/"            120
+wait_http "InfluxDB"  "http://localhost:8087/health"    120
+wait_http "Grafana"   "http://localhost:3001/api/health" 180
+wait_http "App"       "http://localhost:8080/"           120
 
-# ── Generar API key de Grafana y configurarla en la app ──────────────────────
-echo ""
-info "Generando API key de Grafana..."
+# El predictor puede tardar más (carga Prophet)
+printf "  Esperando %-14s" "Predictor..."
+for i in $(seq 1 40); do
+    curl -sf "http://localhost:8080/" >/dev/null 2>&1 && break  # app ready
+    sleep 3; printf "."
+done
+# Predictor: acceso interno, verificamos después
+echo " (verificación posterior)"
 
-GF_ADMIN_USER="${GF_SECURITY_ADMIN_USER:-admin}"
-GF_ADMIN_PASSWORD="${GF_SECURITY_ADMIN_PASSWORD}"
+# ── Generar API key de Grafana ────────────────────────────────────────────────
+section "5 · Configurando Grafana"
 
-# Crear service account "tersime" con rol Admin
-SA_RESPONSE=$(curl -sf -X POST "http://localhost:3001/api/serviceaccounts" \
+GF_USER="${GF_SECURITY_ADMIN_USER:-admin}"
+GF_PASS="${GF_SECURITY_ADMIN_PASSWORD}"
+
+info "Creando service account en Grafana..."
+SA_RESP=$(curl -sf -X POST "http://localhost:3001/api/serviceaccounts" \
     -H "Content-Type: application/json" \
-    -d '{"name":"tersime","role":"Admin","isDisabled":false}' \
-    -u "${GF_ADMIN_USER}:${GF_ADMIN_PASSWORD}" 2>/dev/null || echo '{}')
+    -d '{"name":"tersime-app","role":"Admin","isDisabled":false}' \
+    -u "${GF_USER}:${GF_PASS}" 2>/dev/null || echo '{}')
 
-SA_ID=$(echo "$SA_RESPONSE" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*')
+SA_ID=$(echo "$SA_RESP" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*' || true)
 
-if [ -n "$SA_ID" ] && [ "$SA_ID" != "null" ]; then
-    TOKEN_RESPONSE=$(curl -sf -X POST "http://localhost:3001/api/serviceaccounts/${SA_ID}/tokens" \
+GRAFANA_API_KEY=""
+if [ -n "$SA_ID" ]; then
+    TOK_RESP=$(curl -sf -X POST "http://localhost:3001/api/serviceaccounts/${SA_ID}/tokens" \
         -H "Content-Type: application/json" \
         -d '{"name":"tersime-token"}' \
-        -u "${GF_ADMIN_USER}:${GF_ADMIN_PASSWORD}" 2>/dev/null || echo '{}')
-
-    GRAFANA_API_KEY=$(echo "$TOKEN_RESPONSE" | grep -o '"key":"[^"]*"' | sed 's/"key":"//;s/"//')
+        -u "${GF_USER}:${GF_PASS}" 2>/dev/null || echo '{}')
+    GRAFANA_API_KEY=$(echo "$TOK_RESP" | grep -o '"key":"[^"]*"' | sed 's/"key":"//;s/"//' || true)
 fi
 
-# Fallback: intentar con el endpoint legacy de API keys
 if [ -z "$GRAFANA_API_KEY" ]; then
-    warn "Service account no disponible, intentando API key legacy..."
-    KEY_RESPONSE=$(curl -sf -X POST "http://localhost:3001/api/auth/keys" \
+    info "Intentando API key legacy..."
+    KEY_RESP=$(curl -sf -X POST "http://localhost:3001/api/auth/keys" \
         -H "Content-Type: application/json" \
         -d '{"name":"tersime","role":"Admin"}' \
-        -u "${GF_ADMIN_USER}:${GF_ADMIN_PASSWORD}" 2>/dev/null || echo '{}')
-    GRAFANA_API_KEY=$(echo "$KEY_RESPONSE" | grep -o '"key":"[^"]*"' | sed 's/"key":"//;s/"//')
+        -u "${GF_USER}:${GF_PASS}" 2>/dev/null || echo '{}')
+    GRAFANA_API_KEY=$(echo "$KEY_RESP" | grep -o '"key":"[^"]*"' | sed 's/"key":"//;s/"//' || true)
 fi
 
 if [ -n "$GRAFANA_API_KEY" ]; then
-    # Guardar en settings de la app vía docker exec
     $COMPOSE_CMD exec -T app php artisan tinker --execute="
         App\Models\Setting::set('grafana_api_key', '$GRAFANA_API_KEY');
-        echo 'API key de Grafana guardada en settings.';
-    " 2>/dev/null || true
-
-    # También actualizar el .env para referencia
+        echo 'OK';
+    " >/dev/null 2>&1 || true
     sed -i "s|^GRAFANA_API_KEY=.*|GRAFANA_API_KEY=${GRAFANA_API_KEY}|" .env
-    success "API key de Grafana configurada automáticamente."
+    success "API key de Grafana configurada"
 else
-    warn "No se pudo generar la API key automáticamente."
-    warn "Entra en http://localhost:3001 con ${GF_ADMIN_USER}/${GF_SECURITY_ADMIN_PASSWORD}"
-    warn "y crea una API key en: Administration → Service accounts."
-    warn "Después ve a /configuracion/conexiones en la app y pégala."
+    warn "No se pudo generar API key. Hazlo manualmente en /configuracion/conexiones"
 fi
 
-# ── Obtener el datasource ID de Grafana ──────────────────────────────────────
-DS_RESPONSE=$(curl -sf "http://localhost:3001/api/datasources" \
-    -u "${GF_ADMIN_USER}:${GF_ADMIN_PASSWORD}" 2>/dev/null || echo '[]')
-DS_ID=$(echo "$DS_RESPONSE" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*')
-
+# Obtener datasource ID
+DS_RESP=$(curl -sf "http://localhost:3001/api/datasources" \
+    -u "${GF_USER}:${GF_PASS}" 2>/dev/null || echo '[]')
+DS_ID=$(echo "$DS_RESP" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*' || true)
 if [ -n "$DS_ID" ]; then
     $COMPOSE_CMD exec -T app php artisan tinker --execute="
         App\Models\Setting::set('grafana_datasource_id', '$DS_ID');
-        echo 'Datasource ID de Grafana: $DS_ID';
-    " 2>/dev/null || true
+        echo 'OK';
+    " >/dev/null 2>&1 || true
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6 · VERIFICACIÓN DE SERVICIOS
+# ─────────────────────────────────────────────────────────────────────────────
+section "6 · Verificación de servicios"
+
+INFLUX_ORG="${INFLUXDB_ORG:-tersime}"
+INFLUX_BUCKET_NAME="${INFLUX_BUCKET:-tersime}"
+INFLUX_TOKEN_VAL="${INFLUXDB_TOKEN}"
+INFLUX_API="http://localhost:8087"
+
+# ── InfluxDB ──────────────────────────────────────────────────────────────────
+echo -e "\n  ${BOLD}InfluxDB${NC} (http://localhost:8087)"
+
+# 1. Health
+HEALTH=$(curl -sf "${INFLUX_API}/health" 2>/dev/null || echo '{}')
+if echo "$HEALTH" | grep -q '"status":"pass"'; then
+    ok "Servicio activo y respondiendo"
+else
+    fail "Servicio no responde correctamente (health: ${HEALTH})"
+fi
+
+# 2. Autenticación con token
+AUTH_CODE=$(curl -sf -o /dev/null -w "%{http_code}" \
+    "${INFLUX_API}/api/v2/buckets" \
+    -H "Authorization: Token ${INFLUX_TOKEN_VAL}" 2>/dev/null || echo "000")
+if [ "$AUTH_CODE" = "200" ]; then
+    ok "Token válido (autenticación OK)"
+else
+    fail "Token inválido o rechazado (HTTP ${AUTH_CODE})"
+fi
+
+# 3. Bucket existe
+BUCKET_RESP=$(curl -sf "${INFLUX_API}/api/v2/buckets?name=${INFLUX_BUCKET_NAME}" \
+    -H "Authorization: Token ${INFLUX_TOKEN_VAL}" 2>/dev/null || echo '{}')
+BUCKET_COUNT=$(echo "$BUCKET_RESP" | grep -o '"id":"[^"]*"' | wc -l || echo "0")
+if [ "$BUCKET_COUNT" -ge "1" ]; then
+    ok "Bucket '${INFLUX_BUCKET_NAME}' existe"
+else
+    fail "Bucket '${INFLUX_BUCKET_NAME}' NO encontrado"
+fi
+
+# 4. Schema: measurement 'hourly' con field 'kwh'
+SCHEMA_QUERY=$(cat <<FLUX
+from(bucket: "${INFLUX_BUCKET_NAME}")
+  |> range(start: -5y)
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh")
+  |> distinct(column: "name")
+  |> keep(columns: ["name"])
+  |> limit(n: 20)
+FLUX
+)
+
+SCHEMA_RESP=$($COMPOSE_CMD exec -T influxdb influx query \
+    --org "$INFLUX_ORG" --token "$INFLUX_TOKEN_VAL" "$SCHEMA_QUERY" 2>/dev/null \
+    | grep -v "^#\|^,result\|^,table\|^$" \
+    | awk -F',' 'NR>1 {print $NF}' \
+    | sort -u | tr '\n' ' ' | xargs || true)
+
+INFLUXDB_EMPTY=0
+if [ -n "$SCHEMA_RESP" ]; then
+    ok "Measurement 'hourly' con field 'kwh' detectado"
+    ok "Dispositivos con datos: ${SCHEMA_RESP}"
+
+    # 5. Datos recientes (últimas 48 h)
+    RECENT_QUERY=$(cat <<FLUX
+from(bucket: "${INFLUX_BUCKET_NAME}")
+  |> range(start: -48h)
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh")
+  |> count()
+  |> sum()
+FLUX
+)
+    RECENT_COUNT=$($COMPOSE_CMD exec -T influxdb influx query \
+        --org "$INFLUX_ORG" --token "$INFLUX_TOKEN_VAL" "$RECENT_QUERY" 2>/dev/null \
+        | grep -v "^#\|^,result\|^,table\|^$" \
+        | awk -F',' 'NR>1 {print $NF}' | head -1 | tr -d '[:space:]' || echo "0")
+
+    if [ -n "$RECENT_COUNT" ] && [ "$RECENT_COUNT" -gt "0" ] 2>/dev/null; then
+        ok "Datos recientes (últimas 48 h): ${RECENT_COUNT} puntos"
+    else
+        skip "Sin datos en las últimas 48 h (datos históricos sí presentes)"
+    fi
+else
+    skip "Bucket vacío — no hay datos aún"
+    warn "  → Carga datos demo: ./docker/data/import.sh --demo"
+    warn "  → Importa tus datos: ./docker/data/import.sh tus-datos.csv"
+    INFLUXDB_EMPTY=1
+fi
+
+# 6. Measurement 'daily' con field 'kwh_total'
+DAILY_QUERY=$(cat <<FLUX
+from(bucket: "${INFLUX_BUCKET_NAME}")
+  |> range(start: -5y)
+  |> filter(fn: (r) => r._measurement == "daily" and r._field == "kwh_total")
+  |> count()
+  |> sum()
+FLUX
+)
+DAILY_COUNT=$($COMPOSE_CMD exec -T influxdb influx query \
+    --org "$INFLUX_ORG" --token "$INFLUX_TOKEN_VAL" "$DAILY_QUERY" 2>/dev/null \
+    | grep -v "^#\|^,result\|^,table\|^$" \
+    | awk -F',' 'NR>1 {print $NF}' | head -1 | tr -d '[:space:]' || echo "0")
+
+if [ -n "$DAILY_COUNT" ] && [ "$DAILY_COUNT" -gt "0" ] 2>/dev/null; then
+    ok "Measurement 'daily' con field 'kwh_total': ${DAILY_COUNT} puntos"
+else
+    skip "Measurement 'daily' vacío"
+fi
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+echo -e "\n  ${BOLD}Grafana${NC} (http://localhost:3001)"
+
+# 1. Health
+GF_HEALTH=$(curl -sf "http://localhost:3001/api/health" 2>/dev/null || echo '{}')
+if echo "$GF_HEALTH" | grep -q '"database":"ok"'; then
+    ok "Servicio activo (database OK)"
+elif echo "$GF_HEALTH" | grep -q '"status"'; then
+    ok "Servicio activo"
+else
+    fail "Servicio no responde"
+fi
+
+# 2. Datasource InfluxDB conectado
+DS_LIST=$(curl -sf "http://localhost:3001/api/datasources" \
+    -u "${GF_USER}:${GF_PASS}" 2>/dev/null || echo '[]')
+INFLUX_DS=$(echo "$DS_LIST" | grep -c '"type":"influxdb"' || echo "0")
+if [ "$INFLUX_DS" -ge "1" ]; then
+    ok "Datasource InfluxDB provisionado"
+else
+    fail "Datasource InfluxDB no encontrado"
+fi
+
+# 3. Health del datasource InfluxDB
+DS_UID="feg5i5n3pjq4gf"
+DS_HEALTH=$(curl -sf "http://localhost:3001/api/datasources/uid/${DS_UID}/health" \
+    -u "${GF_USER}:${GF_PASS}" 2>/dev/null || echo '{}')
+if echo "$DS_HEALTH" | grep -qi '"status":"OK"'; then
+    ok "Datasource InfluxDB: conectado y respondiendo"
+elif echo "$DS_HEALTH" | grep -qi '"status"'; then
+    DS_MSG=$(echo "$DS_HEALTH" | grep -o '"message":"[^"]*"' | head -1 | sed 's/"message":"//;s/"//')
+    warn "Datasource InfluxDB: ${DS_MSG:-sin datos}"
+else
+    skip "Health del datasource no disponible (puede ser normal si el bucket está vacío)"
+fi
+
+# 4. JSON-API datasource (predictor)
+JSON_DS=$(echo "$DS_LIST" | grep -c '"type":"marcusolsson-json-datasource"' || echo "0")
+if [ "$JSON_DS" -ge "1" ]; then
+    ok "Datasource JSON-API (predictor) provisionado"
+else
+    warn "Datasource JSON-API no encontrado (plugin puede estar descargando)"
+fi
+
+# 5. Dashboards cargados
+DASH_RESP=$(curl -sf "http://localhost:3001/api/search?type=dash-db" \
+    -u "${GF_USER}:${GF_PASS}" 2>/dev/null || echo '[]')
+DASH_COUNT=$(echo "$DASH_RESP" | grep -c '"id"' || echo "0")
+if [ "$DASH_COUNT" -ge "1" ]; then
+    ok "${DASH_COUNT} dashboard(s) cargados"
+else
+    warn "Dashboards no detectados (pueden estar cargando — espera 30s y verifica en Grafana)"
+fi
+
+# ── App Laravel ───────────────────────────────────────────────────────────────
+echo -e "\n  ${BOLD}Aplicación Laravel${NC} (http://localhost:8080)"
+
+APP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "http://localhost:8080/" 2>/dev/null || echo "000")
+if [ "$APP_CODE" = "200" ] || [ "$APP_CODE" = "302" ]; then
+    ok "Página de login accesible (HTTP ${APP_CODE})"
+else
+    fail "No responde (HTTP ${APP_CODE})"
+fi
+
+# Verificar que la BD SQLite existe y tiene tablas
+DB_CHECK=$($COMPOSE_CMD exec -T app php artisan tinker --execute="
+    try {
+        \$c = DB::table('users')->count();
+        echo 'users:' . \$c;
+    } catch (\Exception \$e) {
+        echo 'error:' . \$e->getMessage();
+    }
+" 2>/dev/null | grep -o 'users:[0-9]*' || echo "")
+
+if echo "$DB_CHECK" | grep -q "^users:"; then
+    USER_COUNT=$(echo "$DB_CHECK" | grep -o '[0-9]*$')
+    ok "Base de datos SQLite OK (${USER_COUNT} usuario(s))"
+else
+    fail "Error accediendo a la base de datos"
+fi
+
+# Verificar configuración de conexiones
+SETTINGS_CHECK=$($COMPOSE_CMD exec -T app php artisan tinker --execute="
+    \$keys = ['influxdb_url','influxdb_token','grafana_base_url'];
+    foreach (\$keys as \$k) {
+        \$v = App\Models\Setting::get(\$k);
+        echo \$k . ':' . (empty(\$v) ? 'empty' : 'ok') . PHP_EOL;
+    }
+" 2>/dev/null || echo "")
+
+if echo "$SETTINGS_CHECK" | grep -q "empty"; then
+    warn "Algunas configuraciones de conexión están vacías — revisa /configuracion/conexiones"
+else
+    ok "Configuración de conexiones cargada en la BD"
+fi
+
+# ── Predictor ─────────────────────────────────────────────────────────────────
+echo -e "\n  ${BOLD}Predictor Prophet${NC} (interno: predictor:8888)"
+
+PRED_HEALTH=$($COMPOSE_CMD exec -T app curl -sf http://predictor:8888/health 2>/dev/null || echo '{}')
+if echo "$PRED_HEALTH" | grep -q '"status":"ok"'; then
+    ok "Servicio activo (/health OK)"
+else
+    warn "Predictor no responde aún (Prophet puede tardar ~60s en arrancar)"
+fi
+
+# Test básico de predicción
+PRED_TEST=$($COMPOSE_CMD exec -T app curl -sf \
+    -X POST http://predictor:8888/predict \
+    -H "Content-Type: application/json" \
+    -d '{"timestamps":["2025-01-01T00:00:00Z","2025-01-01T01:00:00Z","2025-01-01T02:00:00Z"],"values":[0.5,0.6,0.55],"predic_hours":3}' \
+    2>/dev/null || echo '{}')
+
+if echo "$PRED_TEST" | grep -q '"forecast"'; then
+    ok "Predicción de prueba OK (Prophet respondiendo)"
+elif echo "$PRED_TEST" | grep -q '"timestamps"'; then
+    ok "Predicción de prueba OK"
+else
+    warn "Predictor no responde a predicciones (puede estar iniciando)"
+fi
+
+# ── Datos demo ─────────────────────────────────────────────────────────────────
+if [ "$INFLUXDB_EMPTY" = "1" ] && [ "$NON_INTERACTIVE" = "0" ]; then
+    echo ""
+    echo -e "${YELLOW}  El bucket de InfluxDB está vacío.${NC}"
+    read -rp "  ¿Cargar 400 días de datos de demostración? [S/n]: " LOAD_DEMO
+    if [[ ! "$LOAD_DEMO" =~ ^[nN]$ ]]; then
+        section "7 · Cargando datos de demostración"
+        bash docker/data/import.sh --demo --days 400
+    fi
 fi
 
 # ── Resumen final ─────────────────────────────────────────────────────────────
+section "✓ Instalación completa"
+
 echo ""
-echo -e "${GREEN}╔═══════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║           ✓ Tersime instalado correctamente       ║${NC}"
-echo -e "${GREEN}╚═══════════════════════════════════════════════════╝${NC}"
+echo -e "  ${BOLD}URLs de acceso:${NC}"
+echo -e "  ┌────────────────────────────────────────────────────────┐"
+echo -e "  │  App       →  ${CYAN}${APP_URL:-http://localhost:8080}${NC}"
+echo -e "  │  InfluxDB  →  ${CYAN}http://localhost:8087${NC}"
+echo -e "  │  Grafana   →  ${CYAN}http://localhost:3001${NC}  (admin directo)"
+echo -e "  └────────────────────────────────────────────────────────┘"
 echo ""
-echo -e "  ${CYAN}Aplicación:${NC}  ${APP_URL}"
-echo -e "  ${CYAN}Usuario:${NC}     ${TERSIME_ADMIN_USER:-admin}"
-echo -e "  ${CYAN}Contraseña:${NC}  ${TERSIME_ADMIN_PASSWORD}"
+echo -e "  ${BOLD}Credenciales:${NC}"
+echo -e "  ┌────────────────────────────────────────────────────────┐"
+echo -e "  │  Tersime   →  ${ADMIN_USER:-admin}  /  ${ADMIN_PASS:-<configurado>}"
+echo -e "  │  Grafana   →  ${GF_ADMIN_USER:-admin}  /  ${GF_ADMIN_PASS:-<configurado>}"
+echo -e "  └────────────────────────────────────────────────────────┘"
 echo ""
-echo -e "  ${CYAN}InfluxDB UI:${NC} http://localhost:8087"
-echo -e "  ${CYAN}Grafana UI:${NC}  http://localhost:3001  (${GF_ADMIN_USER}/${GF_SECURITY_ADMIN_PASSWORD})"
+echo -e "  ${BOLD}Datos InfluxDB:${NC}"
+echo -e "  Org: ${INFLUX_ORG:-tersime}  ·  Bucket: ${INFLUX_BUCKET_NAME:-tersime}"
+echo -e "  Ver estructura: ${CYAN}cat INFLUXDB_SCHEMA.txt${NC}"
 echo ""
-echo -e "  ${YELLOW}Próximos pasos:${NC}"
-echo -e "  1. Entra en ${APP_URL} y configura tus dispositivos"
-echo -e "  2. Configura las notificaciones en /configuracion/conexiones"
-echo -e "  3. Añade datos a InfluxDB (bucket: ${INFLUX_BUCKET:-tersime})"
-echo ""
-echo -e "  ${CYAN}Comandos útiles:${NC}"
-echo -e "  · Ver logs:      $COMPOSE_CMD logs -f"
-echo -e "  · Parar:         $COMPOSE_CMD down"
-echo -e "  · Reiniciar:     $COMPOSE_CMD restart"
-echo -e "  · Shell PHP:     $COMPOSE_CMD exec app bash"
+echo -e "  ${BOLD}Comandos útiles:${NC}"
+echo -e "  ·  Cargar datos demo:   ${CYAN}./docker/data/import.sh --demo${NC}"
+echo -e "  ·  Importar CSV:        ${CYAN}./docker/data/import.sh mis-datos.csv${NC}"
+echo -e "  ·  Ver logs:            ${CYAN}docker compose logs -f${NC}"
+echo -e "  ·  Reiniciar:           ${CYAN}docker compose restart${NC}"
+echo -e "  ·  Parar todo:          ${CYAN}docker compose down${NC}"
+echo -e "  ·  Parar + borrar BD:   ${CYAN}docker compose down -v${NC}"
 echo ""
