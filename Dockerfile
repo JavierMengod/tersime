@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         cron \
         sqlite3 \
+        libsqlite3-dev \
         jpegoptim optipng pngquant gifsicle \
     && rm -rf /var/lib/apt/lists/*
 
