@@ -377,7 +377,7 @@
 
             title.textContent     = "{{ __('Editar programación') }}";
             btnSubmit.textContent = "{{ __('Guardar cambios') }}";
-            form.action       = "{{ url('/programacionesU') }}/" + d.id;
+            form.action       = "{{ url('/programaciones') }}/" + d.id;
             methodField.value = 'PUT';
 
             document.getElementById('field-nombre').value        = d.nombre;
