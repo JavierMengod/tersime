@@ -319,7 +319,9 @@
     </div>
 </div>
 
-{{-- Reabrir modal crear si hubo errores de validación en creación --}}
+@endsection
+
+@push('scripts')
 <script>
 document.querySelectorAll('.btn-eliminar-usuario').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -329,7 +331,6 @@ document.querySelectorAll('.btn-eliminar-usuario').forEach(function (btn) {
     });
 });
 </script>
-
 @if($openCreate)
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -337,5 +338,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endif
-
-@endsection
+@endpush

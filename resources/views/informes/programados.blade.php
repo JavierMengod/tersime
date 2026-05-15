@@ -264,9 +264,11 @@
     </div>
 </div>
 
+@push('styles')
 <style>
 .btn-canal.active { border-color: var(--bs-primary); color: var(--bs-primary); background: rgba(var(--bs-primary-rgb),.08); }
 </style>
+@endpush
 
 @push('scripts')
 <script>

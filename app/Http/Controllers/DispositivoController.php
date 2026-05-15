@@ -17,11 +17,11 @@ class DispositivoController extends Controller
         return view('monitorizacion.tiempo-real', compact('dispositivos'));
     }
 
-    public function index()
+    public function index(InfluxController $influx)
     {
         $dispositivos        = Auth::user()->dispositivos()->paginate(10);
         $asignados           = Auth::user()->dispositivos()->pluck('influx_tag')->toArray();
-        $dispositivosGrafana = array_values(array_diff(GrafanaController::dispositivosGrafana(), $asignados));
+        $dispositivosGrafana = array_values(array_diff($influx->listarDispositivos(), $asignados));
 
         return view('monitorizacion.dispositivos', compact('dispositivos', 'dispositivosGrafana'));
     }

@@ -62,11 +62,11 @@
     <div class="card mb-4 border-0 shadow-sm">
       <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
         <span>{{ __('Previsualizar Grafana') }}</span>
-        <a id="grafanaFullscreen" href="#" target="_blank" rel="noopener"
-           class="btn btn-sm btn-outline-secondary d-md-none"
-           title="{{ __('Abrir en pantalla completa') }}">
+        <button data-bs-toggle="modal" data-bs-target="#modal-grafana-zoom"
+                class="btn btn-sm btn-outline-secondary"
+                title="{{ __('Abrir en pantalla completa') }}">
           <i class="fas fa-expand-alt"></i>
-        </a>
+        </button>
       </div>
       <div class="card-body bg-light">
         <div class="ratio ratio--grafana">
@@ -81,6 +81,31 @@
     </div>
 
   </div>
+
+{{-- ── Modal zoom Grafana ────────────────────────────────────────────────────── --}}
+<div class="modal fade" id="modal-grafana-zoom" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-fullscreen-sm-down modal-grafana-zoom">
+    <div class="modal-content h-100">
+      <div class="modal-header py-2 border-bottom-0">
+        <span class="fw-semibold small">{{ __('Previsualizar Grafana') }}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0 d-flex flex-column">
+        <iframe id="grafanaZoomIframe" src="" frameborder="0" loading="lazy"
+                class="flex-grow-1 w-100"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+@push('styles')
+<style>
+@media (min-width: 576px) {
+    #modal-grafana-zoom .modal-dialog { height: 88vh; margin-top: calc((100vh - 88vh) / 2); }
+    #modal-grafana-zoom .modal-content { height: 100%; }
+}
+</style>
+@endpush
 
 @push('scripts')
 <script>
@@ -111,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function actualizarIframe() {
-        if (!selector.selection) { iframe.src = ''; document.getElementById('grafanaFullscreen').href = '#'; return; }
+        if (!selector.selection) { iframe.src = ''; return; }
         const w = iframe.clientWidth  || document.documentElement.clientWidth;
         const h = iframe.clientHeight || Math.round(window.innerHeight * 0.4);
         const url = buildPrediccionUrl(
@@ -122,13 +147,17 @@ document.addEventListener('DOMContentLoaded', () => {
             w, h
         );
         iframe.src = url;
-        document.getElementById('grafanaFullscreen').href = url;
     }
 
     document.getElementById('fromDate').addEventListener('change', actualizarIframe);
     document.getElementById('toDate').addEventListener('change', actualizarIframe);
-    window.addEventListener('resize', debounce(actualizarIframe, 250));
     actualizarIframe();
+
+    // Modal zoom: carga el iframe al abrir, lo limpia al cerrar
+    const zoomModal  = document.getElementById('modal-grafana-zoom');
+    const zoomIframe = document.getElementById('grafanaZoomIframe');
+    zoomModal.addEventListener('show.bs.modal', () => { zoomIframe.src = iframe.src; });
+    zoomModal.addEventListener('hide.bs.modal', () => { zoomIframe.src = ''; });
 });
 </script>
 @endpush

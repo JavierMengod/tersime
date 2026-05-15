@@ -2,36 +2,18 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Http\Controllers\GrafanaController;
+use Illuminate\Console\Command;
 
 class ComprobarFuncion extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'comprobar:funcion';
+    protected $signature   = 'comprobar:funcion';
+    protected $description = 'Comprueba conectividad con Grafana y lista dispositivos activos.';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
-
-
-
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     */
-    public function handle()
+    public function handle(GrafanaController $grafana): int
     {
-        $grafana = new GrafanaController();
-        $grafana -> checkDevices();
+        $devices = $grafana->checkDevices();
+        $this->info('Dispositivos encontrados: ' . count($devices));
         return 0;
     }
 }

@@ -80,7 +80,6 @@ function buildTiempoRealUrl(base, params, devices, fromVal, toVal) {
 
 /**
  * Builds the Grafana iframe src for the Predicción page.
- * Includes prediction-specific params: predict_hours, var-start/stop/end, cacheBuster.
  *
  * @param {string}       base    Panel base URL
  * @param {string}       params  Static query-string portion
@@ -110,10 +109,7 @@ function buildPrediccionUrl(base, params, device, fromVal, toVal, w, h) {
     const grafanaStart = formatGrafanaDate(fromVal);
     const grafanaStop  = formatGrafanaDate(toVal);
     if (grafanaStart) url += `&var-start=${encodeURIComponent(grafanaStart)}`;
-    if (grafanaStop) {
-        url += `&var-stop=${encodeURIComponent(grafanaStop)}`;
-        url += `&var-end=${encodeURIComponent(grafanaStop)}`;
-    }
-    url += `&cacheBuster=${Date.now()}`;
+    if (grafanaStop)  url += `&var-stop=${encodeURIComponent(grafanaStop)}`;
+
     return url;
 }

@@ -64,8 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::get('dispositivos', [DispositivoController::class, 'index'])->name('dispositivos');
         Route::get('series',       [GrafanaController::class, 'series'])->name('series');
 
-        Route::get('prediccion',   [PrediccionController::class, 'index'])->name('prediccion');
-        Route::post('prediccion',  [PrediccionController::class, 'predecir'])->name('prediccion.store');
+        Route::get('prediccion', [PrediccionController::class, 'index'])->name('prediccion');
     });
 
     // ── Dispositivos (CRUD) ────────────────────────────────────────────────────

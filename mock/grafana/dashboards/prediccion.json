@@ -247,7 +247,8 @@
           "method": "GET",
           "queryParams": "",
           "refId": "A",
-          "urlPath": "/prediccion/obtener?start=$start&stop=$stop&device=$dispositivos&predic_hours=$predict_hours"
+          "urlPath": "/prediccion/obtener?start=$start&stop=$stop&device=$dispositivos&predic_hours=$predict_hours",
+          "groupBy": "metric"
         }
       ],
       "title": "Visualizacion Prediccion",

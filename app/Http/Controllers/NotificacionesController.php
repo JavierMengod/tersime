@@ -24,7 +24,7 @@ class NotificacionesController extends Controller
         // Notificaciones DB (campana) sin leer
         $dbNotificaciones = $user->notifications()->latest()->take(50)->get();
 
-        return view('usuario.notificaciones', compact('informes', 'alertas', 'dbNotificaciones', 'tipo'));
+        return view('usuarios.notificaciones', compact('informes', 'alertas', 'dbNotificaciones', 'tipo'));
     }
 
     public function read(string $id)

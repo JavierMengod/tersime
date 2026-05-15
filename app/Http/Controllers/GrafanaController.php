@@ -47,62 +47,7 @@ class GrafanaController extends Controller
         return response()->json($datasets);
     }
 
-    public static function dispositivosGrafana(): array
-    {
-        $influxUrl = rtrim(Setting::get('influxdb_url') ?: env('INFLUXDB_URL', 'http://localhost:8086'), '/')
-            . '/api/v2/query?org=' . (Setting::get('influxdb_org') ?: env('INFLUXDB_ORG', 'tersime'));
-        $token  = Setting::get('influxdb_token') ?: env('INFLUXDB_TOKEN', '');
-        $bucket = Setting::get('influxdb_bucket') ?: env('INFLUX_BUCKET', 'PINZAS');
-
-        $fluxQuery = <<<FLUX
-            from(bucket:"{$bucket}")
-            |> range(start: 0)
-            |> filter(fn: (r) => r._measurement == "daily" and r._field == "kwh_total")
-            |> distinct(column: "name")
-            |> keep(columns: ["name"])
-        FLUX;
-
-        $response = Http::withHeaders([
-            'Authorization' => "Token {$token}",
-            'Content-Type'  => 'application/json',
-            'Accept'        => 'application/csv',
-        ])->post($influxUrl, [
-            'query'   => $fluxQuery,
-            'dialect' => ['header' => true, 'delimiter' => ','],
-        ]);
-
-        Log::debug('[GrafanaController] dispositivosGrafana status: ' . $response->status());
-
-        if (!$response->successful()) {
-            Log::error('[GrafanaController] Error consultando InfluxDB', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
-            ]);
-            return [];
-        }
-
-        $lines        = array_filter(explode("\n", $response->body()));
-        $dispositivos = [];
-
-        foreach ($lines as $index => $line) {
-            if ($index === 0) continue;
-
-            $parts = str_getcsv($line);
-            $name  = $parts[3] ?? null;
-
-            if (!empty($name)) {
-                $dispositivos[] = $name;
-            }
-        }
-
-        $dispositivos = array_values(array_unique($dispositivos));
-
-        Log::info('[GrafanaController] Dispositivos desde InfluxDB:', $dispositivos);
-
-        return $dispositivos;
-    }
-
-    public static function checkDevices(): array
+    public function checkDevices(): array
     {
         try {
             $grafanaBase = rtrim(
@@ -180,7 +125,6 @@ class GrafanaController extends Controller
             }
 
             Log::info('[GrafanaController] Resumen de dispositivos:', ['devices' => $devices]);
-
             return $devices;
 
         } catch (\Throwable $e) {

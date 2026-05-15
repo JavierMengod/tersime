@@ -62,11 +62,11 @@
     <div class="card mb-4 border-0 shadow-sm">
       <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
         <span>{{ __('Previsualizar Grafana') }}</span>
-        <a id="grafanaFullscreen" href="#" target="_blank" rel="noopener"
-           class="btn btn-sm btn-outline-secondary d-md-none"
-           title="{{ __('Abrir en pantalla completa') }}">
+        <button data-bs-toggle="modal" data-bs-target="#modal-grafana-zoom"
+                class="btn btn-sm btn-outline-secondary"
+                title="{{ __('Abrir en pantalla completa') }}">
           <i class="fas fa-expand-alt"></i>
-        </a>
+        </button>
       </div>
       <div class="card-body">
 
@@ -88,91 +88,40 @@
 
   </div>
 
+{{-- ── Modal zoom Grafana ────────────────────────────────────────────────────── --}}
+<div class="modal fade" id="modal-grafana-zoom" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-fullscreen-sm-down modal-grafana-zoom">
+    <div class="modal-content h-100">
+      <div class="modal-header py-2 border-bottom-0">
+        <span class="fw-semibold small">{{ __('Previsualizar Grafana') }}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0 d-flex flex-column">
+        <iframe id="grafanaZoomIframe" src="" frameborder="0" loading="lazy"
+                class="flex-grow-1 w-100"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+@push('styles')
+<style>
+@media (min-width: 576px) {
+    #modal-grafana-zoom .modal-dialog { height: 88vh; margin-top: calc((100vh - 88vh) / 2); }
+    #modal-grafana-zoom .modal-content { height: 100%; }
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
-const GRAFANA_BASE   = '/grafana/d-solo/tersime-tr-embed/dashboard-initiot-embed';
-const GRAFANA_PARAMS = 'orgId=1&timezone=browser&panelId=1&__feature.dashboardSceneSolo&theme={{ Auth::user()->theme ?? "light" }}';
+const GRAFANA_BASE        = '/grafana/d-solo/tersime-tr-embed/dashboard-initiot-embed';
+const GRAFANA_PARAMS      = 'orgId=1&timezone=browser&panelId=1&__feature.dashboardSceneSolo&theme={{ Auth::user()->theme ?? "light" }}';
 const MSG_SIN_DISPOSITIVO = '{{ __('Debes seleccionar al menos un dispositivo') }}';
 </script>
 <script src="{{ asset('assets/js/grafana-utils.js') }}"></script>
 <script src="{{ asset('assets/js/device-selector.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const iframe  = document.getElementById('grafanaIframe');
-    const leyenda = document.getElementById('grafanaLeyenda');
-
-    // Paleta en el mismo orden que la Classic Palette de Grafana
-    const PALETTE = [
-        '#7EB26D', '#EAB839', '#6ED0E0', '#EF843C',
-        '#E24D42', '#1F78C1', '#BA43A9', '#705DA0',
-        '#508642', '#CCA300',
-    ];
-
-    // ── Fechas por defecto ─────────────────────────────────────────────────────
-    const today = new Date();
-    const from  = new Date();
-    from.setDate(today.getDate() - 7);
-    document.getElementById('fromDate').value = formatLocalDate(from);
-    document.getElementById('toDate').value   = formatLocalDate(today);
-
-    // ── Selector de dispositivos ───────────────────────────────────────────────
-    const selector = new MultiDeviceSelector({
-        containerId:  'dispositivosSeleccionados',
-        itemSelector: '.dispositivo-opcion',
-        msgEmpty:     MSG_SIN_DISPOSITIVO,
-        getData:      el => ({ key: el.dataset.url, label: el.textContent.trim() }),
-        hideSelected: true,
-        onChange:     () => {
-            actualizarIframe();
-            actualizarLeyenda(selector.selections);
-        },
-    });
-
-    // ── Iframe ─────────────────────────────────────────────────────────────────
-    function actualizarIframe() {
-        const url = buildTiempoRealUrl(
-            GRAFANA_BASE, GRAFANA_PARAMS,
-            selector.selections,
-            document.getElementById('fromDate').value,
-            document.getElementById('toDate').value
-        );
-        iframe.src = url ?? '';
-        document.getElementById('grafanaFullscreen').href = url ?? '#';
-    }
-
-    // ── Leyenda ────────────────────────────────────────────────────────────────
-    function actualizarLeyenda(selections) {
-        leyenda.innerHTML = '';
-
-        if (!selections.length) {
-            leyenda.classList.add('d-none');
-            return;
-        }
-
-        selections.forEach((sel, i) => {
-            const color = PALETTE[i % PALETTE.length];
-            const item  = document.createElement('span');
-            item.className = 'd-flex align-items-center gap-2 small fw-medium';
-
-            const dot = document.createElement('span');
-            dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${color};flex-shrink:0`;
-
-            const texto = document.createElement('span');
-            texto.textContent = sel.label;
-
-            item.appendChild(dot);
-            item.appendChild(texto);
-            leyenda.appendChild(item);
-        });
-
-        leyenda.classList.remove('d-none');
-    }
-
-    document.getElementById('fromDate').addEventListener('change', actualizarIframe);
-    document.getElementById('toDate').addEventListener('change',   actualizarIframe);
-    actualizarIframe();
-});
-</script>
+<script src="{{ asset('assets/js/tiempo-real.js') }}"></script>
 @endpush
 
 @endsection
