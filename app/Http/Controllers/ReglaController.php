@@ -9,7 +9,15 @@ use Illuminate\Support\Facades\Log;
 
 class ReglaController extends Controller
 {
-    public function guardar(Request $request)
+    public function index()
+    {
+        $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
+        $reglas       = auth()->user()->rules()->with('dispositivos')->paginate(10);
+
+        return view('alertas.acciones', compact('dispositivos', 'reglas'));
+    }
+
+    public function store(Request $request)
     {
         Log::debug('Iniciando guardado de reglas');
         Log::debug('Datos recibidos en la request:', $request->all());

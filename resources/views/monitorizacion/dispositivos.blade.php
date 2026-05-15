@@ -59,7 +59,7 @@
                                 </td>
                                 <td class="text-end text-nowrap">
                                     {{-- Texto en desktop, icono en móvil --}}
-                                    <form action="{{ route('dispositivo.toggle', $device) }}" method="POST" class="d-inline">
+                                    <form action="{{ route('dispositivos.toggle', $device) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('PATCH')
                                         <button class="btn btn-sm {{ $device->pivot->habilitado ? 'btn-outline-secondary' : 'btn-outline-success' }} me-1"
@@ -118,7 +118,7 @@
                 <h5 class="modal-title">{{ __('Crear dispositivo') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('dispositivo.store') }}" method="POST">
+            <form action="{{ route('dispositivos.store') }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">

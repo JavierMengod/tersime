@@ -36,7 +36,7 @@ class NotificacionAlerta extends Notification
             'tipo'   => $this->tipo,
             'titulo' => $this->titulo,
             'mensaje' => $this->mensaje,
-            'url'    => route('alertas-historial'),
+            'url'    => route('alertas.historial'),
             'icono'  => $this->icono,
         ];
     }

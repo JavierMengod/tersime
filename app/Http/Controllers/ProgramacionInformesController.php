@@ -27,7 +27,7 @@ class ProgramacionInformesController extends Controller
 
         $programacion->dispositivos()->sync($data['dispositivos']);
 
-        return redirect()->route('informes-programados')
+        return redirect()->route('informes.programados')
             ->with('success', 'Programación creada correctamente.');
     }
 
@@ -51,7 +51,7 @@ class ProgramacionInformesController extends Controller
 
         $programacionInformes->dispositivos()->sync($data['dispositivos']);
 
-        return redirect()->route('informes-programados')
+        return redirect()->route('informes.programados')
             ->with('success', 'Programación actualizada correctamente.');
     }
 
@@ -61,7 +61,7 @@ class ProgramacionInformesController extends Controller
 
         $programacionInformes->delete();
 
-        return redirect()->route('informes-programados')
+        return redirect()->route('informes.programados')
             ->with('success', 'Programación eliminada correctamente.');
     }
 

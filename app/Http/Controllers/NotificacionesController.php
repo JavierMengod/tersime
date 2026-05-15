@@ -27,9 +27,23 @@ class NotificacionesController extends Controller
         return view('usuario.notificaciones', compact('informes', 'alertas', 'dbNotificaciones', 'tipo'));
     }
 
-    public function marcarTodasLeidas()
+    public function read(string $id)
+    {
+        $n = auth()->user()->notifications()->findOrFail($id);
+        $n->markAsRead();
+
+        return response()->noContent();
+    }
+
+    public function readAll()
     {
         auth()->user()->unreadNotifications->markAsRead();
-        return back()->with('success', 'Todas las notificaciones marcadas como leídas.');
+
+        return back();
+    }
+
+    public function marcarTodasLeidas()
+    {
+        return $this->readAll();
     }
 }

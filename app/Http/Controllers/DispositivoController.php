@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\DB;
 
 class DispositivoController extends Controller
 {
+    public function tiempoReal()
+    {
+        $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
+
+        return view('monitorizacion.tiempo-real', compact('dispositivos'));
+    }
+
     public function index()
     {
         $dispositivos        = Auth::user()->dispositivos()->paginate(10);
@@ -30,7 +37,7 @@ class DispositivoController extends Controller
 
         if (Auth::user()->dispositivos()->where('dispositivos.id', $dispositivo->id)->exists()) {
             return redirect()
-                ->route('monitorizacion-dispositivos')
+                ->route('monitorizacion.dispositivos')
                 ->with('error', 'Ya tienes este dispositivo asignado.');
         }
 
@@ -51,7 +58,7 @@ class DispositivoController extends Controller
         });
 
         return redirect()
-            ->route('monitorizacion-dispositivos')
+            ->route('monitorizacion.dispositivos')
             ->with('success', 'Dispositivo creado correctamente.');
     }
 
@@ -78,7 +85,7 @@ class DispositivoController extends Controller
         }
 
         return redirect()
-            ->route('monitorizacion-dispositivos')
+            ->route('monitorizacion.dispositivos')
             ->with('success', 'Dispositivo actualizado correctamente.');
     }
 
@@ -108,7 +115,7 @@ class DispositivoController extends Controller
 
         $msg = $habilitado ? 'Dispositivo deshabilitado.' : 'Dispositivo habilitado.';
 
-        return redirect()->route('monitorizacion-dispositivos')->with('success', $msg);
+        return redirect()->route('monitorizacion.dispositivos')->with('success', $msg);
     }
 
     public function destroy(Dispositivo $dispositivo)
@@ -124,7 +131,7 @@ class DispositivoController extends Controller
         }
 
         return redirect()
-            ->route('monitorizacion-dispositivos')
+            ->route('monitorizacion.dispositivos')
             ->with('success', "Dispositivo \"{$nombre}\" eliminado correctamente.");
     }
 }

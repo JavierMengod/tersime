@@ -310,9 +310,9 @@
         discord:  'Discord',
     };
     const rutasConfig = {
-        telegram: '{{ route("alertas-medios") }}',
-        correo:   '{{ route("alertas-medios") }}',
-        discord:  '{{ route("alertas-medios") }}',
+        telegram: '{{ route("alertas.medios") }}',
+        correo:   '{{ route("alertas.medios") }}',
+        discord:  '{{ route("alertas.medios") }}',
     };
 
     document.querySelectorAll('.btn-canal').forEach(btn => {
@@ -411,7 +411,7 @@
                     .filter(b => b.dataset.sinConfig === '1')
                     .map(b => '<strong>' + nombresCanal[b.dataset.canal] + '</strong>');
                 avisoTexto.innerHTML = canalesMal.join(' y ') + ' no {{ Str::lower(__("están configurados")) }}. '
-                    + '<a href="{{ route("alertas-medios") }}" class="alert-link">{{ __("Ir a Configuración") }} →</a>';
+                    + '<a href="{{ route("alertas.medios") }}" class="alert-link">{{ __("Ir a Configuración") }} →</a>';
                 avisoCanal.classList.remove('d-none');
             } else {
                 avisoCanal.classList.add('d-none');

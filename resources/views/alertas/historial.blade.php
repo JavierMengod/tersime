@@ -28,7 +28,7 @@ function sortIcon(string $column, string $currentSort, string $currentDir): stri
 {{-- ── FILTROS ──────────────────────────────────────────────────────────────── --}}
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
-        <form method="GET" action="{{ route('alertas-historial') }}" class="row g-2 align-items-end">
+        <form method="GET" action="{{ route('alertas.historial') }}" class="row g-2 align-items-end">
             <input type="hidden" name="sort" value="{{ $sort }}">
             <input type="hidden" name="dir"  value="{{ $dir }}">
 
@@ -88,7 +88,7 @@ function sortIcon(string $column, string $currentSort, string $currentDir): stri
                     <i class="fas fa-filter me-1"></i>{{ __('Filtrar') }}
                 </button>
                 @if(request()->hasAny(['device','rule','type','from','to']))
-                    <a href="{{ route('alertas-historial', ['sort' => $sort, 'dir' => $dir]) }}"
+                    <a href="{{ route('alertas.historial', ['sort' => $sort, 'dir' => $dir]) }}"
                        class="btn btn-sm btn-outline-secondary">
                         <i class="fas fa-times"></i>
                     </a>
@@ -157,7 +157,7 @@ function sortIcon(string $column, string $currentSort, string $currentDir): stri
 
                         {{-- Regla --}}
                         <td>
-                            <a href="{{ route('alertas-historial', array_merge(request()->query(), ['rule' => $log->rule_name, 'page' => 1])) }}"
+                            <a href="{{ route('alertas.historial', array_merge(request()->query(), ['rule' => $log->rule_name, 'page' => 1])) }}"
                                class="text-decoration-none fw-semibold"
                                title="{{ __('Filtrar por esta regla') }}">
                                 {{ $log->rule_name }}
@@ -169,7 +169,7 @@ function sortIcon(string $column, string $currentSort, string $currentDir): stri
 
                         {{-- Dispositivo --}}
                         <td>
-                            <a href="{{ route('alertas-historial', array_merge(request()->query(), ['device' => $log->device_name, 'page' => 1])) }}"
+                            <a href="{{ route('alertas.historial', array_merge(request()->query(), ['device' => $log->device_name, 'page' => 1])) }}"
                                class="text-decoration-none d-flex align-items-center gap-1"
                                title="{{ __('Filtrar por este dispositivo') }}">
                                 <i class="fas fa-microchip text-muted small"></i>

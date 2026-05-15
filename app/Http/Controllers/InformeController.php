@@ -197,6 +197,14 @@ class InformeController extends Controller
         return back()->with('success', 'Registro eliminado correctamente.');
     }
 
+    public function descargarBajoDemanda(string $filename)
+    {
+        $path = storage_path('app/public/informes/' . $filename);
+        abort_unless(file_exists($path), 404);
+
+        return response()->download($path);
+    }
+
     private function authorizeAccess(Informe $informe): void
     {
         if ($informe->user_id !== auth()->id()) {

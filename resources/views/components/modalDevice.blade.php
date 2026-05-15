@@ -16,7 +16,7 @@
             </div>
 
             <form
-                action="{{ $isEdit ? route('dispositivo.update', $device) : route('dispositivo.store') }}"
+                action="{{ $isEdit ? route('dispositivos.update', $device) : route('dispositivos.store') }}"
                 method="POST">
                 @csrf
                 @if ($isEdit)

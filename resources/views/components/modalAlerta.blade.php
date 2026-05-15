@@ -5,7 +5,7 @@
 ])
 
 @php
-    $action  = $isEdit ? route('reglas.update', $rule['id']) : route('reglas.guardar');
+    $action  = $isEdit ? route('reglas.update', $rule['id']) : route('reglas.store');
     $modalId = $isEdit ? "modal-rule-{$rule['id']}" : 'modal-rule-create';
     $title   = $isEdit ? __('Editar regla') : __('Nueva regla de alerta');
 

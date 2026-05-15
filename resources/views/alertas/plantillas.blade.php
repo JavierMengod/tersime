@@ -38,7 +38,7 @@
                                         <pre class="mb-0" style="white-space: pre-wrap;">{{ $plantilla->contenido }}</pre>
                                         <small class="text-muted">{{ __('Creada el') }} {{ $plantilla->created_at->format('d/m/Y H:i') }}</small>
                                     </div>
-                                    <form action="{{ route('alertas-plantillas.eliminar', [$canal, $plantilla->id]) }}" method="POST" onsubmit="return confirm('{{ __('¿Eliminar esta plantilla?') }}')">
+                                    <form action="{{ route('alertas.plantillas.destroy', [$canal, $plantilla->id]) }}" method="POST" onsubmit="return confirm('{{ __('¿Eliminar esta plantilla?') }}')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger">{{ __('Eliminar') }}</button>
@@ -51,7 +51,7 @@
                     @endif
 
                     <h5 class="mb-3">{{ __('Añadir nueva plantilla') }}</h5>
-                    <form action="{{ route('alertas-plantillas.crear', $canal) }}" method="POST">
+                    <form action="{{ route('alertas.plantillas.store', $canal) }}" method="POST">
                         @csrf
                         <div class="mb-3">
                             <label for="contenido_{{ $canal }}" class="form-label">{{ __('Contenido de la plantilla') }}</label>

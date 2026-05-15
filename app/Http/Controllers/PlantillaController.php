@@ -7,6 +7,19 @@ use Illuminate\Http\Request;
 
 class PlantillaController extends Controller
 {
+    public function index()
+    {
+        $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
+        $plantillas   = \App\Models\Plantilla::where('user_id', auth()->id())->get()->groupBy('canal');
+
+        return view('alertas.plantillas', compact('dispositivos', 'plantillas'));
+    }
+
+    public function store(Request $request, $canal)
+    {
+        return $this->create($request, $canal);
+    }
+
     public function create(Request $request, $canal)
     {
         $request->validate([

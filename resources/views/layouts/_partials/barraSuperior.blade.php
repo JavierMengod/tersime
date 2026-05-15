@@ -38,7 +38,7 @@
                 <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in topbar__dropdown">
                     <h6 class="dropdown-header">{{ __('Selecciona un lenguaje') }}</h6>
 
-                    <form method="POST" action="{{ route('user.update.language') }}">
+                    <form method="POST" action="{{ route('usuarios.language') }}">
                         @csrf
                         @method('PUT')
 
@@ -84,7 +84,7 @@
                     <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
                         <h6 class="mb-0 text-uppercase small fw-bold text-muted">{{ __('Notificaciones') }}</h6>
                         @if($unreadCount > 0)
-                            <form method="POST" action="{{ route('notifications.read-all') }}">
+                            <form method="POST" action="{{ route('notificaciones.read-all') }}">
                                 @csrf @method('PATCH')
                                 <button type="submit" class="btn btn-link btn-sm p-0 text-muted" style="font-size:.7rem;">
                                     {{ __('Marcar todas leídas') }}
@@ -189,15 +189,18 @@
                         <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
                         {{ __('Perfil') }}
                     </a>
-                    <a class="dropdown-item" href="{{ route('configuracion-cuenta') }}">
+                    <a class="dropdown-item" href="{{ route('configuracion.cuenta') }}">
                         <i class="fas fa-cogs fa-sm fa-fw me-2 text-gray-400"></i>
                         {{ __('Ajustes') }}
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="{{ route('logout') }}">
-                        <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-gray-400"></i>
-                        {{ __('Salir') }}
-                    </a>
+                    <form method="POST" action="{{ route('logout') }}" class="d-inline w-100">
+                        @csrf
+                        <button type="submit" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-gray-400"></i>
+                            {{ __('Salir') }}
+                        </button>
+                    </form>
                 </div>
             </li>
         </ul>

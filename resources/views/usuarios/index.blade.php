@@ -90,7 +90,7 @@
                             <div class="d-flex gap-1">
                                 {{-- Habilitar / Deshabilitar --}}
                                 @if($user->id !== auth()->id())
-                                    <form action="{{ route('user.toggle', $user) }}" method="POST" class="d-inline">
+                                    <form action="{{ route('usuarios.toggle', $user) }}" method="POST" class="d-inline">
                                         @csrf @method('PATCH')
                                         <button type="submit"
                                                 class="btn btn-sm py-0 px-2 {{ $user->enabled ? 'btn-outline-secondary' : 'btn-outline-success' }}"
@@ -113,7 +113,7 @@
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger py-0 px-2 btn-eliminar-usuario"
                                             data-user-name="{{ $user->name }}"
-                                            data-url="{{ route('user.destroy', $user) }}"
+                                            data-url="{{ route('usuarios.destroy', $user) }}"
                                             title="{{ __('Eliminar') }}">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -152,7 +152,7 @@
                 <h5 class="modal-title">{{ __('Nuevo usuario') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('user.store') }}">
+            <form method="POST" action="{{ route('usuarios.store') }}">
                 @csrf
                 <div class="modal-body">
                     @if($openCreate && $errors->any())
@@ -232,7 +232,7 @@
                 <h5 class="modal-title">{{ __('Editar') }}: {{ $user->name }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('user.update', $user) }}">
+            <form method="POST" action="{{ route('usuarios.update', $user) }}">
                 @csrf @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">

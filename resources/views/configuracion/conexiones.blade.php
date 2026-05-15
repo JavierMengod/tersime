@@ -26,7 +26,7 @@
     </div>
 @endif
 
-<form method="POST" action="{{ route('configuracion-conexiones.update') }}">
+<form method="POST" action="{{ route('configuracion.conexiones.update') }}">
 @csrf
 
 {{-- InfluxDB ────────────────────────────────────────────────────────────── --}}

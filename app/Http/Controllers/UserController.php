@@ -53,7 +53,7 @@ class UserController extends Controller
         ]);
 
         Log::info('[UserController] Usuario creado: ' . $data['name']);
-        return redirect()->route('usuarios')->with('success', 'Usuario creado correctamente.');
+        return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
     }
 
     public function update(Request $request, User $user)
@@ -80,29 +80,29 @@ class UserController extends Controller
         $user->save();
 
         Log::info('[UserController] Usuario actualizado: ' . $user->name);
-        return redirect()->route('usuarios')->with('success', 'Usuario actualizado correctamente.');
+        return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente.');
     }
 
     public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {
-            return redirect()->route('usuarios')->with('error', 'No puedes eliminar tu propia cuenta.');
+            return redirect()->route('usuarios.index')->with('error', 'No puedes eliminar tu propia cuenta.');
         }
 
         $nombre = $user->name;
         $user->delete();
         Log::info('[UserController] Usuario eliminado: ' . $nombre);
-        return redirect()->route('usuarios')->with('success', "Usuario '{$nombre}' eliminado.");
+        return redirect()->route('usuarios.index')->with('success', "Usuario '{$nombre}' eliminado.");
     }
 
     public function toggle(User $user)
     {
         if ($user->id === auth()->id()) {
-            return redirect()->route('usuarios')->with('error', 'No puedes deshabilitarte a ti mismo.');
+            return redirect()->route('usuarios.index')->with('error', 'No puedes deshabilitarte a ti mismo.');
         }
 
         $user->update(['enabled' => !$user->enabled]);
         $estado = $user->enabled ? 'habilitado' : 'deshabilitado';
-        return redirect()->route('usuarios')->with('success', "Usuario '{$user->name}' {$estado}.");
+        return redirect()->route('usuarios.index')->with('success', "Usuario '{$user->name}' {$estado}.");
     }
 }

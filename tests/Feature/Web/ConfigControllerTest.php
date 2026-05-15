@@ -19,7 +19,7 @@ class ConfigControllerTest extends TestCase
     public function non_admin_cannot_access_sistema(): void
     {
         $this->actingAs(User::factory()->create(['admin' => false]))
-             ->get(route('configuracion-sistema'))
+             ->get(route('configuracion.sistema'))
              ->assertStatus(403);
     }
 
@@ -27,7 +27,7 @@ class ConfigControllerTest extends TestCase
     public function non_admin_cannot_access_conexiones(): void
     {
         $this->actingAs(User::factory()->create(['admin' => false]))
-             ->get(route('configuracion-conexiones'))
+             ->get(route('configuracion.conexiones'))
              ->assertStatus(403);
     }
 
@@ -35,7 +35,7 @@ class ConfigControllerTest extends TestCase
     public function non_admin_cannot_access_logs(): void
     {
         $this->actingAs(User::factory()->create(['admin' => false]))
-             ->get(route('configuracion-logs'))
+             ->get(route('configuracion.logs'))
              ->assertStatus(403);
     }
 
@@ -46,7 +46,7 @@ class ConfigControllerTest extends TestCase
         Setting::set('report_retention_days', '180');
 
         $this->actingAs(User::factory()->admin()->create())
-             ->get(route('configuracion-sistema'))
+             ->get(route('configuracion.sistema'))
              ->assertStatus(200);
     }
 
@@ -54,7 +54,7 @@ class ConfigControllerTest extends TestCase
     public function all_users_can_access_cuenta(): void
     {
         $this->actingAs(User::factory()->create())
-             ->get(route('configuracion-cuenta'))
+             ->get(route('configuracion.cuenta'))
              ->assertStatus(200);
     }
 
@@ -65,7 +65,7 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['language' => 'es', 'theme' => 'light']);
 
-        $this->actingAs($user)->post(route('configuracion-cuenta.update'), [
+        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
             'save_prefs' => '1',
             'language'   => 'en',
             'theme'      => 'dark',
@@ -82,7 +82,7 @@ class ConfigControllerTest extends TestCase
     public function update_cuenta_validates_language_must_be_valid(): void
     {
         $this->actingAs(User::factory()->create())
-             ->post(route('configuracion-cuenta.update'), [
+             ->post(route('configuracion.cuenta.update'), [
                  'save_prefs' => '1',
                  'language'   => 'klingon',
                  'theme'      => 'light',
@@ -94,7 +94,7 @@ class ConfigControllerTest extends TestCase
     public function update_cuenta_validates_theme_must_be_light_or_dark(): void
     {
         $this->actingAs(User::factory()->create())
-             ->post(route('configuracion-cuenta.update'), [
+             ->post(route('configuracion.cuenta.update'), [
                  'save_prefs' => '1',
                  'language'   => 'es',
                  'theme'      => 'solarized',
@@ -109,7 +109,7 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['password' => bcrypt('old_password')]);
 
-        $this->actingAs($user)->post(route('configuracion-cuenta.update'), [
+        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
             'save_password'            => '1',
             'current_password'         => 'old_password',
             'new_password'             => 'new_secure_password',
@@ -124,7 +124,7 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['password' => bcrypt('correct')]);
 
-        $this->actingAs($user)->post(route('configuracion-cuenta.update'), [
+        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
             'save_password'            => '1',
             'current_password'         => 'wrong',
             'new_password'             => 'new_password',
@@ -137,7 +137,7 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['password' => bcrypt('current')]);
 
-        $this->actingAs($user)->post(route('configuracion-cuenta.update'), [
+        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
             'save_password'            => '1',
             'current_password'         => 'current',
             'new_password'             => 'new_pass',
@@ -155,7 +155,7 @@ class ConfigControllerTest extends TestCase
 
         $admin = User::factory()->admin()->create();
 
-        $this->actingAs($admin)->post(route('configuracion-sistema.update'), [
+        $this->actingAs($admin)->post(route('configuracion.sistema.update'), [
             'alert_log_retention_days' => 30,
             'report_retention_days'    => 60,
         ])->assertRedirect();
@@ -168,7 +168,7 @@ class ConfigControllerTest extends TestCase
     public function non_admin_cannot_post_to_sistema(): void
     {
         $this->actingAs(User::factory()->create())
-             ->post(route('configuracion-sistema.update'), [
+             ->post(route('configuracion.sistema.update'), [
                  'alert_log_retention_days' => 30,
                  'report_retention_days'    => 60,
              ])->assertStatus(403);
@@ -198,7 +198,7 @@ class ConfigControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-             ->post(route('configuracion-sistema.purgar-alertas'))
+             ->post(route('configuracion.sistema.purgar-alertas'))
              ->assertRedirect();
 
         $this->assertDatabaseHas('alert_logs', ['id' => $recent->id]);
@@ -218,7 +218,7 @@ class ConfigControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-             ->post(route('configuracion-sistema.purgar-alertas'))
+             ->post(route('configuracion.sistema.purgar-alertas'))
              ->assertRedirect();
 
         $this->assertDatabaseCount('alert_logs', 0);
@@ -239,7 +239,7 @@ class ConfigControllerTest extends TestCase
 
         $admin = User::factory()->admin()->create();
 
-        $this->actingAs($admin)->post(route('configuracion-conexiones.update'), [
+        $this->actingAs($admin)->post(route('configuracion.conexiones.update'), [
             'influxdb_url'            => 'http://influx:8086',
             'influxdb_org'            => 'myorg',
             'influxdb_bucket'         => 'mybucket',
@@ -271,7 +271,7 @@ class ConfigControllerTest extends TestCase
 
         $admin = User::factory()->admin()->create();
 
-        $this->actingAs($admin)->post(route('configuracion-conexiones.update'), [
+        $this->actingAs($admin)->post(route('configuracion.conexiones.update'), [
             'influxdb_url'            => 'http://influx:8086',
             'influxdb_org'            => 'myorg',
             'influxdb_bucket'         => 'mybucket',

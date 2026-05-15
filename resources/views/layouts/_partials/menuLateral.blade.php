@@ -1,9 +1,9 @@
 @php
-$isMonitoring = request()->routeIs('monitorizacion-*') || request()->routeIs('prediccion.*');
-$isAlertas    = request()->routeIs('alertas-*');
-$isInformes   = request()->routeIs('informes-*') || request()->routeIs('programaciones.*');
-$isUsuarios   = request()->routeIs('usuarios*') || request()->routeIs('tokens.*') || request()->routeIs('notificaciones.*');
-$isConfig     = request()->routeIs('configuracion-*');
+$isMonitoring = request()->routeIs('monitorizacion.*') || request()->routeIs('prediccion.*');
+$isAlertas    = request()->routeIs('alertas.*');
+$isInformes   = request()->routeIs('informes.*') || request()->routeIs('programaciones.*');
+$isUsuarios   = request()->routeIs('usuarios.*') || request()->routeIs('tokens.*') || request()->routeIs('notificaciones.*');
+$isConfig     = request()->routeIs('configuracion.*');
 @endphp
 
 <nav class="sidebar" id="barra-lateral">
@@ -59,8 +59,8 @@ $isConfig     = request()->routeIs('configuracion-*');
                     <span class="sidebar__text">{{ __('Monitorización') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isMonitoring ? 'show' : '' }}" id="sidebarMonitorizacion">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion-tiempo-real') ? 'active' : '' }}"
-                       href="{{ route('monitorizacion-tiempo-real') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion.tiempo-real') ? 'active' : '' }}"
+                       href="{{ route('monitorizacion.tiempo-real') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
                             stroke-linejoin="round"
@@ -90,8 +90,8 @@ $isConfig     = request()->routeIs('configuracion-*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Predicción de consumo') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion-dispositivos') || request()->routeIs('dispositivo.*') ? 'active' : '' }}"
-                       href="{{ route('monitorizacion-dispositivos') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion.dispositivos') || request()->routeIs('dispositivos.*') ? 'active' : '' }}"
+                       href="{{ route('monitorizacion.dispositivos') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor"
                             viewBox="0 0 16 16" class="sidebar__dropdown-icon bi bi-device-ssd-fill">
                             <path d="M5 8V4h6v4z"></path>
@@ -113,8 +113,8 @@ $isConfig     = request()->routeIs('configuracion-*');
                     <span class="sidebar__text">{{ __('Alertas') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isAlertas ? 'show' : '' }}" id="sidebarAlertas">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas-acciones') ? 'active' : '' }}"
-                       href="{{ route('alertas-acciones') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas.acciones') ? 'active' : '' }}"
+                       href="{{ route('alertas.acciones') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="none" class="sidebar__dropdown-icon">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -127,16 +127,16 @@ $isConfig     = request()->routeIs('configuracion-*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Acciones') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas-historial') ? 'active' : '' }}"
-                       href="{{ route('alertas-historial') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas.historial') ? 'active' : '' }}"
+                       href="{{ route('alertas.historial') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="currentColor" class="sidebar__dropdown-icon">
                             <path d="M13 3C8.03 3 4 7.03 4 12H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06L6.64 18.36C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5.25l4.5 2.67.75-1.23-3.75-2.22V8H12z"/>
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Historial') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas-medios') ? 'active' : '' }}"
-                       href="{{ route('alertas-medios') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('alertas.medios') ? 'active' : '' }}"
+                       href="{{ route('alertas.medios') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="none" class="sidebar__dropdown-icon">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -164,8 +164,8 @@ $isConfig     = request()->routeIs('configuracion-*');
                     <span class="sidebar__text">{{ __('Informes') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isInformes ? 'show' : '' }}" id="sidebarInformes">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('informes-demanda') ? 'active' : '' }}"
-                       href="{{ route('informes-demanda') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('informes.demanda') ? 'active' : '' }}"
+                       href="{{ route('informes.demanda') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="none" class="sidebar__dropdown-icon">
                             <path d="M8 13C7.44772 13 7 12.5523 7 12C7 11.4477 7.44772 11 8 11C8.55228 11 9 11.4477 9 12C9 12.5523 8.55228 13 8 13Z" fill="currentColor"></path>
@@ -179,8 +179,8 @@ $isConfig     = request()->routeIs('configuracion-*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Informes bajo demanda') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('informes-programados') ? 'active' : '' }}"
-                       href="{{ route('informes-programados') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('informes.programados') ? 'active' : '' }}"
+                       href="{{ route('informes.programados') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="none" class="sidebar__dropdown-icon">
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM4 12C4 7.58172 7.58172 4 12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12Z" fill="currentColor"/>
@@ -188,8 +188,8 @@ $isConfig     = request()->routeIs('configuracion-*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Informes programados') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('informes-registro') || request()->routeIs('informes.registros.*') ? 'active' : '' }}"
-                       href="{{ route('informes-registro') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('informes.registro') || request()->routeIs('informes.registros.*') ? 'active' : '' }}"
+                       href="{{ route('informes.registro') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="none" class="sidebar__dropdown-icon">
                             <path d="M9 7H15V9H9V7Z" fill="currentColor"/>
@@ -219,8 +219,8 @@ $isConfig     = request()->routeIs('configuracion-*');
                     <span class="sidebar__text">{{ __('Usuarios') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isUsuarios ? 'show' : '' }}" id="sidebarUsuarios">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios') ? 'active' : '' }}"
-                       href="{{ route('usuarios') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios.index') ? 'active' : '' }}"
+                       href="{{ route('usuarios.index') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
                             fill="none" class="sidebar__dropdown-icon">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -257,24 +257,24 @@ $isConfig     = request()->routeIs('configuracion-*');
                     <span class="sidebar__text">{{ __('Configuración') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isConfig ? 'show' : '' }}" id="sidebarConfiguracion">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-cuenta') ? 'active' : '' }}"
-                       href="{{ route('configuracion-cuenta') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.cuenta') ? 'active' : '' }}"
+                       href="{{ route('configuracion.cuenta') }}">
                         <i class="sidebar__dropdown-icon bi bi-person-gear"></i>
                         <span class="sidebar__dropdown-text">{{ __('Mi cuenta') }}</span>
                     </a>
                     @if(auth()->user()->admin)
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-sistema') ? 'active' : '' }}"
-                       href="{{ route('configuracion-sistema') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.sistema') ? 'active' : '' }}"
+                       href="{{ route('configuracion.sistema') }}">
                         <i class="sidebar__dropdown-icon bi bi-sliders"></i>
                         <span class="sidebar__dropdown-text">{{ __('Sistema') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-conexiones') ? 'active' : '' }}"
-                       href="{{ route('configuracion-conexiones') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.conexiones') ? 'active' : '' }}"
+                       href="{{ route('configuracion.conexiones') }}">
                         <i class="sidebar__dropdown-icon bi bi-plug"></i>
                         <span class="sidebar__dropdown-text">{{ __('Conexiones') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-logs') ? 'active' : '' }}"
-                       href="{{ route('configuracion-logs') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.logs') ? 'active' : '' }}"
+                       href="{{ route('configuracion.logs') }}">
                         <i class="sidebar__dropdown-icon bi bi-journal-text"></i>
                         <span class="sidebar__dropdown-text">{{ __('Logs') }}</span>
                     </a>

@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Http;
 
 class NotificationMethodController extends Controller
 {
+    public function index()
+    {
+        return view('alertas.notificacion');
+    }
+
     public function update(Request $request, $type)
     {
         $user = $request->user();

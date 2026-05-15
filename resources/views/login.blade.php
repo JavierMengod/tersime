@@ -37,7 +37,7 @@
                             </div>
                         </div>
 
-                        <form action="{{ route('formulario-login') }}" method="POST" class="login-form">
+                        <form action="{{ route('login.submit') }}" method="POST" class="login-form">
                             @csrf
 
                             <div class="mb-3">

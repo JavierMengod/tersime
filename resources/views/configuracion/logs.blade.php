@@ -13,7 +13,7 @@
         </p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ route('configuracion-logs.download') }}" class="btn btn-sm btn-outline-secondary">
+        <a href="{{ route('configuracion.logs.download') }}" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-download me-1"></i>{{ __('Descargar') }}
         </a>
         <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modal-vaciar-log">
@@ -94,7 +94,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ __('Cancelar') }}</button>
-                <form method="POST" action="{{ route('configuracion-logs.clear') }}">
+                <form method="POST" action="{{ route('configuracion.logs.clear') }}">
                     @csrf
                     <button type="submit" class="btn btn-danger btn-sm">{{ __('Vaciar') }}</button>
                 </form>
