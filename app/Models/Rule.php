@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Rule extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'name',
         'user_id',
@@ -25,7 +27,13 @@ class Rule extends Model
     ];
 
     protected $casts = [
-        'last_triggered_at' => 'datetime',
+        'last_triggered_at'  => 'datetime',
+        'for_duration'       => 'integer',
+        'is_active'          => 'boolean',
+        'email_enabled'      => 'boolean',
+        'telegram_enabled'   => 'boolean',
+        'discord_enabled'    => 'boolean',
+        'comparison_value'   => 'float',
     ];
 
     public function dispositivos()
