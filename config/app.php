@@ -123,9 +123,10 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    'grafana_base_url'      => env('GRAFANA_BASE_URL', 'http://5.182.36.252:3000'),
-    'grafana_api_ds_query'  => env('GRAFANA_BASE_URL', 'http://5.182.36.252:3000') . '/api/ds/query',
-    'grafana_datasource_id' => env('GRAFANA_DATASOURCE_ID', 3),
+    'grafana_base_url'          => env('GRAFANA_BASE_URL', 'http://5.182.36.252:3000'),
+    'grafana_renderer_base_url' => env('GRAFANA_RENDERER_BASE_URL', 'http://grafana-mock:3000'),
+    'grafana_api_ds_query'      => env('GRAFANA_BASE_URL', 'http://5.182.36.252:3000') . '/api/ds/query',
+    'grafana_datasource_id'     => env('GRAFANA_DATASOURCE_ID', 3),
     'influx_bucket'         => env('INFLUX_BUCKET', 'PINZAS'),
 
     /*

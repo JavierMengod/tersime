@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -15,10 +16,11 @@ class InfluxController extends Controller
 
     public function __construct()
     {
-        $this->grafanaUrl = config('app.grafana_api_ds_query', 'http://155.210.71.113:3000/api/ds/query');
-        $this->datasourceId = (int) (config('app.grafana_datasource_id', 3));
-        $this->bucket = config('app.influx_bucket', 'PINZAS');
-        $this->token = env('GRAFANA_API_KEY') ?: null;
+        $grafanaBase        = Setting::get('grafana_base_url') ?: config('app.grafana_base_url', 'http://localhost:3000');
+        $this->grafanaUrl   = rtrim($grafanaBase, '/') . '/api/ds/query';
+        $this->datasourceId = (int) (Setting::get('grafana_datasource_id') ?: config('app.grafana_datasource_id', 3));
+        $this->bucket       = Setting::get('influxdb_bucket') ?: config('app.influx_bucket', 'PINZAS');
+        $this->token        = Setting::get('grafana_api_key') ?: env('GRAFANA_API_KEY') ?: null;
     }
 
     // ---------------------------------------------------------
@@ -201,9 +203,9 @@ FLUX;
      */
     public function datosParaPrediccion(string $device, string $stop): array
     {
-        $influxUrl = env('INFLUXDB_URL', 'http://localhost:8086')
-            . '/api/v2/query?org=' . env('INFLUXDB_ORG', 'tersime');
-        $token    = env('INFLUXDB_TOKEN', '');
+        $influxUrl = rtrim(Setting::get('influxdb_url') ?: env('INFLUXDB_URL', 'http://localhost:8086'), '/')
+            . '/api/v2/query?org=' . (Setting::get('influxdb_org') ?: env('INFLUXDB_ORG', 'tersime'));
+        $token    = Setting::get('influxdb_token') ?: env('INFLUXDB_TOKEN', '');
         $stopFlux = $this->fluxTimeLiteral($stop, false);
 
         $flux = <<<FLUX

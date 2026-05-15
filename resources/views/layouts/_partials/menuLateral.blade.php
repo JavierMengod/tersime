@@ -2,7 +2,7 @@
 $isMonitoring = request()->routeIs('monitorizacion-*') || request()->routeIs('prediccion.*');
 $isAlertas    = request()->routeIs('alertas-*');
 $isInformes   = request()->routeIs('informes-*') || request()->routeIs('programaciones.*');
-$isUsuarios   = request()->routeIs('usuarios*') || request()->routeIs('tokens.*');
+$isUsuarios   = request()->routeIs('usuarios*') || request()->routeIs('tokens.*') || request()->routeIs('notificaciones.*');
 $isConfig     = request()->routeIs('configuracion-*');
 @endphp
 
@@ -219,20 +219,6 @@ $isConfig     = request()->routeIs('configuracion-*');
                     <span class="sidebar__text">{{ __('Usuarios') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isUsuarios ? 'show' : '' }}" id="sidebarUsuarios">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios-grupos') ? 'active' : '' }}"
-                       href="{{ route('usuarios-grupos') }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
-                            fill="none" class="sidebar__dropdown-icon">
-                            <path fill-rule="evenodd" clip-rule="evenodd"
-                                d="M8 11C10.2091 11 12 9.20914 12 7C12 4.79086 10.2091 3 8 3C5.79086 3 4 4.79086 4 7C4 9.20914 5.79086 11 8 11ZM8 9C9.10457 9 10 8.10457 10 7C10 5.89543 9.10457 5 8 5C6.89543 5 6 5.89543 6 7C6 8.10457 6.89543 9 8 9Z"
-                                fill="currentColor"></path>
-                            <path d="M11 14C11.5523 14 12 14.4477 12 15V21H14V15C14 13.3431 12.6569 12 11 12H5C3.34315 12 2 13.3431 2 15V21H4V15C4 14.4477 4.44772 14 5 14H11Z" fill="currentColor"></path>
-                            <path d="M22 11H16V13H22V11Z" fill="currentColor"></path>
-                            <path d="M16 15H22V17H16V15Z" fill="currentColor"></path>
-                            <path d="M22 7H16V9H22V7Z" fill="currentColor"></path>
-                        </svg>
-                        <span class="sidebar__dropdown-text">{{ __('Grupos de usuarios') }}</span>
-                    </a>
                     <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios') ? 'active' : '' }}"
                        href="{{ route('usuarios') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
@@ -252,6 +238,11 @@ $isConfig     = request()->routeIs('configuracion-*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Tokens de API') }}</span>
                     </a>
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('notificaciones.*') ? 'active' : '' }}"
+                       href="{{ route('notificaciones.index') }}">
+                        <i class="sidebar__dropdown-icon bi bi-bell-fill"></i>
+                        <span class="sidebar__dropdown-text">{{ __('Notificaciones') }}</span>
+                    </a>
                 </div>
             </li>
 
@@ -266,39 +257,27 @@ $isConfig     = request()->routeIs('configuracion-*');
                     <span class="sidebar__text">{{ __('Configuración') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isConfig ? 'show' : '' }}" id="sidebarConfiguracion">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-iu') ? 'active' : '' }}"
-                       href="{{ route('configuracion-iu') }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
-                            fill="none" class="sidebar__dropdown-icon">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M2 5C2 3.89543 2.89543 3 4 3H20C21.1046 3 22 3.89543 22 5V15C22 16.1046 21.1046 17 20 17H13V19H15C15.5523 19 16 19.4477 16 20C16 20.5523 15.5523 21 15 21H9C8.44772 21 8 20.5523 8 20C8 19.4477 8.44772 19 9 19H11V17H4C2.89543 17 2 16.1046 2 15V5ZM4 5H20V15H4V5Z" fill="currentColor"/>
-                        </svg>
-                        <span class="sidebar__dropdown-text">{{ __('Interfaz de usuario') }}</span>
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-cuenta') ? 'active' : '' }}"
+                       href="{{ route('configuracion-cuenta') }}">
+                        <i class="sidebar__dropdown-icon bi bi-person-gear"></i>
+                        <span class="sidebar__dropdown-text">{{ __('Mi cuenta') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-limpieza') ? 'active' : '' }}"
-                       href="{{ route('configuracion-limpieza') }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
-                            fill="none" class="sidebar__dropdown-icon">
-                            <path d="M9 3H15C15.5523 3 16 3.44772 16 4V5H19C19.5523 5 20 5.44772 20 6C20 6.55228 19.5523 7 19 7H5C4.44772 7 4 6.55228 4 6C4 5.44772 4.44772 5 5 5H8V4C8 3.44772 8.44772 3 9 3Z" fill="currentColor"/>
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M6.08148 9L6.83478 19.1429C6.91566 20.1891 7.79033 21 8.83967 21H15.1603C16.2097 21 17.0843 20.1891 17.1652 19.1429L17.9185 9H6.08148ZM8.07905 11L8.83635 19H15.1636L15.921 11H8.07905Z" fill="currentColor"/>
-                        </svg>
-                        <span class="sidebar__dropdown-text">{{ __('Limpieza') }}</span>
+                    @if(auth()->user()->admin)
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-sistema') ? 'active' : '' }}"
+                       href="{{ route('configuracion-sistema') }}">
+                        <i class="sidebar__dropdown-icon bi bi-sliders"></i>
+                        <span class="sidebar__dropdown-text">{{ __('Sistema') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-otras') ? 'active' : '' }}"
-                       href="{{ route('configuracion-otras') }}">
-                        <i class="sidebar__dropdown-icon fas fa-sliders-h"></i>
-                        <span class="sidebar__dropdown-text">{{ __('Otras configuraciones') }}</span>
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-conexiones') ? 'active' : '' }}"
+                       href="{{ route('configuracion-conexiones') }}">
+                        <i class="sidebar__dropdown-icon bi bi-plug"></i>
+                        <span class="sidebar__dropdown-text">{{ __('Conexiones') }}</span>
                     </a>
-                    @if (auth()->user()->debug_mode)
-                        <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-registro') ? 'active' : '' }}"
-                           href="{{ route('configuracion-registro') }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
-                                viewBox="0 0 24 24" fill="none" class="sidebar__dropdown-icon">
-                                <path fill-rule="evenodd" clip-rule="evenodd"
-                                    d="M4 3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V3ZM5 3H19V21H5V3ZM6 6V9H18V6H6Z"
-                                    fill="currentColor"></path>
-                            </svg>
-                            <span class="sidebar__dropdown-text">{{ __('Registro') }}</span>
-                        </a>
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion-logs') ? 'active' : '' }}"
+                       href="{{ route('configuracion-logs') }}">
+                        <i class="sidebar__dropdown-icon bi bi-journal-text"></i>
+                        <span class="sidebar__dropdown-text">{{ __('Logs') }}</span>
+                    </a>
                     @endif
                 </div>
             </li>

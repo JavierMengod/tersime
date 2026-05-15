@@ -28,6 +28,11 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt(['name' => $request->user, 'password' => $request->password])) {
+            if (!Auth::user()->enabled) {
+                Auth::logout();
+                Log::warning('Login denegado (usuario deshabilitado): ' . $request->user);
+                return back()->withErrors(['username' => 'Esta cuenta está deshabilitada.']);
+            }
             Log::info('Login exitoso para el usuario: ' . $request->user);
             return redirect()->intended('/inicio');
         }

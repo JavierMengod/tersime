@@ -60,34 +60,102 @@
                 </div>
             </li>
 
+            @php
+                $unreadNotifications = auth()->user()->unreadNotifications->take(8);
+                $unreadCount         = auth()->user()->unreadNotifications->count();
+            @endphp
             <li class="nav-item dropdown no-arrow mx-1 topbar__action">
                 <button
                     class="nav-link dropdown-toggle topbar__icon-button position-relative"
                     type="button"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
-                    aria-label="{{ __('Alertas') }}"
+                    aria-label="{{ __('Notificaciones') }}"
                 >
-                    <span class="badge bg-danger badge-counter topbar__badge">1+</span>
+                    @if($unreadCount > 0)
+                        <span class="badge bg-danger badge-counter topbar__badge">
+                            {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                        </span>
+                    @endif
                     <i class="fas fa-bell fa-fw"></i>
                 </button>
 
-                <div class="dropdown-menu dropdown-menu-end dropdown-list animated--grow-in topbar__dropdown">
-                    <h6 class="dropdown-header">{{ __('ALERTAS') }}</h6>
+                <div class="dropdown-menu dropdown-menu-end dropdown-list animated--grow-in topbar__dropdown" style="min-width:340px;max-width:360px;">
+                    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                        <h6 class="mb-0 text-uppercase small fw-bold text-muted">{{ __('Notificaciones') }}</h6>
+                        @if($unreadCount > 0)
+                            <form method="POST" action="{{ route('notifications.read-all') }}">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="btn btn-link btn-sm p-0 text-muted" style="font-size:.7rem;">
+                                    {{ __('Marcar todas leídas') }}
+                                </button>
+                            </form>
+                        @endif
+                    </div>
 
-                    <a class="dropdown-item d-flex align-items-center" href="#">
-                        <div class="me-3">
-                            <div class="bg-primary icon-circle">
-                                <i class="fas fa-file-alt text-white"></i>
+                    @forelse($unreadNotifications as $notif)
+                        @php
+                            $data  = $notif->data;
+                            $icono = $data['icono'] ?? 'informe';
+                            $url   = $data['url'] ?? '#';
+                        @endphp
+                        <a class="dropdown-item d-flex align-items-start py-2 px-3 notif-item"
+                           href="{{ $url }}"
+                           data-notif-id="{{ $notif->id }}"
+                           style="white-space:normal;">
+                            <div class="me-3 flex-shrink-0 mt-1">
+                                @if($icono === 'firing')
+                                    <div class="icon-circle bg-danger d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                                        <i class="fas fa-bell text-white" style="font-size:.8rem;"></i>
+                                    </div>
+                                @elseif($icono === 'resolution')
+                                    <div class="icon-circle bg-success d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                                        <i class="fas fa-check text-white" style="font-size:.8rem;"></i>
+                                    </div>
+                                @else
+                                    <div class="icon-circle bg-primary d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                                        <i class="fas fa-file-alt text-white" style="font-size:.8rem;"></i>
+                                    </div>
+                                @endif
                             </div>
+                            <div class="overflow-hidden">
+                                <p class="mb-0 fw-semibold" style="font-size:.82rem;line-height:1.3;">{{ $data['titulo'] ?? '' }}</p>
+                                <p class="mb-0 text-muted text-truncate" style="font-size:.75rem;max-width:230px;" title="{{ $data['mensaje'] ?? '' }}">
+                                    {{ $data['mensaje'] ?? '' }}
+                                </p>
+                                <span class="text-muted" style="font-size:.68rem;">{{ $notif->created_at->diffForHumans() }}</span>
+                            </div>
+                        </a>
+                    @empty
+                        <div class="text-center py-4 px-3">
+                            <i class="fas fa-bell-slash text-muted mb-2" style="font-size:1.5rem;opacity:.35;"></i>
+                            <p class="text-muted small mb-0">{{ __('Sin notificaciones nuevas') }}</p>
                         </div>
-                        <div>
-                            <span class="small text-gray-500 d-block">Noviembre 11, 2024</span>
-                            <p class="mb-0 topbar__dropdown-text">{{ __('Informe automático realizado') }}</p>
-                        </div>
-                    </a>
+                    @endforelse
+
+                    <div class="border-top text-center py-2">
+                        <a href="{{ route('notificaciones.index') }}" class="text-muted small text-decoration-none">
+                            {{ __('Ver todas las notificaciones') }} →
+                        </a>
+                    </div>
                 </div>
             </li>
+
+            <script>
+            document.querySelectorAll('.notif-item').forEach(function(el) {
+                el.addEventListener('click', function(e) {
+                    var id = this.dataset.notifId;
+                    if (!id) return;
+                    fetch('/notificaciones/' + id + '/read', {
+                        method: 'PATCH',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    });
+                });
+            });
+            </script>
 
             <li class="nav-item mx-1 topbar__action">
                 <button type="button" class="nav-link topbar__icon-button" id="pantalla-completa" aria-label="Pantalla completa">
@@ -121,7 +189,7 @@
                         <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
                         {{ __('Perfil') }}
                     </a>
-                    <a class="dropdown-item" href="{{ route('configuracion-iu') }}">
+                    <a class="dropdown-item" href="{{ route('configuracion-cuenta') }}">
                         <i class="fas fa-cogs fa-sm fa-fw me-2 text-gray-400"></i>
                         {{ __('Ajustes') }}
                     </a>

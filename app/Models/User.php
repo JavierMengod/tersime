@@ -20,31 +20,22 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'password',
+        'language',
+        'timezone',
+        'theme',
+        'admin',
+        'enabled',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-
+        'admin'   => 'boolean',
+        'enabled' => 'boolean',
     ];
-
-    public function groups()
-    {
-        return $this->belongsToMany(Group::class, 'group_user');
-    }
 
     public function dispositivos()
     {

@@ -8,6 +8,7 @@ class Informe extends Model
 {
     protected $fillable = [
         'user_id',
+        'tipo',
         'nombre',
         'nombre_archivo',
         'pdf_path',

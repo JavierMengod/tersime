@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -22,7 +23,7 @@ class PrediccionController extends Controller
         $start        = $request->query('start');
         $stop         = $request->query('stop');
         $device       = $request->query('device');
-        $predic_hours = $request->query('predic_hours', 24);
+        $predic_hours = $request->query('predic_hours', Setting::get('predictor_default_hours', '24'));
 
         Log::info('🔹 [obtenerDatos] Entrada', compact('start', 'stop', 'device', 'predic_hours'));
 
@@ -55,12 +56,13 @@ class PrediccionController extends Controller
             Log::info('🔹 [obtenerDatos] Datos de entrenamiento', ['total' => count($timestamps)]);
 
             // --- 2. Predictor ---
-            $urlPredictor = env('PREDICTOR_URL');
+            $urlPredictor = Setting::get('predictor_url') ?: env('PREDICTOR_URL');
             if (!$urlPredictor) {
                 return response()->json(['error' => 'PREDICTOR_URL no configurado'], 500);
             }
 
-            $predResponse = Http::timeout(120)->asJson()->post($urlPredictor, [
+            $timeout = (int) (Setting::get('predictor_timeout') ?: 120);
+            $predResponse = Http::timeout($timeout)->asJson()->post($urlPredictor, [
                 'timestamps'   => $timestamps,
                 'values'       => $values,
                 'predic_hours' => $predic_hours,
