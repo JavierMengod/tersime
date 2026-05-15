@@ -1,98 +1,181 @@
-version: "3.9"
+# ─────────────────────────────────────────────────────────────────────────────
+# Tersime — Stack completo
+#
+# Puertos del host (distintos a los servicios que ya corren en la máquina):
+#   · App (nginx):          http://localhost:8080
+#   · InfluxDB UI:          http://localhost:8087
+#   · Grafana:              http://localhost:3001  (solo para admin directo)
+#   · Grafana Renderer:     interno (no expuesto)
+#   · Predictor:            interno (no expuesto)
+#
+# Primer arranque:
+#   cp .env.docker .env   # ajusta las variables CHANGE_ME
+#   ./install.sh           # configura y levanta todo automáticamente
+#
+# Arranques sucesivos:
+#   docker compose up -d
+# ─────────────────────────────────────────────────────────────────────────────
 
 services:
-  server:
-    image: nginx:alpine
+
+  # ── Nginx — proxy inverso y ficheros estáticos ─────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
     restart: unless-stopped
     ports:
-      - "81:80"
-    networks:
-      - app-network
+      - "8080:80"
     volumes:
-      - ./:/var/www
-      - ./nginx/conf.d/:/etc/nginx/conf.d/
+      - .:/var/www:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - app
-
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      app:
+        condition: service_started
     networks:
-      - app-network
-    volumes:
-      - dbdata:/var/lib/mysql
+      - tersime
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
+  # ── PHP-FPM — aplicación Laravel ──────────────────────────────────────────
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
-    networks:
-      - app-network
+    env_file: .env
+    volumes:
+      # Persistir storage y base de datos SQLite fuera de la imagen
+      - tersime_storage:/var/www/storage
+      - tersime_db:/var/www/database
     depends_on:
-      - db
-    # Para desarrollo podrías añadir un volumen aquí si quieres hot-reload.
+      influxdb:
+        condition: service_healthy
+    networks:
+      - tersime
 
+  # ── InfluxDB — base de datos de series temporales ──────────────────────────
   influxdb:
     image: influxdb:2.7
-    container_name: influxdb
-    user: root
-    ports:
-      - "8086:8086"
-    volumes:
-      - ./influx:/var/lib/influxdb2
-    environment:
-      - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME=admin
-      - DOCKER_INFLUXDB_INIT_PASSWORD=tersime2024
-      - DOCKER_INFLUXDB_INIT_ORG=tersime
-      - DOCKER_INFLUXDB_INIT_BUCKET=tersime
-      - DOCKER_INFLUXDB_INIT_RETENTION=0
     restart: unless-stopped
+    ports:
+      - "8087:8086"
+    volumes:
+      - tersime_influxdb:/var/lib/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE:           ${DOCKER_INFLUXDB_INIT_MODE:-setup}
+      DOCKER_INFLUXDB_INIT_USERNAME:       ${DOCKER_INFLUXDB_INIT_USERNAME:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD:       ${DOCKER_INFLUXDB_INIT_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG:            ${INFLUXDB_ORG:-tersime}
+      DOCKER_INFLUXDB_INIT_BUCKET:         ${INFLUX_BUCKET:-tersime}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN:    ${INFLUXDB_TOKEN}
+      DOCKER_INFLUXDB_INIT_RETENTION:      ${DOCKER_INFLUXDB_INIT_RETENTION:-0}
     networks:
-      - app-network
+      - tersime
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
+  # ── Grafana — dashboards de monitorización ─────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.4.0
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - tersime_grafana:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      # Dashboards desde el directorio mock (ya configurados y listos)
+      - ./mock/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      # Admin
+      GF_SECURITY_ADMIN_USER:             ${GF_SECURITY_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD:         ${GF_SECURITY_ADMIN_PASSWORD}
+      # Server — root_url usa APP_URL para que los redirects del browser funcionen
+      GF_SERVER_ROOT_URL:                 ${APP_URL}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH:      "true"
+      # Auth proxy — Laravel autentica usuarios y pasa el header
+      GF_AUTH_PROXY_ENABLED:             "true"
+      GF_AUTH_PROXY_HEADER_NAME:          X-WEBAUTH-USER
+      GF_AUTH_PROXY_HEADER_PROPERTY:      email
+      GF_AUTH_PROXY_AUTO_SIGN_UP:        "true"
+      GF_AUTH_PROXY_WHITELIST:            ""
+      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "false"
+      # Seguridad
+      GF_AUTH_ANONYMOUS_ENABLED:         "false"
+      GF_SECURITY_ALLOW_EMBEDDING:       "true"
+      # Plugins (requiere internet en el primer arranque)
+      GF_INSTALL_PLUGINS:                 marcusolsson-json-datasource
+      # Renderer
+      GF_RENDERING_SERVER_URL:            http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL:          http://grafana:3000/
+      # Datasource proxy timeouts
+      GF_DATAPROXY_TIMEOUT:              "120"
+      GF_DATAPROXY_DIAL_TIMEOUT:         "10"
+      GF_DATAPROXY_KEEP_ALIVE_SECONDS:   "30"
+      # Variables para sustitución en ficheros de provisioning
+      INFLUXDB_URL:                       ${INFLUXDB_URL:-http://influxdb:8086}
+      INFLUXDB_ORG:                       ${INFLUXDB_ORG:-tersime}
+      INFLUX_BUCKET:                      ${INFLUX_BUCKET:-tersime}
+      INFLUXDB_TOKEN:                     ${INFLUXDB_TOKEN}
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    networks:
+      - tersime
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ── Grafana Image Renderer — generación de PDFs de informes ───────────────
   renderer:
     image: grafana/grafana-image-renderer:latest
-    container_name: grafana-renderer
     restart: unless-stopped
-    ports:
-      - "8081:8081"
-    networks:
-      - app-network
+    # No expuesto al host — solo accesible desde dentro de la red Docker
     environment:
-      - GF_RENDERER_PLUGIN_SECURITY_PERMISSIVE=true
-      - GF_RENDERER_PLUGIN_SECURITY_ALLOW_EMBEDDING=true
-      - GF_RENDERER_PLUGIN_SECURITY_SKIP_AUTH=true
+      GF_RENDERER_PLUGIN_CHROME_BIN:                   /usr/bin/chromium
+      GF_RENDERER_PLUGIN_IGNORE_HTTPS_ERRORS:          "true"
+      GF_RENDERER_PLUGIN_SECURITY_PERMISSIVE:           "true"
+    networks:
+      - tersime
 
+  # ── Predictor Prophet — forecasting de consumo ────────────────────────────
   predictor:
     build:
       context: ./predictor
       dockerfile: Dockerfile
-    container_name: predictor
     restart: unless-stopped
-    ports:
-      - "8888:8888"
-    networks:
-      - app-network
-    working_dir: /app
+    # No expuesto al host — accedido desde app y grafana por nombre de servicio
     environment:
-      - PYTHONUNBUFFERED=1
-    # No montamos el código por defecto para asegurar que use la imagen construida.
-    # Si quieres desarrollo con hot-reload, descomenta la siguiente línea:
-    # volumes:
-    #   - ./predictor:/app
-    depends_on:
-      - db
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - tersime
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
+# ── Redes ──────────────────────────────────────────────────────────────────────
 networks:
-  app-network:
+  tersime:
     driver: bridge
 
+# ── Volúmenes persistentes ─────────────────────────────────────────────────────
 volumes:
-  dbdata:
+  tersime_db:
+    driver: local
+  tersime_storage:
+    driver: local
+  tersime_influxdb:
+    driver: local
+  tersime_grafana:
+    driver: local

@@ -158,3 +158,8 @@ def _flat_fallback(df: pd.DataFrame, pred_hours: int) -> dict:
 @app.get("/")
 def root():
     return {"message": "Servicio de predicción operativo ✅"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

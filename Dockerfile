@@ -1,56 +1,66 @@
-# Partimos de la imagen php en su versión 7.4
-FROM php:7.4-fpm
+# ─────────────────────────────────────────────────────────────────────────────
+# Tersime — PHP 8.1 FPM (Debian Bookworm)
+# ─────────────────────────────────────────────────────────────────────────────
+FROM php:8.1-fpm
 
-# Establecemos el directorio de trabajo
-WORKDIR /var/www/
+WORKDIR /var/www
 
-# Instalamos las dependencias necesarias
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libzip-dev \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    locales \
-    zip \
-    cron \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
-    git \
-    curl && \
-    rm -rf /var/lib/apt/lists/*
-RUN apt-get update && apt-get install -y \
-    libxrender1 libxext6 libfontconfig1 libx11-6 xfonts-75dpi xfonts-base \
-    && curl -L -o wkhtml.deb https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.buster_amd64.deb \
-    && dpkg -i wkhtml.deb || apt-get --fix-broken install -y \
-    && rm wkhtml.deb
+# ── Dependencias del sistema ──────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libzip-dev \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
+        libonig-dev \
+        locales \
+        zip \
+        unzip \
+        curl \
+        git \
+        cron \
+        sqlite3 \
+        jpegoptim optipng pngquant gifsicle \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instalamos extensiones de PHP
-RUN docker-php-ext-install pdo_mysql zip exif pcntl
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd
+# ── wkhtmltopdf (para generación de PDF de informes) ─────────────────────────
+# Descargamos el paquete para Debian Bookworm (amd64)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libxrender1 libxext6 libfontconfig1 libx11-6 \
+        xfonts-75dpi xfonts-base fontconfig \
+    && curl -fsSL -o /tmp/wkhtmltopdf.deb \
+        https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb \
+    && dpkg -i /tmp/wkhtmltopdf.deb || apt-get -f install -y \
+    && rm /tmp/wkhtmltopdf.deb \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instalamos Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# ── Extensiones PHP ───────────────────────────────────────────────────────────
+RUN docker-php-ext-install pdo pdo_sqlite zip exif pcntl
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd
 
-# Copiamos los archivos del proyecto al contenedor
-COPY . /var/www/
+# ── Composer ──────────────────────────────────────────────────────────────────
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-# Ajustamos permisos
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache && \
-    chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+# ── Código fuente ─────────────────────────────────────────────────────────────
+COPY . /var/www
 
-# Instalamos dependencias de Composer después de copiar todo
-RUN composer install --no-ansi --no-dev --no-interaction --no-progress
+# ── Dependencias PHP ──────────────────────────────────────────────────────────
+RUN composer install --no-dev --no-ansi --no-interaction --no-progress --optimize-autoloader
 
-# Configuramos cron para Laravel Scheduler
-RUN echo "* * * * * www-data php /var/www/artisan schedule:run >> /dev/null 2>&1" > /etc/cron.d/laravel \
-    && chmod 0644 /etc/cron.d/laravel \
-    && crontab /etc/cron.d/laravel
+# ── Permisos iniciales ────────────────────────────────────────────────────────
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# Exponemos el puerto 9000
+# ── Cron para el scheduler de Laravel ────────────────────────────────────────
+RUN echo "* * * * * www-data php /var/www/artisan schedule:run >> /proc/1/fd/1 2>/proc/1/fd/2" \
+        > /etc/cron.d/laravel \
+    && chmod 0644 /etc/cron.d/laravel
+
+# ── Entrypoint ────────────────────────────────────────────────────────────────
+COPY docker/app/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 9000
 
-# Ejecutamos supervisión de cron y php-fpm
-CMD service cron start && php-fpm
+ENTRYPOINT ["/entrypoint.sh"]

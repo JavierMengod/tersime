@@ -1,1 +1,47 @@
+# Control de versiones
+.git
+.gitignore
+
+# Dependencias instaladas (se instalan en la imagen)
+node_modules
 vendor
+
+# Entornos locales
+.env
+.env.*
+!.env.docker
+
+# Datos de servicios externos (no van en la imagen)
+influx
+grafana/plugins
+
+# Build artifacts
+public/hot
+public/storage
+
+# Logs y caché local
+storage/logs/*.log
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*.php
+
+# Tests y desarrollo
+tests
+phpunit.xml
+webpack.mix.js
+package.json
+package-lock.json
+node_start.sh
+
+# Documentación
+*.md
+README*
+
+# Mock (solo para desarrollo local)
+mock
+
+# IDEs
+.idea
+.vscode
+*.swp

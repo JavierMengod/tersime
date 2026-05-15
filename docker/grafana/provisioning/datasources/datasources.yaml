@@ -1,0 +1,27 @@
+apiVersion: 1
+
+datasources:
+  # ── InfluxDB (Flux) ─────────────────────────────────────────────────────────
+  - name: InfluxDB
+    type: influxdb
+    uid: feg5i5n3pjq4gf
+    access: proxy
+    url: ${INFLUXDB_URL}
+    isDefault: true
+    editable: true
+    jsonData:
+      version: Flux
+      organization: ${INFLUXDB_ORG}
+      defaultBucket: ${INFLUX_BUCKET}
+      tlsSkipVerify: true
+    secureJsonData:
+      token: ${INFLUXDB_TOKEN}
+
+  # ── JSON API (Predictor Prophet) ────────────────────────────────────────────
+  - name: JSON-API
+    type: marcusolsson-json-datasource
+    uid: bf3cexvuipxj4e
+    access: proxy
+    # El predictor es accesible dentro de la red Docker por nombre de servicio
+    url: http://predictor:8888
+    editable: true
