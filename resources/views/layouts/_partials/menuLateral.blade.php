@@ -74,8 +74,8 @@ $isConfig     = request()->routeIs('configuracion.*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Tiempo real') }}</span>
                     </a>
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion.prediccion.*') ? 'active' : '' }}"
-                       href="{{ route('monitorizacion.prediccion.index') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('monitorizacion.prediccion*') ? 'active' : '' }}"
+                       href="{{ route('monitorizacion.prediccion') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
                             class="sidebar__dropdown-icon">
                             <path d="M3 3 V13" fill="none" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/>

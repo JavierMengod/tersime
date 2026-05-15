@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 
 // ── Autenticación ──────────────────────────────────────────────────────────────
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/login', [AuthController::class, 'login'])->name('login.store');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ── Rutas públicas: datos JSON para paneles Grafana (sin sesión) ───────────────
@@ -64,7 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::get('dispositivos', [DispositivoController::class, 'index'])->name('dispositivos');
         Route::get('series',       [GrafanaController::class, 'series'])->name('series');
 
-        Route::get('prediccion',   [PrediccionController::class, 'index'])->name('prediccion.index');
+        Route::get('prediccion',   [PrediccionController::class, 'index'])->name('prediccion');
         Route::post('prediccion',  [PrediccionController::class, 'predecir'])->name('prediccion.store');
     });
 
