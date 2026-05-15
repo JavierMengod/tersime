@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\InfluxController;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -136,7 +137,7 @@ class DeviceController extends Controller
         $hours = (int) $request->input('hours', 24);
         $stop  = Carbon::now()->format('Y-m-d');
 
-        $urlPredictor = env('PREDICTOR_URL');
+        $urlPredictor = Setting::get('predictor_url');
         if (!$urlPredictor) {
             return response()->json(['message' => 'Servicio de predicción no configurado.'], 503);
         }

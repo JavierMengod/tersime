@@ -56,7 +56,7 @@ class PrediccionController extends Controller
             Log::info('🔹 [obtenerDatos] Datos de entrenamiento', ['total' => count($timestamps)]);
 
             // --- 2. Predictor ---
-            $urlPredictor = Setting::get('predictor_url') ?: env('PREDICTOR_URL');
+            $urlPredictor = Setting::get('predictor_url');
             if (!$urlPredictor) {
                 return response()->json(['error' => 'PREDICTOR_URL no configurado'], 500);
             }

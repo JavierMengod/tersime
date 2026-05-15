@@ -47,7 +47,7 @@ class PrediccionController extends Controller
             return response()->json(['message' => 'Formato de fecha inválido.'], 422);
         }
 
-        $urlPredictor = Setting::get('predictor_url') ?: env('PREDICTOR_URL');
+        $urlPredictor = Setting::get('predictor_url');
         if (!$urlPredictor) {
             return response()->json(['message' => 'Servicio de predicción no configurado.'], 503);
         }
