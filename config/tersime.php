@@ -15,7 +15,7 @@ return [
     ],
 
     'costes' => [
-        'kwh' => env('COSTE_ESTIMADO_KWH', 3.5),
+        'kwh' => env('COSTE_ESTIMADO_KWH', 0.15),
     ],
 
     'openrouter' => [

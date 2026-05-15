@@ -3,20 +3,28 @@
 @section('title', __('Dashboard'))
 
 @section('contenido')
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="mb-0">{{ __('Dashboard') }}</h2>
+            {{-- Selector de período --}}
+            <div class="btn-group" role="group" id="period-selector">
+                <button class="btn btn-sm btn-outline-secondary" data-days="1">24 h</button>
+                <button class="btn btn-sm btn-outline-secondary" data-days="7">7 días</button>
+                <button class="btn btn-sm btn-outline-secondary active" data-days="30">30 días</button>
+                <button class="btn btn-sm btn-outline-secondary" data-days="365">Año</button>
+            </div>
         </div>
 
         <div class="container-fluid px-2">
 
             @php
                 use Carbon\Carbon;
+                use App\Models\Setting;
 
-                $deviceParams = collect($dispositivos ?? [])->map(function ($d) {
-                    return 'var-dispositivos=' . rawurlencode($d->influx_tag);
-                })->implode('&');
-
-                $deviceQuery = $deviceParams ? '&' . $deviceParams : '';
+                $dispositivos   = $dispositivos ?? collect([]);
+                $deviceParams   = $dispositivos->map(fn($d) => 'var-dispositivos=' . rawurlencode($d->influx_tag))->implode('&');
+                $deviceQuery    = $deviceParams ? '&' . $deviceParams : '';
+                $costeKwh       = config('tersime.costes.kwh', 0.15);
+                $deviceQuery   .= '&var-coste_kwh=' . $costeKwh;
 
                 $grafanaTheme   = Auth::user()->theme ?? 'light';
                 $grafanaBase    = '/grafana/d-solo/fek5yx516oyrkd/dashboard-principal';
@@ -24,193 +32,199 @@
 
                 $now          = Carbon::now('Europe/Madrid');
                 $toNowMs      = $now->getTimestamp() * 1000;
-                $fromYearMs   = $now->copy()->subYear()->getTimestamp() * 1000;
                 $from30DaysMs = $now->copy()->subDays(30)->getTimestamp() * 1000;
                 $from7DaysMs  = $now->copy()->subDays(7)->getTimestamp() * 1000;
+                $from1YearMs  = $now->copy()->subYear()->getTimestamp() * 1000;
 
                 $defaultFrom  = $from30DaysMs;
                 $defaultTo    = $toNowMs;
+
+                $commonParams = fn(int $panelId, int $from, int $to) =>
+                    http_build_query([
+                        'orgId'                         => 1,
+                        'from'                          => $from,
+                        'to'                            => $to,
+                        'timezone'                      => 'browser',
+                        'panelId'                       => $panelId,
+                        '__feature.dashboardSceneSolo'  => 'true',
+                        'theme'                         => $grafanaTheme,
+                    ], '', '&', PHP_QUERY_RFC3986);
             @endphp
 
-            {{-- Fila 1 --}}
+            {{-- ═══ Fila KPI: 4 stat panels ══════════════════════════════════════════ --}}
+            <div class="row g-3 mb-3">
+                @php
+                    $kpiPanels = [
+                        20 => ['title' => __('Últimas 24 h'),        'color' => 'primary'],
+                        21 => ['title' => __('Este mes (kWh)'),       'color' => 'purple'],
+                        22 => ['title' => __('Coste estimado (mes)'), 'color' => 'warning'],
+                        23 => ['title' => __('Dispositivos activos'), 'color' => 'success'],
+                    ];
+                @endphp
+                @foreach($kpiPanels as $pid => $kpi)
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white fw-semibold small text-muted py-1">
+                            {{ $kpi['title'] }}
+                        </div>
+                        <div class="card-body p-0">
+                            @php
+                                $src = $grafanaBase . '?' . $commonParams($pid, $from7DaysMs, $toNowMs) . $deviceQuery;
+                            @endphp
+                            <iframe src="{{ $src }}" width="100%" height="130" frameborder="0"
+                                    class="grafana-kpi"></iframe>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            {{-- ═══ Último dato por dispositivo ══════════════════════════════════════ --}}
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white fw-bold">{{ __('Estado de dispositivos') }}</div>
+                        <div class="card-body p-0">
+                            @php
+                                $src = $grafanaBase . '?' . $commonParams(24, $from30DaysMs, $toNowMs) . $deviceQuery;
+                            @endphp
+                            <iframe src="{{ $src }}" width="100%" height="260" frameborder="0"
+                                    class="grafana-kpi"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- ═══ Anomalías ══════════════════════════════════════════════════════════ --}}
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('Consumo anormalmente alto') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $defaultFrom, 'to' => $defaultTo,
-                                    'timezone' => 'browser', 'panelId' => 5,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(5, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
-
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('Consumo anormalmente bajo') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $defaultFrom, 'to' => $defaultTo,
-                                    'timezone' => 'browser', 'panelId' => 6,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(6, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Fila 2 --}}
+            {{-- ═══ TOP 5 + Consumo medio ══════════════════════════════════════════════ --}}
             <div class="row g-3 mb-4">
-                <div class="col-12">
+                <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('TOP 5 Dispositivos') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $defaultFrom, 'to' => $defaultTo,
-                                    'timezone' => 'browser', 'panelId' => 2,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="340" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(2, $defaultFrom, $defaultTo) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-white fw-bold">{{ __('Consumo medio diario') }}</div>
+                        <div class="card-body p-0">
+                            @php $src = $grafanaBaseAlt . '?' . $commonParams(3, $defaultFrom, $defaultTo) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Fila 3 --}}
+            {{-- ═══ Factor carga + Actividad ═══════════════════════════════════════════ --}}
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('Factor de carga') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $defaultFrom, 'to' => $defaultTo,
-                                    'timezone' => 'browser', 'panelId' => 11,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(11, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
-
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('Actividad de dispositivos') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $defaultFrom, 'to' => $defaultTo,
-                                    'timezone' => 'browser', 'panelId' => 10,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(10, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Fila 4 --}}
+            {{-- ═══ Horas activas + Consumo semanal ═══════════════════════════════════ --}}
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('Horas activas por semana') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $defaultFrom, 'to' => $defaultTo,
-                                    'timezone' => 'browser', 'panelId' => 9,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(9, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
-
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('Consumo total semanal') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $defaultFrom, 'to' => $defaultTo,
-                                    'timezone' => 'browser', 'panelId' => 8,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(8, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Fila 5 --}}
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-md-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Desviación media (últimos 7 días)') }}</div>
-                        <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . http_build_query([
-                                    'orgId' => 1, 'from' => $from7DaysMs, 'to' => $toNowMs,
-                                    'timezone' => 'browser', 'panelId' => 4,
-                                    '__feature.dashboardSceneSolo' => 'true', 'theme' => $grafanaTheme,
-                                ], '', '&', PHP_QUERY_RFC3986) . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Consumo medio diario') }}</div>
-                        <div class="card-body p-0">
-                            @php
-                                $fixed = http_build_query([
-                                    'orgId' => 1, 'from' => $from30DaysMs, 'to' => $toNowMs,
-                                    'timezone' => 'browser', 'panelId' => 3, 'theme' => $grafanaTheme,
-                                    '__feature.dashboardSceneSolo' => 'true',
-                                ], '', '&', PHP_QUERY_RFC3986);
-                                $src = $grafanaBaseAlt . '?' . $fixed . $deviceQuery;
-                            @endphp
-                            <iframe id="grafanaIframe" src="{{ $src }}" width="100%" height="300" frameborder="0"></iframe>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Fila 6 --}}
+            {{-- ═══ Desviación media ════════════════════════════════════════════════════ --}}
             <div class="row g-3 mb-4">
                 <div class="col-12">
-                    <div class="card h-100 border-0 shadow-sm">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white fw-bold">{{ __('Desviación media (últimos 7 días)') }}</div>
+                        <div class="card-body p-0">
+                            @php $src = $grafanaBase . '?' . $commonParams(4, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
+                                    class="grafana-range"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- ═══ Variación mensual (año completo) ═══════════════════════════════════ --}}
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white fw-bold">{{ __('Variación mensual (último año)') }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $fixedVar = http_build_query([
-                                    'orgId' => 1, 'from' => $fromYearMs, 'to' => $toNowMs,
-                                    'timezone' => 'browser', 'panelId' => 7, 'theme' => $grafanaTheme,
-                                    '__feature.dashboardSceneSolo' => 'true',
-                                ], '', '&', PHP_QUERY_RFC3986);
-                                $srcVar = $grafanaBase . '?' . $fixedVar . $deviceQuery;
-                            @endphp
-                            <iframe src="{{ $srcVar }}" width="100%" height="360" frameborder="0"></iframe>
+                            @php $src = $grafanaBase . '?' . $commonParams(7, $from1YearMs, $toNowMs) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="360" frameborder="0"
+                                    class="grafana-range"></iframe>
                         </div>
                     </div>
                 </div>
             </div>
 
         </div>
+
+@push('scripts')
+<script>
+    window.DASHBOARD_TO_MS = {{ $toNowMs }};
+</script>
+<script src="{{ asset('assets/js/dashboard.js') }}"></script>
+@endpush
 @endsection

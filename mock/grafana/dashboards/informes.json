@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -19,37 +22,92 @@
   "links": [],
   "panels": [
     {
-      "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "feg5i5n3pjq4gf"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6,
-            "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1,
-            "pointSize": 5, "scaleDistribution": { "type": "linear" },
-            "showPoints": "auto", "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 80 }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "11.4.0",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
-          "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"hourly\")\r\n  |> filter(fn: (r) => r._field == \"kwh\")\r\n  |> filter(fn: (r) => contains(value: r.name, set: ${dispositivos:json}))\r\n  |> group(columns: [\"name\"])\r\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\r\n  |> yield(name: \"historico\")\r\n",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "feg5i5n3pjq4gf"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"hourly\")\r\n  |> filter(fn: (r) => r._field == \"kwh\")\r\n  |> filter(fn: (r) => contains(value: r.name, set: ${dispositivos:json}))\r\n  |> group(columns: [\"name\"])\r\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\r\n  |> yield(name: \"historico\")\r\n",
           "refId": "A"
         }
       ],
@@ -63,21 +121,33 @@
   "templating": {
     "list": [
       {
-        "current": { "selected": true, "text": "All", "value": "$__all" },
-        "datasource": { "type": "influxdb", "uid": "feg5i5n3pjq4gf" },
-        "definition": "from(bucket: \"PINZAS\")\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "feg5i5n3pjq4gf"
+        },
+        "definition": "from(bucket: v.defaultBucket)\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")",
         "includeAll": true,
         "multi": true,
         "name": "dispositivos",
         "options": [],
-        "query": { "query": "from(bucket: \"PINZAS\")\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")" },
+        "query": {
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")"
+        },
         "refresh": 2,
         "regex": "",
         "type": "query"
       }
     ]
   },
-  "time": { "from": "now-6h", "to": "now" },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Informes",
