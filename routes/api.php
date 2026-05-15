@@ -1,19 +1,46 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\RuleController;
+use App\Http\Controllers\Api\AlertController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ConsumptionController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
+// ── Auth (pública) ──────────────────────────────────────────────────────────────
+Route::post('/auth/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+// ── Rutas protegidas con Sanctum ────────────────────────────────────────────────
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Auth
+    Route::post('/auth/logout',      [AuthController::class, 'logout']);
+    Route::get('/auth/me',           [AuthController::class, 'me']);
+
+    // Devices
+    Route::get('/devices',                        [DeviceController::class, 'index']);
+    Route::get('/devices/{id}/current',           [DeviceController::class, 'current']);
+    Route::get('/devices/{id}/consumption',       [DeviceController::class, 'consumption']);
+    Route::get('/devices/{id}/stats',             [DeviceController::class, 'stats']);
+    Route::get('/devices/{id}/forecast',          [DeviceController::class, 'forecast']);
+
+    // Rules
+    Route::get('/rules',             [RuleController::class, 'index']);
+    Route::post('/rules',            [RuleController::class, 'store']);
+    Route::put('/rules/{id}',        [RuleController::class, 'update']);
+    Route::delete('/rules/{id}',     [RuleController::class, 'destroy']);
+    Route::patch('/rules/{id}/toggle', [RuleController::class, 'toggle']);
+
+    // Alerts
+    Route::get('/alerts',            [AlertController::class, 'index']);
+
+    // Reports
+    Route::get('/reports',                         [ReportController::class, 'index']);
+    Route::get('/reports/{informe}/download',      [ReportController::class, 'download']);
+    Route::delete('/reports/{informe}',            [ReportController::class, 'destroy']);
+
+    // Consumption
+    Route::get('/consumption/summary', [ConsumptionController::class, 'summary']);
+    Route::get('/consumption/cost',    [ConsumptionController::class, 'cost']);
 });
