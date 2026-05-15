@@ -10,7 +10,7 @@
             font-size: 12px;
             color: #222;
             margin: 0;
-            background-color: #f9f9f9;
+            background-color: #ffffff;
         }
 
         header {
@@ -23,6 +23,9 @@
         header img {
             height: 55px;
             margin-bottom: 6px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         h1 {
@@ -120,16 +123,6 @@
             padding-top: 10px;
         }
 
-        footer {
-            position: fixed;
-            bottom: 10px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-        }
-
         .highlight {
             background-color: #fff3cd;
             border-left: 4px solid #ff9800;
@@ -143,7 +136,9 @@
 <body>
     <!-- Encabezado -->
     <header>
-        <img src="{{ public_path('assets/img/TERSIME.png') }}" alt="Logo TERSIME">
+        @if (!empty($logo))
+            <img src="{{ $logo }}" alt="Logo TERSIME">
+        @endif
         <h1>Informe de Consumo Energético</h1>
         <div class="meta">
             Usuario: {{ $user->name ?? 'N/A' }} —
@@ -159,9 +154,7 @@
         <div class="section">
             <h2>Resumen Ejecutivo</h2>
             <div class="resumen">
-                {!! $resumen ?? 'No se ha generado un resumen automático.' !!}
-
-
+                {!! nl2br(e($resumen ?: 'No se ha generado un resumen automático.')) !!}
             </div>
         </div>
 
@@ -180,7 +173,7 @@
                             <th>Pico máximo (kWh)</th>
                             <th>Mínimo (kWh)</th>
                             <th>Factor Carga</th>
-                            <th>Variación respecto a media histórica (%)</th>
+                            <th>Variación vs histórica (%)</th>
                             <th>% sobre total</th>
                         </tr>
                     </thead>
@@ -190,7 +183,7 @@
                                 <td>{{ $row['nombre'] ?? '–' }}</td>
 
                                 @if (!empty($row['error']))
-                                    <td colspan="7" class="small">Error obteniendo datos:
+                                    <td colspan="8" class="small">Error obteniendo datos:
                                         {{ $row['error_message'] ?? 'desconocido' }}</td>
                                 @else
                                     <td>{{ number_format($row['total_kwh'] ?? 0, 2, ',', '.') }}</td>
@@ -217,75 +210,76 @@
             @endif
         </div>
 
+        <!-- Consumo en el tiempo -->
         <div class="section">
             <h2>Consumo en el tiempo</h2>
-            <div class="grafica">
-                <img src="{{ $graficas['tiempo-real'] }}" alt="Consumo por dispositivo">
-            </div>
+            @php $rutaTiempoReal = $graficas['tiempo-real'] ?? null; @endphp
+            @if (!empty($rutaTiempoReal))
+                <div class="grafica">
+                    <img src="{{ $rutaTiempoReal }}" alt="Consumo por dispositivo">
+                </div>
+            @else
+                <p class="small"><em>No se pudo cargar la gráfica de consumo en el tiempo.</em></p>
+            @endif
         </div>
 
+        <!-- Comparativa histórica -->
         <div class="section">
             <h2>Comparativa histórica</h2>
 
             @foreach ($dispositivos as $dispositivo)
                 @php
-                    $nombreDispositivo = $dispositivo->influx_tag;
-                    $graficasDispositivo = $graficas[$nombreDispositivo] ?? null;
+                    $nombreDispositivo   = $dispositivo->influx_tag;
+                    $graficasDispositivo = $graficas[$nombreDispositivo] ?? [];
                 @endphp
 
                 <h3>{{ $dispositivo->nombre }}</h3>
 
-                {{-- Media Horaria --}}
                 @php
-                    $rutaMediaHoraria = $graficasDispositivo['media-horaria'] ?? null;
-                    $tituloMediaHoraria = 'Media por Horas en el Periodo Dado';
+                    $rutaMediaHoraria    = $graficasDispositivo['media-horaria'] ?? null;
+                    $rutaMediaHistorico  = $graficasDispositivo['media-horaria-historico'] ?? null;
                 @endphp
 
-                @if ($rutaMediaHoraria && file_exists($rutaMediaHoraria))
+                @if (!empty($rutaMediaHoraria))
                     <div class="grafica">
-                        <p><strong>{{ $tituloMediaHoraria }}</strong></p>
-                        <img src="{{ $rutaMediaHoraria }}" alt="{{ $tituloMediaHoraria }}">
+                        <p><strong>Media por Horas en el Periodo Dado</strong></p>
+                        <img src="{{ $rutaMediaHoraria }}" alt="Media horaria {{ $dispositivo->nombre }}">
                     </div>
                 @else
-                    <p class="small"><em>No se encontró la gráfica de {{ $tituloMediaHoraria }}.</em></p>
+                    <p class="small"><em>No se encontró la gráfica de media horaria.</em></p>
                 @endif
 
-                {{-- Media Horaria Histórico --}}
-                @php
-                    $rutaMediaHorariaHistorico = $graficasDispositivo['media-horaria-historico'] ?? null;
-                    $tituloMediaHorariaHistorico = 'Media por Horas Histórico';
-                @endphp
-
-                @if ($rutaMediaHorariaHistorico && file_exists($rutaMediaHorariaHistorico))
+                @if (!empty($rutaMediaHistorico))
                     <div class="grafica">
-                        <p><strong>{{ $tituloMediaHorariaHistorico }}</strong></p>
-                        <img src="{{ $rutaMediaHorariaHistorico }}" alt="{{ $tituloMediaHorariaHistorico }}">
+                        <p><strong>Media por Horas Histórico</strong></p>
+                        <img src="{{ $rutaMediaHistorico }}" alt="Media horaria histórico {{ $dispositivo->nombre }}">
                     </div>
                 @else
-                    <p class="small"><em>No se encontró la gráfica de {{ $tituloMediaHorariaHistorico }}.</em></p>
+                    <p class="small"><em>No se encontró la gráfica histórica.</em></p>
                 @endif
             @endforeach
         </div>
 
-
+        <!-- Distribución horaria -->
         <div class="section">
             <h2>Distribución horaria del consumo</h2>
             <p style="font-size: 13px; line-height: 1.5;">
-                {!! nl2br(e($distribucionHorariaTextual)) !!}
+                {!! nl2br(e($distribucionHorariaTextual ?: 'No disponible.')) !!}
             </p>
         </div>
 
+        <!-- Anomalías -->
         <div class="section">
             <h2>Análisis de Anomalías</h2>
 
             @if (!empty($tablaAnomalias) && is_array($tablaAnomalias))
-                <table class="tabla">
+                <table>
                     <thead>
                         <tr>
                             <th>Dispositivo</th>
                             <th>Fecha</th>
-                            <th>KWh Registrados</th>
-                            <th>Media Histórica En Hora</th>
+                            <th>kWh Registrados</th>
+                            <th>Media Histórica</th>
                             <th>Diferencia</th>
                             <th>Detalle</th>
                         </tr>
@@ -293,10 +287,7 @@
                     <tbody>
                         @foreach ($tablaAnomalias as $deviceKey => $lista)
                             @php
-                                // Device label seguro
-                                $deviceLabel = is_string($deviceKey)
-                                    ? $deviceKey
-                                    : (string) ($deviceKey ?? 'Desconocido');
+                                $deviceLabel = is_string($deviceKey) ? $deviceKey : (string) ($deviceKey ?? 'Desconocido');
                             @endphp
 
                             @if (empty($lista) || !is_array($lista))
@@ -307,26 +298,11 @@
                             @else
                                 @foreach ($lista as $fila)
                                     @php
-                                        // defensiva: asegurar índices y tipos
-                                        $fecha = isset($fila['fecha'])
-                                            ? (is_array($fila['fecha'])
-                                                ? json_encode($fila['fecha'])
-                                                : (string) $fila['fecha'])
-                                            : '';
-                                        $valor =
-                                            isset($fila['valor_kwh']) && is_numeric($fila['valor_kwh'])
-                                                ? number_format((float) $fila['valor_kwh'], 3)
-                                                : '0.000';
-                                        $media =
-                                            isset($fila['media_historica_hora_kwh']) &&
-                                            is_numeric($fila['media_historica_hora_kwh'])
-                                                ? number_format((float) $fila['media_historica_hora_kwh'], 3)
-                                                : '0.000';
-                                        $exceso =
-                                            isset($fila['diferencia_kwh']) && is_numeric($fila['diferencia_kwh'])
-                                                ? number_format((float) $fila['diferencia_kwh'], 3)
-                                                : '0.000';
-                                        $mensaje = $fila['mensaje'] ?? '';
+                                        $fecha       = isset($fila['fecha']) ? (is_array($fila['fecha']) ? json_encode($fila['fecha']) : (string) $fila['fecha']) : '';
+                                        $valor       = isset($fila['valor_kwh']) && is_numeric($fila['valor_kwh']) ? number_format((float) $fila['valor_kwh'], 3) : '0.000';
+                                        $media       = isset($fila['media_historica_hora_kwh']) && is_numeric($fila['media_historica_hora_kwh']) ? number_format((float) $fila['media_historica_hora_kwh'], 3) : '0.000';
+                                        $exceso      = isset($fila['diferencia_kwh']) && is_numeric($fila['diferencia_kwh']) ? number_format((float) $fila['diferencia_kwh'], 3) : '0.000';
+                                        $mensaje     = $fila['mensaje'] ?? '';
                                         $deviceInRow = $fila['device'] ?? $deviceLabel;
                                     @endphp
                                     <tr>
@@ -347,7 +323,7 @@
             @endif
         </div>
 
-
+        <!-- Coste estimado -->
         <div class="section">
             <h2>Coste estimado</h2>
 
@@ -361,11 +337,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($costeEstimado as $deviceKey => $datos)
+                        @foreach ($costeEstimado as $deviceKey => $datosCost)
                             <tr>
                                 <td>{{ $deviceKey }}</td>
-                                <td>{{ number_format($datos['consumo_total_kwh'] ?? 0, 3, ',', '.') }}</td>
-                                <td>{{ number_format($datos['coste_estimado'] ?? 0, 2, ',', '.') }} €</td>
+                                <td>{{ number_format($datosCost['consumo_total_kwh'] ?? 0, 3, ',', '.') }}</td>
+                                <td>{{ number_format($datosCost['coste_estimado'] ?? 0, 2, ',', '.') }} €</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -375,11 +351,11 @@
             @endif
         </div>
 
-        <!-- Conclusiones (futuro LLM) -->
+        <!-- Conclusiones -->
         <div class="section">
             <h2>Conclusiones y Recomendaciones</h2>
             <div class="highlight" style="font-size: 13px; line-height: 1.5;">
-                {{ $conclusion }}
+                {!! nl2br(e($conclusion ?: 'No disponible.')) !!}
             </div>
         </div>
 
@@ -392,12 +368,8 @@
                 Fuente de datos: Sistema de monitorización TERSIME.
             </p>
         </div>
-    </div>
 
-    <!-- Pie -->
-    <footer>
-        © {{ date('Y') }} TERSIME — Informe generado automáticamente
-    </footer>
+    </div>
 </body>
 
 </html>

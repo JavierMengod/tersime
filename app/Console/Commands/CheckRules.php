@@ -8,6 +8,7 @@ use App\Models\Rule;
 use App\Models\AlertLog;
 use App\Http\Controllers\InfluxController;
 use App\Http\Controllers\NotificationMethodController;
+use App\Notifications\NotificacionAlerta;
 use Illuminate\Support\Facades\Log;
 
 class CheckRules extends Command
@@ -120,6 +121,14 @@ class CheckRules extends Command
         $this->enviarNotificaciones($notifier, $rule, $user, $textoDefault);
         $this->registrarLog($rule, $dispositivo, 'firing', $textoDefault);
 
+        if ($user) {
+            try {
+                $user->notify(new NotificacionAlerta('firing', $rule->name, $dispositivo->nombre, $textoDefault));
+            } catch (\Exception $e) {
+                Log::error('Error guardando notificación DB (firing)', ['error' => $e->getMessage()]);
+            }
+        }
+
         Log::info('Estado → firing', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
@@ -146,6 +155,14 @@ class CheckRules extends Command
 
         $this->enviarNotificaciones($notifier, $rule, $user, $textoDefault);
         $this->registrarLog($rule, $dispositivo, 'resolution', $textoDefault);
+
+        if ($user) {
+            try {
+                $user->notify(new NotificacionAlerta('resolution', $rule->name, $dispositivo->nombre, $textoDefault));
+            } catch (\Exception $e) {
+                Log::error('Error guardando notificación DB (resolution)', ['error' => $e->getMessage()]);
+            }
+        }
 
         Log::info('Estado → ok (resolución)', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
