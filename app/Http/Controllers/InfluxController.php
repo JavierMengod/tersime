@@ -7,7 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class InfluxController extends Controller
+class InfluxController
 {
     private string $grafanaUrl;
     private int $datasourceId;
@@ -206,11 +206,15 @@ FLUX;
         $influxUrl = rtrim(Setting::get('influxdb_url') ?: env('INFLUXDB_URL', 'http://localhost:8086'), '/')
             . '/api/v2/query?org=' . (Setting::get('influxdb_org') ?: env('INFLUXDB_ORG', 'tersime'));
         $token    = Setting::get('influxdb_token') ?: env('INFLUXDB_TOKEN', '');
-        $stopFlux = $this->fluxTimeLiteral($stop, false);
+        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+        $startFlux = $this->fluxTimeLiteral(
+            Carbon::parse($stop)->subYear()->format('Y-m-d'),
+            true
+        );
 
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
-  |> range(start: -1y, stop: {$stopFlux})
+  |> range(start: {$startFlux}, stop: {$stopFlux})
   |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
   |> sort(columns: ["_time"])
   |> keep(columns: ["_time", "_value"])
@@ -274,9 +278,9 @@ FLUX;
      */
     public function ultimoValor(string $device): ?float
     {
-        $influxUrl = env('INFLUXDB_URL', 'http://localhost:8086')
-            . '/api/v2/query?org=' . env('INFLUXDB_ORG', 'tersime');
-        $token = env('INFLUXDB_TOKEN', '');
+        $influxUrl = rtrim(Setting::get('influxdb_url') ?: env('INFLUXDB_URL', 'http://localhost:8086'), '/')
+            . '/api/v2/query?org=' . (Setting::get('influxdb_org') ?: env('INFLUXDB_ORG', 'tersime'));
+        $token = Setting::get('influxdb_token') ?: env('INFLUXDB_TOKEN', '');
 
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")

@@ -53,27 +53,38 @@ class PrediccionController extends Controller
         }
 
         try {
-            $cacheKey = 'pred_training_' . $device . '_' . Carbon::parse($stop)->format('Y-m-d');
-            $data = Cache::remember($cacheKey, 3600, fn () => $influx->datosParaPrediccion($device, $stop));
+            $stopDate0 = Carbon::parse($stop)->format('Y-m-d');
+            $trainKey  = 'pred_training_' . $device . '_' . $stopDate0;
+            $data      = Cache::remember($trainKey, 3600, fn () => $influx->datosParaPrediccion($device, $stop));
 
             if (empty($data['timestamps'])) {
                 return response()->json(['message' => 'Sin datos históricos para este dispositivo.'], 422);
             }
 
-            $timeout      = (int) (Setting::get('predictor_timeout') ?: 120);
-            $predResponse = Http::timeout($timeout)->asJson()->post($urlPredictor, [
-                'timestamps'   => $data['timestamps'],
-                'values'       => $data['values'],
-                'predic_hours' => $predicHours,
-            ]);
+            $predKey = 'pred_result_' . $device . '_' . $stopDate0 . '_' . $predicHours;
+            $predRaw = Cache::remember($predKey, 1200, function () use (
+                $urlPredictor, $data, $predicHours
+            ) {
+                $timeout = (int) (Setting::get('predictor_timeout') ?: 120);
+                $resp    = Http::timeout($timeout)->asJson()->post($urlPredictor, [
+                    'timestamps'   => $data['timestamps'],
+                    'values'       => $data['values'],
+                    'predic_hours' => $predicHours,
+                ]);
 
-            if ($predResponse->failed()) {
-                Log::error('[API] prediction predictor error', ['status' => $predResponse->status()]);
+                if ($resp->failed()) {
+                    Log::error('[API] prediction predictor error', ['status' => $resp->status()]);
+                    return null;
+                }
+
+                $json = $resp->json();
+                return $json['predichos'] ?? $json['predictions'] ?? $json['data'] ?? [];
+            });
+
+            if ($predRaw === null) {
                 return response()->json(['message' => 'Error en el servicio de predicción.'], 502);
             }
 
-            $json     = $predResponse->json();
-            $predRaw  = $json['predichos'] ?? $json['predictions'] ?? $json['data'] ?? [];
             $now      = Carbon::now('UTC');
             $output   = [];
 
