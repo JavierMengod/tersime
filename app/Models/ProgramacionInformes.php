@@ -74,6 +74,13 @@ class ProgramacionInformes extends Model
         if (!$this->last_run_at) {
             return null;
         }
-        return $this->last_run_at->copy()->addHours($this->periodicidad);
+
+        $valor = (int) ($this->valor_periodo ?? 1);
+
+        return match ($this->tipo_periodo ?? 'horas') {
+            'meses' => $this->last_run_at->copy()->addMonths($valor),
+            'dias'  => $this->last_run_at->copy()->addDays($valor),
+            default => $this->last_run_at->copy()->addHours($valor),
+        };
     }
 }

@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\InformeRegistro;
 use App\Models\Dispositivo;
+use App\Traits\ResolvesInformePath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-
 class InformeRegistroController extends Controller
 {
+    use ResolvesInformePath;
     public function index()
     {
         $registros = InformeRegistro::where('user_id', auth()->id())
@@ -62,13 +63,13 @@ class InformeRegistroController extends Controller
     {
         $this->authorizeAccess($registro);
 
-        [$absolutePath, $downloadName] = $this->resolvePdfAbsolutePath($registro->pdf_path, $registro->nombre_archivo);
+        $absolutePath = $this->resolveInformePath($registro->pdf_path);
 
-        if (!is_file($absolutePath)) {
-            return back()->with('error', "No se encontró el archivo en el servidor: {$absolutePath}");
+        if (!$absolutePath || !is_file($absolutePath)) {
+            return back()->with('error', 'No se encontró el archivo en el servidor.');
         }
 
-        return response()->download($absolutePath, $downloadName, [
+        return response()->download($absolutePath, $registro->nombre_archivo, [
             'Content-Type' => 'application/pdf',
         ]);
     }
@@ -77,9 +78,8 @@ class InformeRegistroController extends Controller
     {
         $this->authorizeAccess($registro);
 
-        // eliminar archivo físico si existe (opcional)
-        [$absolutePath] = $this->resolvePdfAbsolutePath($registro->pdf_path, $registro->nombre_archivo);
-        if (is_file($absolutePath)) {
+        $absolutePath = $this->resolveInformePath($registro->pdf_path);
+        if ($absolutePath && is_file($absolutePath)) {
             @unlink($absolutePath);
         }
 
@@ -95,29 +95,4 @@ class InformeRegistroController extends Controller
         }
     }
 
-    /**
-     * Resuelve una ruta absoluta válida al PDF.
-     * Acepta casos:
-     *  - Ruta absoluta (/var/www/... o C:\...).
-     *  - Rutas con prefijos: storage/app/public/..., public/..., storage/...
-     *  - Ruta relativa dentro del disco public (p.ej. informes/archivo.pdf)
-     */
-    private function resolvePdfAbsolutePath(string $pdfPath, string $downloadName): array
-    {
-        // Si ya es ruta absoluta (Linux/Windows), úsala tal cual
-        if (preg_match('/^(\/|[A-Za-z]:\\\\)/', $pdfPath) === 1) {
-            return [$pdfPath, $downloadName];
-        }
-
-        // Normalizar: quitar posibles prefijos comunes
-        $relative = ltrim($pdfPath, '/');
-        $relative = preg_replace('#^storage/app/public/#', '', $relative);
-        $relative = preg_replace('#^public/#', '', $relative);
-        $relative = preg_replace('#^storage/#', '', $relative);
-
-        // Ruta absoluta real dentro de storage/app/public
-        $absolute = storage_path('app/public/' . $relative);
-
-        return [$absolute, $downloadName];
-    }
 }

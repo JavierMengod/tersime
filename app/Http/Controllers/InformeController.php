@@ -6,6 +6,7 @@ use App\Models\Dispositivo;
 use App\Models\Informe;
 use App\Notifications\NotificacionInforme;
 use App\Services\InformeService;
+use App\Traits\ResolvesInformePath;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 
 class InformeController extends Controller
 {
+    use ResolvesInformePath;
     protected InformeService $informeService;
     protected \App\Services\NotificationService $notifier;
 
@@ -166,13 +168,13 @@ class InformeController extends Controller
     public function download(Informe $informe)
     {
         $this->authorizeAccess($informe);
-        [$absolutePath, $downloadName] = $this->resolvePdfAbsolutePath($informe->pdf_path, $informe->nombre_archivo);
+        $absolutePath = $this->resolveInformePath($informe->pdf_path);
 
-        if (empty($absolutePath) || !is_file($absolutePath)) {
+        if (!$absolutePath || !is_file($absolutePath)) {
             return back()->with('error', 'No se encontró el archivo en el servidor.');
         }
 
-        return response()->download($absolutePath, $downloadName ?: basename($absolutePath), [
+        return response()->download($absolutePath, $informe->nombre_archivo ?: basename($absolutePath), [
             'Content-Type' => 'application/pdf',
         ]);
     }
@@ -186,7 +188,7 @@ class InformeController extends Controller
             if (Storage::disk('public')->exists($relative)) {
                 Storage::disk('public')->delete($relative);
             } else {
-                [$absolutePath] = $this->resolvePdfAbsolutePath($informe->pdf_path, $informe->nombre_archivo);
+                $absolutePath = $this->resolveInformePath($informe->pdf_path);
                 if ($absolutePath && is_file($absolutePath)) {
                     @unlink($absolutePath);
                 }
@@ -212,21 +214,4 @@ class InformeController extends Controller
         }
     }
 
-    private function resolvePdfAbsolutePath(?string $pdfPath, ?string $downloadName): array
-    {
-        if (empty($pdfPath)) {
-            return [null, $downloadName];
-        }
-
-        if (preg_match('/^(\/|[A-Za-z]:\\\\)/', $pdfPath) === 1) {
-            return [$pdfPath, $downloadName];
-        }
-
-        $relative = ltrim($pdfPath, '/');
-        $relative = preg_replace('#^storage/app/public/#', '', $relative);
-        $relative = preg_replace('#^public/#', '', $relative);
-        $relative = preg_replace('#^storage/#', '', $relative);
-
-        return [storage_path('app/public/' . $relative), $downloadName];
-    }
 }

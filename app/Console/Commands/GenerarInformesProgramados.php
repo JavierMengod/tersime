@@ -19,14 +19,10 @@ class GenerarInformesProgramados extends Command
     {
         $ahora = Carbon::now();
 
-        // Filtrar en BD los que están vencidos para no traer toda la tabla
         $programaciones = ProgramacionInformes::with(['user', 'dispositivos'])
             ->where('activo', true)
-            ->where(function ($q) use ($ahora) {
-                $q->whereNull('last_run_at')
-                  ->orWhereRaw('DATETIME(last_run_at, "+"||periodicidad||" hours") <= ?', [$ahora->toDateTimeString()]);
-            })
-            ->get();
+            ->get()
+            ->filter(fn($p) => !$p->last_run_at || $p->proximaEjecucion()->lte($ahora));
 
         if ($programaciones->isEmpty()) {
             $this->info('No hay informes programados vencidos.');

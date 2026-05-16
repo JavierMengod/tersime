@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Informe;
+use App\Traits\ResolvesInformePath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ReportController extends Controller
 {
+    use ResolvesInformePath;
     public function index(Request $request)
     {
         $reports = $request->user()
@@ -30,7 +32,7 @@ class ReportController extends Controller
             return response()->json(['message' => 'Sin permiso.'], 403);
         }
 
-        $absolutePath = $this->resolveAbsolutePath($informe->pdf_path);
+        $absolutePath = $this->resolveInformePath($informe->pdf_path);
 
         if (!$absolutePath || !is_file($absolutePath)) {
             return response()->json(['message' => 'Archivo no encontrado.'], 404);
@@ -54,7 +56,7 @@ class ReportController extends Controller
             if (Storage::disk('public')->exists($relative)) {
                 Storage::disk('public')->delete($relative);
             } else {
-                $abs = $this->resolveAbsolutePath($informe->pdf_path);
+                $abs = $this->resolveInformePath($informe->pdf_path);
                 if ($abs && is_file($abs)) {
                     @unlink($abs);
                 }
@@ -72,8 +74,8 @@ class ReportController extends Controller
             'id'             => $r->id,
             'nombre_archivo' => $r->nombre_archivo,
             'tipo'           => $r->tipo ?? null,
-            'from'           => $r->fecha_inicio ?? null,
-            'to'             => $r->fecha_fin ?? null,
+            'from'           => $r->periodo_from,
+            'to'             => $r->periodo_to,
             'generated_at'   => $r->generated_at,
             'size_bytes'     => $r->size_bytes ?? null,
             'dispositivos'   => $r->dispositivos->map(function ($d) {
@@ -82,21 +84,4 @@ class ReportController extends Controller
         ];
     }
 
-    private function resolveAbsolutePath(?string $pdfPath): ?string
-    {
-        if (empty($pdfPath)) {
-            return null;
-        }
-
-        if (preg_match('/^(\/|[A-Za-z]:\\\\)/', $pdfPath) === 1) {
-            return $pdfPath;
-        }
-
-        $relative = ltrim($pdfPath, '/');
-        $relative = preg_replace('#^storage/app/public/#', '', $relative);
-        $relative = preg_replace('#^public/#', '', $relative);
-        $relative = preg_replace('#^storage/#', '', $relative);
-
-        return storage_path('app/public/' . $relative);
-    }
 }

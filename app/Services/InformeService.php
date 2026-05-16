@@ -152,13 +152,16 @@ class InformeService
         $start         = Carbon::parse($fechaInicio)->toDateString();
         $end           = Carbon::parse($fechaFin)->toDateString();
 
+        // El panel-5 del dashboard initiot reasigna los timestamps al día 2025-01-01
+        // en su query Flux (para representar medias horarias del día). Grafana necesita
+        // que from/to apunten a ese mismo día de referencia para renderizar el eje X.
+        $panel5RefDay = Carbon::create(2025, 1, 1, 0, 0, 0, 'Europe/Madrid');
+        $panel5From   = $panel5RefDay->getTimestamp() * 1000;
+        $panel5To     = $panel5RefDay->copy()->endOfDay()->getTimestamp() * 1000;
+
         foreach ($dispositivos as $dispositivo) {
             $tag = $dispositivo->influx_tag;
 
-            // panel-5 hardcodes all data timestamps to 2025-01-01T{hour}:00:00+01:00 in its Flux query,
-            // so from/to must cover that day in Europe/Madrid time for the chart to render correctly.
-            $panel5From = 1735682400000; // 2025-01-01 00:00:00 Europe/Madrid = 2024-12-31 23:00:00 UTC
-            $panel5To   = 1735768799000; // 2025-01-01 23:59:59 Europe/Madrid = 2025-01-01 22:59:59 UTC
             $panelUrls["media-horaria-{$tag}"] = [
                 "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
                 . "?orgId=1&var-start={$fechaInicio}&var-end={$fechaFin}&var-dispositivos={$tag}&theme=light&panelId=panel-5&from={$panel5From}&to={$panel5To}&timezone=Europe%2FMadrid",
@@ -172,9 +175,11 @@ class InformeService
 
             $horariosBrutos = $this->influx->datosHorarios($tag, $fechaInicio, $fechaFin);
 
+            $historicalStart = Carbon::parse($end)->subYears(2)->toDateString();
+
             $datos[$tag] = [
                 'media-horaria'           => $this->influx->mediaPorHora($tag, $start, $end),
-                'media-horaria-historico' => $this->influx->mediaPorHora($tag, '2025-01-01', $end),
+                'media-horaria-historico' => $this->influx->mediaPorHora($tag, $historicalStart, $end),
                 'bruto-dispositivo'       => $horariosBrutos,
                 'nombre-dispositivo'      => $dispositivo->nombre,
             ];
@@ -336,39 +341,6 @@ class InformeService
         return Carbon::createFromTimestamp($epoch, $timezone)->toIso8601ZuluString();
     }
 
-    private function descargarGrafanaRenderer(string $panelUrl, string $nombreArchivo): ?string
-    {
-        try {
-            $rendererBase = rtrim(Setting::get('grafana_renderer_url') ?: config('tersime.grafana.renderer_url', 'http://localhost:8081/render'), '/');
-            $width        = config('tersime.grafana.renderer_width', 1000);
-            $height       = config('tersime.grafana.renderer_height', 500);
-            $timeout      = config('tersime.grafana.renderer_timeout', 60);
-            $token        = config('tersime.grafana.renderer_token');
-
-            $rendererUrl = "{$rendererBase}?url=" . urlencode($panelUrl)
-                . "&width={$width}&height={$height}&timeout={$timeout}";
-
-            $response = Http::withHeaders([
-                'X-Auth-Token' => $token,
-                'Accept'       => 'image/png',
-            ])
-                ->withOptions(['verify' => false])
-                ->timeout(90)
-                ->get($rendererUrl);
-
-            if ($response->successful()) {
-                $path = "public/graficas/{$nombreArchivo}.png";
-                Storage::put($path, $response->body());
-                return storage_path("app/{$path}");
-            }
-
-            Log::error('[InformeService] Grafana renderer falló', ['status' => $response->status()]);
-        } catch (\Throwable $e) {
-            Log::error('[InformeService] Excepción en Grafana renderer', ['error' => $e->getMessage()]);
-        }
-
-        return null;
-    }
 
     /**
      * @param array $horariosPrefetchados  ['influx_tag' => ['iso_datetime' => kWh, ...]]
@@ -448,7 +420,7 @@ class InformeService
 
     private function obtenerCosteEstimado($dispositivos, string $fromDate, string $toDate): array
     {
-        $costePorKwh = (float) config('tersime.costes.kwh', 3.5);
+        $costePorKwh = (float) config('tersime.costes.kwh', 0.15);
         $resultados  = [];
 
         foreach ($dispositivos as $dispositivo) {
@@ -475,33 +447,40 @@ class InformeService
     private function descargarGrafanasParalelo(array $panelUrls): array
     {
         $rendererBase = rtrim(config('tersime.grafana.renderer_url', 'http://localhost:8081/render'), '/');
-        $width        = config('tersime.grafana.renderer_width', 1000);
-        $height       = config('tersime.grafana.renderer_height', 500);
-        $timeout      = config('tersime.grafana.renderer_timeout', 60);
-        $token        = config('tersime.grafana.renderer_token');
+        $width   = config('tersime.grafana.renderer_width', 1000);
+        $height  = config('tersime.grafana.renderer_height', 500);
+        $timeout = (int) config('tersime.grafana.renderer_timeout', 60);
+        $token   = config('tersime.grafana.renderer_token');
+
+        $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use (
+            $panelUrls, $rendererBase, $width, $height, $timeout, $token
+        ) {
+            $requests = [];
+            foreach ($panelUrls as $key => [$panelUrl]) {
+                $rendererTimeout = str_contains($panelUrl, 'panelId=panel-1') ? 120 : $timeout;
+                $url = "{$rendererBase}?url=" . urlencode($panelUrl)
+                    . "&width={$width}&height={$height}&timeout={$rendererTimeout}";
+                $requests[] = $pool->as($key)
+                    ->withHeaders(['X-Auth-Token' => $token, 'Accept' => 'image/png'])
+                    ->withOptions(['verify' => false])
+                    ->timeout($rendererTimeout + 15)
+                    ->get($url);
+            }
+            return $requests;
+        });
 
         $result = [];
         foreach ($panelUrls as $key => [$panelUrl, $nombreArchivo]) {
-            try {
-                // panel-1 (tiempo-real) es más complejo y necesita más tiempo
-                $rendererTimeout = str_contains($panelUrl, 'panelId=panel-1') ? 120 : $timeout;
-                $curlTimeout     = $rendererTimeout + 15;
-                $url = "{$rendererBase}?url=" . urlencode($panelUrl) . "&width={$width}&height={$height}&timeout={$rendererTimeout}";
-                $response = Http::withHeaders([
-                    'X-Auth-Token' => $token,
-                    'Accept'       => 'image/png',
-                ])->withOptions(['verify' => false])->timeout($curlTimeout)->get($url);
-
-                if ($response->successful()) {
-                    $path = "public/graficas/{$nombreArchivo}.png";
-                    Storage::put($path, $response->body());
-                    $result[$key] = storage_path("app/{$path}");
-                } else {
-                    Log::error('[InformeService] Grafana renderer falló', ['key' => $key, 'status' => $response->status()]);
-                    $result[$key] = null;
-                }
-            } catch (\Throwable $e) {
-                Log::error('[InformeService] Grafana renderer excepción', ['key' => $key, 'error' => $e->getMessage()]);
+            $response = $responses[$key] ?? null;
+            if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
+                $path = "public/graficas/{$nombreArchivo}.png";
+                Storage::put($path, $response->body());
+                $result[$key] = storage_path("app/{$path}");
+            } else {
+                $detail = $response instanceof \Throwable
+                    ? $response->getMessage()
+                    : (($response instanceof \Illuminate\Http\Client\Response) ? $response->status() : 'sin respuesta');
+                Log::error('[InformeService] Grafana renderer falló', ['key' => $key, 'detail' => $detail]);
                 $result[$key] = null;
             }
         }
