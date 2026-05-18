@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Services\InfluxService;
-use App\Http\Controllers\OpenRouterController;
+use App\Services\OpenRouterService;
 use App\Models\Informe;
 use App\Models\Setting;
 use App\Models\User;
@@ -16,9 +16,9 @@ use Illuminate\Support\Facades\Storage;
 class InformeService
 {
     protected InfluxService $influx;
-    protected OpenRouterController $modeloLenguaje;
+    protected OpenRouterService $modeloLenguaje;
 
-    public function __construct(InfluxService $influx, OpenRouterController $modeloLenguaje)
+    public function __construct(InfluxService $influx, OpenRouterService $modeloLenguaje)
     {
         $this->influx         = $influx;
         $this->modeloLenguaje = $modeloLenguaje;
@@ -359,7 +359,7 @@ class InformeService
     {
         foreach ($archivosGraficas as $path) {
             if ($path && is_file($path)) {
-                @unlink($path);
+                unlink($path);
             }
         }
     }
