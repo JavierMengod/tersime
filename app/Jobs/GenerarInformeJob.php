@@ -20,9 +20,8 @@ class GenerarInformeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout     = 1200;
-    public $tries       = 1;
-    public $afterCommit = true;
+    public $timeout = 1200;
+    public $tries   = 1;
 
     public int    $informeId;
     public int    $userId;
@@ -54,6 +53,7 @@ class GenerarInformeJob implements ShouldQueue
         $this->correo          = $correo;
         $this->discord         = $discord;
         $this->correoDestino   = $correoDestino;
+        $this->afterCommit();
     }
 
     public function handle(InformeService $service, NotificationService $notifier): void
