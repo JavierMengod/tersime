@@ -127,6 +127,7 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @php $queryParams = request()->query(); @endphp
                     @forelse($logs as $log)
                     <tr>
                         {{-- Fecha --}}
@@ -146,7 +147,7 @@
 
                         {{-- Regla --}}
                         <td>
-                            <a href="{{ route('alertas.historial', array_merge(request()->query(), ['rule' => $log->rule_name, 'page' => 1])) }}"
+                            <a href="{{ route('alertas.historial', array_merge($queryParams, ['rule' => $log->rule_name, 'page' => 1])) }}"
                                class="text-decoration-none fw-semibold"
                                title="{{ __('Filtrar por esta regla') }}">
                                 {{ $log->rule_name }}
@@ -158,7 +159,7 @@
 
                         {{-- Dispositivo --}}
                         <td>
-                            <a href="{{ route('alertas.historial', array_merge(request()->query(), ['device' => $log->device_name, 'page' => 1])) }}"
+                            <a href="{{ route('alertas.historial', array_merge($queryParams, ['device' => $log->device_name, 'page' => 1])) }}"
                                class="text-decoration-none d-flex align-items-center gap-1"
                                title="{{ __('Filtrar por este dispositivo') }}">
                                 <i class="fas fa-microchip text-muted small"></i>
@@ -168,7 +169,7 @@
 
                         {{-- Canales --}}
                         <td class="d-none d-md-table-cell">
-                            @php $chList = $log->channelList(); @endphp
+                            @php $chList = $log->channels; @endphp
                             @if(in_array('telegram', $chList))
                                 <i class="fab fa-telegram text-info fs-5" title="Telegram"></i>
                             @endif

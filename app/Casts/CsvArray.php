@@ -16,10 +16,13 @@ class CsvArray implements CastsAttributes
 
     public function set($model, string $key, $value, array $attributes): ?string
     {
-        if (is_array($value)) {
-            $filtered = array_values(array_filter(array_map('trim', $value)));
-            return $filtered ? implode(',', $filtered) : null;
+        if ($value === null) return null;
+
+        if (!is_array($value)) {
+            throw new \InvalidArgumentException("CsvArray cast expects array, got " . gettype($value));
         }
-        return $value ?: null;
+
+        $filtered = array_values(array_filter(array_map('trim', $value)));
+        return $filtered ? implode(',', $filtered) : null;
     }
 }

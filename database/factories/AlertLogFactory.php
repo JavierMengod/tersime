@@ -31,7 +31,7 @@ class AlertLogFactory extends Factory
         return $this->state(['type' => 'resolution']);
     }
 
-    public function withChannels(string $channels)
+    public function withChannels(array $channels)
     {
         return $this->state(['channels' => $channels]);
     }

@@ -9,20 +9,14 @@ class NotificacionAlerta extends Notification
     public string $tipo;
     public string $titulo;
     public string $mensaje;
-    public string $icono;
 
     public function __construct(string $tipo, string $ruleName, string $deviceName, string $mensaje)
     {
         $this->tipo    = $tipo;
         $this->mensaje = $mensaje;
-
-        if ($tipo === 'firing') {
-            $this->titulo = "Alerta en {$deviceName} — {$ruleName}";
-            $this->icono  = 'firing';
-        } else {
-            $this->titulo = "Resuelta: {$deviceName} — {$ruleName}";
-            $this->icono  = 'resolution';
-        }
+        $this->titulo  = $tipo === 'firing'
+            ? "Alerta en {$deviceName} — {$ruleName}"
+            : "Resuelta: {$deviceName} — {$ruleName}";
     }
 
     public function via($notifiable): array
@@ -37,7 +31,6 @@ class NotificacionAlerta extends Notification
             'titulo'  => $this->titulo,
             'mensaje' => $this->mensaje,
             'url'     => route('alertas.historial'),
-            'icono'   => $this->icono,
         ];
     }
 }

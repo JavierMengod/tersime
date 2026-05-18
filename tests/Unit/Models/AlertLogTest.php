@@ -16,29 +16,29 @@ class AlertLogTest extends TestCase
     /** @test */
     public function channel_list_returns_array_with_single_channel(): void
     {
-        $log = AlertLog::factory()->create(['channels' => 'email']);
-        $this->assertSame(['email'], $log->channelList());
+        $log = AlertLog::factory()->create(['channels' => ['email']]);
+        $this->assertSame(['email'], $log->channels);
     }
 
     /** @test */
     public function channel_list_returns_all_three_channels(): void
     {
-        $log = AlertLog::factory()->create(['channels' => 'email,telegram,discord']);
-        $this->assertSame(['email', 'telegram', 'discord'], $log->channelList());
+        $log = AlertLog::factory()->create(['channels' => ['email', 'telegram', 'discord']]);
+        $this->assertSame(['email', 'telegram', 'discord'], $log->channels);
     }
 
     /** @test */
     public function channel_list_returns_two_channels(): void
     {
-        $log = AlertLog::factory()->create(['channels' => 'telegram,discord']);
-        $this->assertSame(['telegram', 'discord'], $log->channelList());
+        $log = AlertLog::factory()->create(['channels' => ['telegram', 'discord']]);
+        $this->assertSame(['telegram', 'discord'], $log->channels);
     }
 
     /** @test */
     public function channel_list_returns_empty_array_when_channels_is_null(): void
     {
         $log = AlertLog::factory()->create(['channels' => null]);
-        $this->assertSame([], $log->channelList());
+        $this->assertSame([], $log->channels);
     }
 
     /** @test */

@@ -1,3 +1,13 @@
+@php
+$operatorOptions = [
+    '>'  => '> (mayor)',
+    '>=' => '≥ (mayor o igual)',
+    '<'  => '< (menor)',
+    '<=' => '≤ (menor o igual)',
+    '==' => '= (igual)',
+    '!=' => '≠ (distinto)',
+];
+@endphp
 {{-- ── Modal Crear Regla ────────────────────────────────────────────────────── --}}
 <div class="modal fade" id="modal-rule-create" tabindex="-1" aria-labelledby="modal-rule-create-label" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
@@ -38,7 +48,7 @@
             <span class="small text-muted">{{ __('Si') }}</span>
             <span class="badge bg-secondary">{{ __('valor del dispositivo') }}</span>
             <select name="operator" class="form-select form-select-sm w-auto" style="min-width:5rem;">
-              @foreach (['>' => '> (mayor)', '>=' => '≥ (mayor o igual)', '<' => '< (menor)', '<=' => '≤ (menor o igual)', '==' => '= (igual)', '!=' => '≠ (distinto)'] as $op => $label)
+              @foreach ($operatorOptions as $op => $label)
                 <option value="{{ $op }}" {{ old('operator', '>') === $op ? 'selected' : '' }}>{{ $label }}</option>
               @endforeach
             </select>
@@ -214,7 +224,7 @@
             <span class="small text-muted">{{ __('Si') }}</span>
             <span class="badge bg-secondary">{{ __('valor del dispositivo') }}</span>
             <select name="operator" id="edit-operator" class="form-select form-select-sm w-auto" style="min-width:5rem;">
-              @foreach (['>' => '> (mayor)', '>=' => '≥ (mayor o igual)', '<' => '< (menor)', '<=' => '≤ (menor o igual)', '==' => '= (igual)', '!=' => '≠ (distinto)'] as $op => $label)
+              @foreach ($operatorOptions as $op => $label)
                 <option value="{{ $op }}">{{ $label }}</option>
               @endforeach
             </select>

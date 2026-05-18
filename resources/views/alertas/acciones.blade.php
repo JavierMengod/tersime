@@ -114,10 +114,10 @@
             {{-- Canales + acciones --}}
             <div class="col-12 col-md-2 d-flex align-items-center justify-content-between justify-content-md-end gap-2 flex-wrap">
                 <div class="d-flex gap-2 me-1">
-                    @foreach($regla->channels as $ch)
+                    @foreach($regla->channel_badges as $ch)
                         <span title="{{ $ch['label'] }}" class="{{ $ch['color'] }} fs-5"><i class="{{ $ch['icon'] }}"></i></span>
                     @endforeach
-                    @if(empty($regla->channels))
+                    @if(empty($regla->channel_badges))
                         <span class="text-muted small">—</span>
                     @endif
                 </div>

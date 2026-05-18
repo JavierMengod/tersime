@@ -12,19 +12,7 @@ class NotificationService
 {
     public function sendEmail(string $text, User $user, string $recipientEmail, string $fromAddress = null): void
     {
-        $cred = $user->smtpCredential;
-
-        if (!$cred || !$cred->active) {
-            throw new \Exception("El usuario no tiene SMTP configurado o activo.");
-        }
-
-        $from = $fromAddress ?? $cred->from_address ?? $cred->username;
-
-        if (empty($from)) {
-            throw new \Exception("No hay dirección de remitente válida.");
-        }
-
-        $this->configureSMTP($cred, decrypt($cred->password), $from);
+        $from = $this->prepareSmtp($user, $fromAddress);
 
         Mail::raw($text, function ($message) use ($recipientEmail, $from) {
             $message->to($recipientEmail)
@@ -68,19 +56,7 @@ class NotificationService
 
     public function sendEmailWithAttachment(string $text, User $user, string $recipientEmail, string $pdfPath = null, string $fromAddress = null): void
     {
-        $cred = $user->smtpCredential;
-
-        if (!$cred || !$cred->active) {
-            throw new \Exception("El usuario no tiene SMTP configurado o activo.");
-        }
-
-        $from = $fromAddress ?? $cred->from_address ?? $cred->username;
-
-        if (empty($from)) {
-            throw new \Exception("No hay dirección de remitente válida.");
-        }
-
-        $this->configureSMTP($cred, decrypt($cred->password), $from);
+        $from = $this->prepareSmtp($user, $fromAddress);
 
         Mail::send([], [], function ($message) use ($recipientEmail, $from, $text, $pdfPath) {
             $message->to($recipientEmail)
@@ -148,6 +124,25 @@ class NotificationService
         Log::info("Discord con archivo enviado para usuario {$user->id}");
     }
 
+    private function prepareSmtp(User $user, ?string $fromAddress): string
+    {
+        $cred = $user->smtpCredential;
+
+        if (!$cred || !$cred->active) {
+            throw new \Exception("El usuario no tiene SMTP configurado o activo.");
+        }
+
+        $from = $fromAddress ?? $cred->from_address ?? $cred->username;
+
+        if (empty($from)) {
+            throw new \Exception("No hay dirección de remitente válida.");
+        }
+
+        $this->configureSMTP($cred, decrypt($cred->password), $from);
+
+        return $from;
+    }
+
     private function configureSMTP($cred, string $rawPassword, string $from): void
     {
         config([
@@ -160,5 +155,8 @@ class NotificationService
             'mail.from.address'            => $from,
             'mail.from.name'               => 'Tersime',
         ]);
+        // Force Laravel to rebuild the SMTP mailer with the new config.
+        // Without this, a cached mailer from a previous user's config would be reused.
+        app('mail.manager')->purge('smtp');
     }
 }

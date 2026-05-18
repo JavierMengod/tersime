@@ -35,12 +35,13 @@ class AlertLogController extends Controller
 
         $logs = $query->orderBy($sort, $dir)->paginate(20)->withQueryString();
 
-        // Single query for both filter dropdowns
-        $meta    = AlertLog::where('user_id', $user->id)
-            ->selectRaw('device_name, rule_name')
-            ->get();
-        $devices = $meta->pluck('device_name')->unique()->sort()->values();
-        $rules   = $meta->pluck('rule_name')->unique()->sort()->values();
+        $devices = AlertLog::where('user_id', $user->id)
+            ->select('device_name')->distinct()->orderBy('device_name')
+            ->pluck('device_name');
+
+        $rules = AlertLog::where('user_id', $user->id)
+            ->select('rule_name')->distinct()->orderBy('rule_name')
+            ->pluck('rule_name');
 
         return view('alertas.historial', compact('logs', 'devices', 'rules', 'sort', 'dir'));
     }

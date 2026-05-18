@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use App\Models\Dispositivo;
 use App\Models\Rule;
 use App\Models\AlertLog;
 use App\Services\InfluxService;
@@ -96,7 +97,7 @@ class CheckRules extends Command
         Log::info('Fin de revisión de reglas', ['elapsed_s' => $elapsed, 'rules_evaluated' => $rules->count()]);
     }
 
-    private function transitionPending(Rule $rule, $dispositivo): void
+    private function transitionPending(Rule $rule, Dispositivo $dispositivo): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'   => 'pending',
@@ -105,7 +106,7 @@ class CheckRules extends Command
         Log::info('Estado → pending', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function transitionFiring(Rule $rule, $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
+    private function transitionFiring(Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'       => 'firing',
@@ -115,25 +116,15 @@ class CheckRules extends Command
 
         $this->info("  → FIRING: enviando alerta.");
 
-        $textoDefault = $currentValue === null
+        $mensaje = $currentValue === null
             ? "🚨 Sin datos en las últimas 24 h para {$dispositivo->nombre} (regla: {$rule->name})"
             : "🚨 Regla '{$rule->name}' activada en {$dispositivo->nombre} (valor={$currentValue} kWh)";
 
-        $this->enviarNotificaciones($notifier, $rule, $user, $dispositivo, $currentValue, $textoDefault);
-        $this->registrarLog($rule, $dispositivo, 'firing', $textoDefault);
-
-        if ($user) {
-            try {
-                $user->notify(new NotificacionAlerta('firing', $rule->name, $dispositivo->nombre, $textoDefault));
-            } catch (\Throwable $e) {
-                Log::error('Error guardando notificación DB (firing)', ['error' => $e->getMessage()]);
-            }
-        }
-
+        $this->dispatchAlert('firing', $rule, $dispositivo, $notifier, $user, $currentValue, $mensaje);
         Log::info('Estado → firing', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function transitionOk(Rule $rule, $dispositivo): void
+    private function transitionOk(Rule $rule, Dispositivo $dispositivo): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'   => 'ok',
@@ -142,7 +133,7 @@ class CheckRules extends Command
         Log::info('Estado → ok', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function transitionOkResolution(Rule $rule, $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
+    private function transitionOkResolution(Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'   => 'ok',
@@ -151,28 +142,32 @@ class CheckRules extends Command
 
         $this->info("  → RESUELTO: enviando notificación de resolución.");
 
-        $valueLabel   = $currentValue === null ? 'sin datos' : "{$currentValue} kWh";
-        $textoDefault = "✅ Regla '{$rule->name}' resuelta en {$dispositivo->nombre} (valor actual={$valueLabel})";
+        $valueLabel = $currentValue === null ? 'sin datos' : "{$currentValue} kWh";
+        $mensaje    = "✅ Regla '{$rule->name}' resuelta en {$dispositivo->nombre} (valor actual={$valueLabel})";
 
-        $this->enviarNotificaciones($notifier, $rule, $user, $dispositivo, $currentValue, $textoDefault);
-        $this->registrarLog($rule, $dispositivo, 'resolution', $textoDefault);
+        $this->dispatchAlert('resolution', $rule, $dispositivo, $notifier, $user, $currentValue, $mensaje);
+        Log::info('Estado → ok (resolución)', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
+    }
+
+    private function dispatchAlert(string $type, Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, $user, ?float $currentValue, string $mensaje): void
+    {
+        $this->enviarNotificaciones($notifier, $rule, $user, $dispositivo, $currentValue, $mensaje);
+        $this->registrarLog($rule, $dispositivo, $type, $mensaje);
 
         if ($user) {
             try {
-                $user->notify(new NotificacionAlerta('resolution', $rule->name, $dispositivo->nombre, $textoDefault));
+                $user->notify(new NotificacionAlerta($type, $rule->name, $dispositivo->nombre, $mensaje));
             } catch (\Throwable $e) {
-                Log::error('Error guardando notificación DB (resolution)', ['error' => $e->getMessage()]);
+                Log::error("Error guardando notificación DB ({$type})", ['error' => $e->getMessage()]);
             }
         }
-
-        Log::info('Estado → ok (resolución)', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
     private function enviarNotificaciones(
         NotificationService $notifier,
         Rule $rule,
         $user,
-        $dispositivo,
+        Dispositivo $dispositivo,
         ?float $currentValue,
         string $textoPorDefecto
     ): void {
@@ -216,7 +211,7 @@ class CheckRules extends Command
         }
     }
 
-    private function interpolateTemplate(string $template, Rule $rule, $dispositivo, ?float $currentValue): string
+    private function interpolateTemplate(string $template, Rule $rule, Dispositivo $dispositivo, ?float $currentValue): string
     {
         $valueLabel = $currentValue === null ? 'sin datos' : "{$currentValue} kWh";
         return str_replace(
@@ -226,7 +221,7 @@ class CheckRules extends Command
         );
     }
 
-    private function registrarLog(Rule $rule, $dispositivo, string $type, string $message): void
+    private function registrarLog(Rule $rule, Dispositivo $dispositivo, string $type, string $message): void
     {
         $channels = collect(['telegram', 'email', 'discord'])
             ->filter(fn($ch) => $rule->{"{$ch}_enabled"})
@@ -247,15 +242,15 @@ class CheckRules extends Command
 
     private function evaluarCondicion(float $valor, string $operador, $comparacion): bool
     {
-        $cv = is_numeric($comparacion) ? (float) $comparacion : $comparacion;
+        $cv = (float) $comparacion;
 
         switch ($operador) {
-            case '>':  return $valor >  $cv;
-            case '<':  return $valor <  $cv;
-            case '>=': return $valor >= $cv;
-            case '<=': return $valor <= $cv;
-            case '==': return $valor == $cv;
-            case '!=': return $valor != $cv;
+            case '>':  return $valor >   $cv;
+            case '<':  return $valor <   $cv;
+            case '>=': return $valor >=  $cv;
+            case '<=': return $valor <=  $cv;
+            case '==': return abs($valor - $cv) < 1e-9;
+            case '!=': return abs($valor - $cv) >= 1e-9;
             default:   return false;
         }
     }

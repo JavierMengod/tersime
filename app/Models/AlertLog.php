@@ -34,8 +34,4 @@ class AlertLog extends Model
         return $this->belongsTo(Dispositivo::class);
     }
 
-    public function channelList(): array
-    {
-        return $this->channels ?? [];
-    }
 }
