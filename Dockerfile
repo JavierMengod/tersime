@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Extensiones PHP ───────────────────────────────────────────────────────────
-RUN docker-php-ext-install pdo pdo_sqlite zip exif pcntl
+RUN docker-php-ext-install pdo pdo_mysql pdo_sqlite zip exif pcntl
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd
 

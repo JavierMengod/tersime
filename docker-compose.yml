@@ -38,6 +38,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── MySQL — base de datos relacional ──────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE:      ${DB_DATABASE:-tersime}
+      MYSQL_USER:          ${DB_USERNAME:-tersime}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - tersime_mysql:/var/lib/mysql
+    networks:
+      - tersime
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   # ── PHP-FPM — aplicación Laravel ──────────────────────────────────────────
   app:
     build:
@@ -46,11 +66,11 @@ services:
     restart: unless-stopped
     env_file: .env
     volumes:
-      # Persistir storage y base de datos SQLite fuera de la imagen
       - tersime_storage:/var/www/storage
-      - tersime_db:/var/www/database
     depends_on:
       influxdb:
+        condition: service_healthy
+      mysql:
         condition: service_healthy
     networks:
       - tersime
@@ -158,10 +178,11 @@ services:
               "--tries=1", "--timeout=1200", "--sleep=3", "--max-time=3600"]
     volumes:
       - tersime_storage:/var/www/storage
-      - tersime_db:/var/www/database
     depends_on:
       app:
         condition: service_started
+      mysql:
+        condition: service_healthy
     networks:
       - tersime
 
@@ -190,7 +211,7 @@ networks:
 
 # ── Volúmenes persistentes ─────────────────────────────────────────────────────
 volumes:
-  tersime_db:
+  tersime_mysql:
     driver: local
   tersime_storage:
     driver: local

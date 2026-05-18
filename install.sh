@@ -112,6 +112,8 @@ if [ "$SKIP_CONFIG" = "0" ]; then
     _APP_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
     _GF_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
     _INFLUX_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
+    _DB_PASS="$(openssl rand -base64 18 | tr -d '/+=' | head -c 20)"
+    _DB_ROOT_PASS="$(openssl rand -base64 18 | tr -d '/+=' | head -c 20)"
 
     echo -e "  ${BOLD}Aplicación${NC}"
     ask APP_URL         "URL pública con puerto"       "http://localhost:8080"
@@ -150,6 +152,8 @@ if [ "$SKIP_CONFIG" = "0" ]; then
         -e "s|^DOCKER_INFLUXDB_INIT_BUCKET=.*|DOCKER_INFLUXDB_INIT_BUCKET=${INFLUX_BUCKET}|" \
         -e "s|^DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=.*|DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN}|" \
         -e "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" \
+        -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${_DB_PASS}|" \
+        -e "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=${_DB_ROOT_PASS}|" \
         .env.docker > .env
 
     success ".env generado"
