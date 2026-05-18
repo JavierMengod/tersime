@@ -9,6 +9,11 @@ class AlertLogController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate([
+            'from' => 'nullable|date_format:Y-m-d',
+            'to'   => 'nullable|date_format:Y-m-d',
+        ]);
+
         $user = $request->user();
 
         $allowedSorts = ['created_at', 'device_name', 'rule_name', 'type'];

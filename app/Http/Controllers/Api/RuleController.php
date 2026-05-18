@@ -47,7 +47,7 @@ class RuleController extends Controller
 
     public function update(RuleRequest $request, $id)
     {
-        $rule = Rule::where('id', $id)
+        $rule = $request->resolvedRule() ?? Rule::where('id', $id)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
@@ -94,10 +94,10 @@ class RuleController extends Controller
             'operator'          => $r->operator,
             'value'             => $r->comparison_value,
             'for_duration'      => $r->for_duration,
-            'is_active'         => (bool) $r->is_active,
-            'email_enabled'     => (bool) $r->email_enabled,
-            'telegram_enabled'  => (bool) $r->telegram_enabled,
-            'discord_enabled'   => (bool) $r->discord_enabled,
+            'is_active'         => $r->is_active,
+            'email_enabled'     => $r->email_enabled,
+            'telegram_enabled'  => $r->telegram_enabled,
+            'discord_enabled'   => $r->discord_enabled,
             'recipient_email'   => $r->recipient_email,
             'last_triggered_at' => $r->last_triggered_at,
             'devices'           => $r->dispositivos->map(fn($d) => [

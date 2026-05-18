@@ -3,22 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AlertIndexRequest;
 use App\Models\AlertLog;
-use Illuminate\Http\Request;
 
 class AlertController extends Controller
 {
-    public function index(Request $request)
+    public function index(AlertIndexRequest $request)
     {
-        $request->validate([
-            'device'   => 'nullable|string',
-            'rule'     => 'nullable|string',
-            'type'     => 'nullable|in:firing,resolution',
-            'from'     => 'nullable|date_format:Y-m-d',
-            'to'       => 'nullable|date_format:Y-m-d',
-            'per_page' => 'nullable|integer|min:1|max:100',
-        ]);
-
         $query = AlertLog::where('user_id', $request->user()->id);
 
         if ($request->filled('device')) {

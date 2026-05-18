@@ -33,5 +33,4 @@ class AlertLog extends Model
     {
         return $this->belongsTo(Dispositivo::class);
     }
-
 }

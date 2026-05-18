@@ -10,7 +10,7 @@ use TelegramBot\Api\BotApi;
 
 class NotificationService
 {
-    public function sendEmail(string $text, User $user, string $recipientEmail, string $fromAddress = null): void
+    public function sendEmail(string $text, User $user, string $recipientEmail, ?string $fromAddress = null): void
     {
         $from = $this->prepareSmtp($user, $fromAddress);
 
@@ -25,11 +25,7 @@ class NotificationService
 
     public function sendTelegram(string $text, User $user): void
     {
-        $cred = $user->telegramCredential;
-
-        if (!$cred || !$cred->active) {
-            throw new \Exception("El usuario no tiene Telegram configurado o activo.");
-        }
+        $cred = $this->requireActiveCredential($user->telegramCredential, 'Telegram');
 
         $telegram = new BotApi(decrypt($cred->bot_token));
         $telegram->sendMessage($cred->chat_id, $text);
@@ -39,22 +35,18 @@ class NotificationService
 
     public function sendDiscord(string $text, User $user): void
     {
-        $cred = $user->discordCredential;
-
-        if (!$cred || !$cred->active) {
-            throw new \Exception("El usuario no tiene Discord configurado o activo.");
-        }
+        $cred = $this->requireActiveCredential($user->discordCredential, 'Discord');
 
         $response = Http::post($cred->webhook_url, ['content' => $text]);
 
         if ($response->failed()) {
-            throw new \Exception("Discord rechazó el mensaje: HTTP " . $response->status());
+            throw new \RuntimeException("Discord rechazó el mensaje: HTTP " . $response->status());
         }
 
         Log::info("Discord enviado para usuario {$user->id}");
     }
 
-    public function sendEmailWithAttachment(string $text, User $user, string $recipientEmail, string $pdfPath = null, string $fromAddress = null): void
+    public function sendEmailWithAttachment(string $text, User $user, string $recipientEmail, ?string $pdfPath = null, ?string $fromAddress = null): void
     {
         $from = $this->prepareSmtp($user, $fromAddress);
 
@@ -72,13 +64,9 @@ class NotificationService
         Log::info("Correo con adjunto enviado a {$recipientEmail} para usuario {$user->id}");
     }
 
-    public function sendTelegramWithAttachment(string $text, User $user, string $pdfPath = null): void
+    public function sendTelegramWithAttachment(string $text, User $user, ?string $pdfPath = null): void
     {
-        $cred = $user->telegramCredential;
-
-        if (!$cred || !$cred->active) {
-            throw new \Exception("El usuario no tiene Telegram configurado o activo.");
-        }
+        $cred = $this->requireActiveCredential($user->telegramCredential, 'Telegram');
 
         $telegram = new BotApi(decrypt($cred->bot_token));
 
@@ -104,38 +92,38 @@ class NotificationService
 
     public function sendDiscordWithFile(string $message, string $filePath, User $user): void
     {
-        $cred = $user->discordCredential;
-
-        if (!$cred || !$cred->active) {
-            throw new \Exception("El usuario no tiene Discord configurado o activo.");
-        }
+        $cred = $this->requireActiveCredential($user->discordCredential, 'Discord');
 
         if (!file_exists($filePath)) {
-            throw new \Exception("El archivo no existe: {$filePath}");
+            throw new \RuntimeException("El archivo no existe: {$filePath}");
         }
 
         $response = Http::attach('file', file_get_contents($filePath), basename($filePath))
             ->post($cred->webhook_url, ['content' => $message]);
 
         if ($response->failed()) {
-            throw new \Exception("Error enviando archivo a Discord: HTTP " . $response->status());
+            throw new \RuntimeException("Error enviando archivo a Discord: HTTP " . $response->status());
         }
 
         Log::info("Discord con archivo enviado para usuario {$user->id}");
     }
 
+    private function requireActiveCredential($cred, string $channel): object
+    {
+        if (!$cred || !$cred->active) {
+            throw new \RuntimeException("El usuario no tiene {$channel} configurado o activo.");
+        }
+        return $cred;
+    }
+
     private function prepareSmtp(User $user, ?string $fromAddress): string
     {
-        $cred = $user->smtpCredential;
-
-        if (!$cred || !$cred->active) {
-            throw new \Exception("El usuario no tiene SMTP configurado o activo.");
-        }
+        $cred = $this->requireActiveCredential($user->smtpCredential, 'SMTP');
 
         $from = $fromAddress ?? $cred->from_address ?? $cred->username;
 
         if (empty($from)) {
-            throw new \Exception("No hay dirección de remitente válida.");
+            throw new \RuntimeException("No hay dirección de remitente válida.");
         }
 
         $this->configureSMTP($cred, decrypt($cred->password), $from);

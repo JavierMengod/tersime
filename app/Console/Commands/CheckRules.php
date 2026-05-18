@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 use App\Models\Dispositivo;
 use App\Models\Rule;
 use App\Models\AlertLog;
+use App\Models\User;
 use App\Services\InfluxService;
 use App\Services\NotificationService;
 use App\Notifications\NotificacionAlerta;
@@ -106,7 +107,7 @@ class CheckRules extends Command
         Log::info('Estado → pending', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function transitionFiring(Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
+    private function transitionFiring(Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, ?User $user, ?float $currentValue): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'       => 'firing',
@@ -133,7 +134,7 @@ class CheckRules extends Command
         Log::info('Estado → ok', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function transitionOkResolution(Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, $user, ?float $currentValue): void
+    private function transitionOkResolution(Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, ?User $user, ?float $currentValue): void
     {
         $rule->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'   => 'ok',
@@ -149,7 +150,7 @@ class CheckRules extends Command
         Log::info('Estado → ok (resolución)', ['rule_id' => $rule->id, 'device' => $dispositivo->nombre]);
     }
 
-    private function dispatchAlert(string $type, Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, $user, ?float $currentValue, string $mensaje): void
+    private function dispatchAlert(string $type, Rule $rule, Dispositivo $dispositivo, NotificationService $notifier, ?User $user, ?float $currentValue, string $mensaje): void
     {
         $this->enviarNotificaciones($notifier, $rule, $user, $dispositivo, $currentValue, $mensaje);
         $this->registrarLog($rule, $dispositivo, $type, $mensaje);
@@ -166,7 +167,7 @@ class CheckRules extends Command
     private function enviarNotificaciones(
         NotificationService $notifier,
         Rule $rule,
-        $user,
+        ?User $user,
         Dispositivo $dispositivo,
         ?float $currentValue,
         string $textoPorDefecto

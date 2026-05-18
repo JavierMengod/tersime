@@ -188,7 +188,7 @@ FLUX;
         }
     }
 
-    public function factorCarga(string $device = 'general', string $start = null, string $stop = null): ?float
+    public function factorCarga(string $device = 'general', ?string $start = null, ?string $stop = null): ?float
     {
         $device = $this->sanitizeTag($device);
         if (empty($device)) {
@@ -376,7 +376,6 @@ FLUX;
             }
         }
 
-        $dispositivos = array_values(array_unique($dispositivos));
         Log::info('[InfluxService] listarDispositivos: ' . count($dispositivos) . ' dispositivos encontrados');
         return $dispositivos;
     }
@@ -415,7 +414,9 @@ FLUX;
             }
         }
 
-        Log::error('[InfluxService] query falló tras reintentos');
+        Log::error('[InfluxService] query falló tras reintentos', [
+            'query_preview' => substr($flux, 0, 200),
+        ]);
         return [];
     }
 
@@ -457,7 +458,7 @@ FLUX;
         return $map;
     }
 
-    private function normalizeTimestamp($t): ?string
+    private function normalizeTimestamp(string $t): ?string
     {
         if (!is_numeric($t)) {
             try {
@@ -471,7 +472,7 @@ FLUX;
         return gmdate('Y-m-d\TH:i:s\Z', $sec);
     }
 
-    public function sanitizeTag(string $tag): string
+    private function sanitizeTag(string $tag): string
     {
         return str_replace(['"', "\n", "\r", '\\'], '', $tag);
     }

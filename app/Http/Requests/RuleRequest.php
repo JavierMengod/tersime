@@ -2,25 +2,33 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Rule as RuleModel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class RuleRequest extends FormRequest
 {
+    private ?RuleModel $resolvedRule = null;
+
     public function authorize(): bool
     {
         $id = $this->route('id');
 
         if ($id !== null) {
-            $user = $this->user();
-            $rule = \App\Models\Rule::find($id);
+            $user               = $this->user();
+            $this->resolvedRule = RuleModel::find($id);
 
-            if (!$rule || !$user || (int) $rule->user_id !== (int) $user->id) {
+            if (!$this->resolvedRule || !$user || (int) $this->resolvedRule->user_id !== (int) $user->id) {
                 abort(404);
             }
         }
 
         return true;
+    }
+
+    public function resolvedRule(): ?RuleModel
+    {
+        return $this->resolvedRule;
     }
 
     public function rules(): array
