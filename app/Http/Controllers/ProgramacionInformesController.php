@@ -2,32 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProgramacionInformeRequest;
 use App\Models\ProgramacionInformes;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 
 class ProgramacionInformesController extends Controller
 {
-    public function store(Request $request)
+    public function store(ProgramacionInformeRequest $request)
     {
-        if (ProgramacionInformes::where('user_id', Auth::id())->count() >= 10) {
+        if (ProgramacionInformes::where('user_id', auth()->id())->count() >= 10) {
             return back()->withErrors(['nombre' => 'Has alcanzado el límite de 10 programaciones.']);
         }
 
-        $data = $this->validar($request);
+        $data = $request->validated();
 
-        $programacion = ProgramacionInformes::create([
-            'user_id'        => Auth::id(),
-            'nombre'         => $data['nombre'],
-            'tipo_periodo'   => $data['tipo_periodo'],
-            'valor_periodo'  => $data['valor_periodo'],
-            'telegram'       => $data['telegram'] ?? false,
-            'discord'        => $data['discord'] ?? false,
-            'correo'         => $data['correo'] ?? false,
-            'correo_destino' => $data['correo_destino'] ?? null,
-            'activo'         => $data['activo'] ?? false,
-        ]);
+        $programacion = ProgramacionInformes::create(
+            array_merge($this->attributesFrom($data), ['user_id' => auth()->id()])
+        );
 
         $programacion->dispositivos()->sync($data['dispositivos']);
 
@@ -35,23 +25,13 @@ class ProgramacionInformesController extends Controller
             ->with('success', 'Programación creada correctamente.');
     }
 
-    public function update(Request $request, ProgramacionInformes $programacion)
+    public function update(ProgramacionInformeRequest $request, ProgramacionInformes $programacion)
     {
-        abort_unless((int) $programacion->user_id === (int) Auth::id(), 403);
+        abort_unless((int) $programacion->user_id === (int) auth()->id(), 403);
 
-        $data = $this->validar($request);
+        $data = $request->validated();
 
-        $programacion->update([
-            'nombre'         => $data['nombre'],
-            'tipo_periodo'   => $data['tipo_periodo'],
-            'valor_periodo'  => $data['valor_periodo'],
-            'telegram'       => $data['telegram'] ?? false,
-            'discord'        => $data['discord'] ?? false,
-            'correo'         => $data['correo'] ?? false,
-            'correo_destino' => $data['correo_destino'] ?? null,
-            'activo'         => $data['activo'] ?? false,
-        ]);
-
+        $programacion->fill($this->attributesFrom($data))->save();
         $programacion->dispositivos()->sync($data['dispositivos']);
 
         return redirect()->route('informes.programados')
@@ -60,7 +40,7 @@ class ProgramacionInformesController extends Controller
 
     public function destroy(ProgramacionInformes $programacion)
     {
-        abort_unless((int) $programacion->user_id === (int) Auth::id(), 403);
+        abort_unless((int) $programacion->user_id === (int) auth()->id(), 403);
 
         $programacion->delete();
 
@@ -70,27 +50,24 @@ class ProgramacionInformesController extends Controller
 
     public function toggle(ProgramacionInformes $programacion)
     {
-        abort_unless((int) $programacion->user_id === (int) Auth::id(), 403);
+        abort_unless((int) $programacion->user_id === (int) auth()->id(), 403);
 
         $programacion->update(['activo' => !$programacion->activo]);
 
         return back();
     }
 
-    private function validar(Request $request): array
+    private function attributesFrom(array $data): array
     {
-        return $request->validate([
-            'nombre'         => 'required|string|max:255',
-            'tipo_periodo'   => 'required|in:horas,dias,meses',
-            'valor_periodo'  => 'required|integer|min:1|max:8760',
-            'dispositivos'   => 'required|array|min:1',
-            'dispositivos.*' => ['integer', Rule::exists('user_dispositivo', 'dispositivo_id')->where('user_id', Auth::id())],
-            'correo'         => 'sometimes|boolean',
-            'correo_destino' => 'nullable|email|required_if:correo,1',
-            'telegram'       => 'sometimes|boolean',
-            'discord'        => 'sometimes|boolean',
-            'activo'         => 'sometimes|boolean',
-        ]);
+        return [
+            'nombre'         => $data['nombre'],
+            'tipo_periodo'   => $data['tipo_periodo'],
+            'valor_periodo'  => $data['valor_periodo'],
+            'telegram'       => $data['telegram'] ?? false,
+            'discord'        => $data['discord'] ?? false,
+            'correo'         => $data['correo'] ?? false,
+            'correo_destino' => $data['correo_destino'] ?? null,
+            'activo'         => $data['activo'] ?? false,
+        ];
     }
-
 }

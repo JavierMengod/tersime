@@ -109,6 +109,15 @@
             </div>
         @endforeach
     </div>
+
+    @if($feed->hasPages())
+        <div class="mt-3 d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                {{ __('Mostrando') }} {{ $feed->firstItem() }}–{{ $feed->lastItem() }} {{ __('de') }} {{ $feed->total() }}
+            </small>
+            {{ $feed->links() }}
+        </div>
+    @endif
 @endif
 
 @endsection

@@ -441,7 +441,7 @@ class CheckRulesCommandTest extends TestCase
         $this->artisan('rules:check')->assertExitCode(0);
 
         Notification::assertSentTo($this->user, NotificacionAlerta::class, function ($notification) {
-            return $notification->tipo === 'firing';
+            return $notification->getTipo() === 'firing';
         });
     }
 
@@ -460,7 +460,7 @@ class CheckRulesCommandTest extends TestCase
         $this->artisan('rules:check')->assertExitCode(0);
 
         Notification::assertSentTo($this->user, NotificacionAlerta::class, function ($notification) {
-            return $notification->tipo === 'resolution';
+            return $notification->getTipo() === 'resolution';
         });
     }
 

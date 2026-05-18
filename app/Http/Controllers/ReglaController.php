@@ -21,7 +21,7 @@ class ReglaController extends Controller
 
     public function store(RuleRequest $request)
     {
-        if (auth()->user()->rules()->count() >= 50) {
+        if (Rule::userHasReachedLimit(auth()->id())) {
             return back()->withErrors(['name' => 'Has alcanzado el límite de 50 reglas.']);
         }
 
@@ -41,7 +41,7 @@ class ReglaController extends Controller
 
     public function update(RuleRequest $request, Rule $regla)
     {
-        abort_unless((int) $regla->user_id === (int) auth()->id(), 403);
+        abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 
         $validated = $request->validated();
 
@@ -55,20 +55,20 @@ class ReglaController extends Controller
 
     public function toggle(Rule $regla)
     {
-        abort_unless((int) $regla->user_id === (int) auth()->id(), 403);
+        abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 
         $newState = !$regla->is_active;
         $regla->update(['is_active' => $newState]);
 
-        $msg = $newState ? 'Regla activada.' : 'Regla desactivada.';
-        Log::info("Regla ID {$regla->id} " . ($newState ? 'activada' : 'desactivada') . '.');
+        $action = $newState ? 'activada' : 'desactivada';
+        Log::info("Regla ID {$regla->id} {$action}.");
 
-        return back()->with('success', $msg);
+        return back()->with('success', "Regla {$action}.");
     }
 
     public function destroy(Rule $regla)
     {
-        abort_unless((int) $regla->user_id === (int) auth()->id(), 403);
+        abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 
         $regla->delete();
 

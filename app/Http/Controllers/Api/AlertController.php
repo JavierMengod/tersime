@@ -10,7 +10,7 @@ class AlertController extends Controller
 {
     public function index(AlertIndexRequest $request)
     {
-        $query = AlertLog::where('user_id', $request->user()->id);
+        $query = AlertLog::forUser($request->user()->id);
 
         if ($request->filled('device')) {
             $query->where('device_name', $request->input('device'));

@@ -30,9 +30,8 @@
         <i class="bi bi-sliders me-1"></i>{{ __('Preferencias') }}
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ route('configuracion.cuenta.update') }}">
+        <form method="POST" action="{{ route('configuracion.cuenta.preferencias') }}">
             @csrf
-            <input type="hidden" name="save_prefs" value="1">
             <div class="row g-3">
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Idioma') }}</label>
@@ -80,9 +79,8 @@
             <div class="alert alert-danger py-2 small">{{ $errors->first('new_password') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('configuracion.cuenta.update') }}">
+        <form method="POST" action="{{ route('configuracion.cuenta.password') }}">
             @csrf
-            <input type="hidden" name="save_password" value="1">
             <div class="row g-3">
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Contraseña actual') }}</label>

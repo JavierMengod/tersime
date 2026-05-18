@@ -8,7 +8,7 @@ class CsvArray implements CastsAttributes
 {
     public function get($model, string $key, $value, array $attributes): array
     {
-        if (empty($value)) {
+        if ($value === null || $value === '') {
             return [];
         }
         return array_values(array_filter(array_map('trim', explode(',', $value))));

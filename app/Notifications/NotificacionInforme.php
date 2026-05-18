@@ -6,9 +6,9 @@ use Illuminate\Notifications\Notification;
 
 class NotificacionInforme extends Notification
 {
-    public string $titulo;
-    public string $mensaje;
-    public string $downloadUrl;
+    private string $titulo;
+    private string $mensaje;
+    private string $downloadUrl;
 
     public function __construct(int $informeId, string $fromDate, string $toDate)
     {
@@ -20,12 +20,12 @@ class NotificacionInforme extends Notification
         $this->downloadUrl = route('informes.download', $informeId, false);
     }
 
-    public function via($notifiable): array
+    public function via(object $notifiable): array
     {
         return ['database'];
     }
 
-    public function toArray($notifiable): array
+    public function toArray(object $notifiable): array
     {
         return [
             'tipo'   => 'informe',

@@ -14,28 +14,28 @@ class AlertLogTest extends TestCase
     use RefreshDatabase;
 
     /** @test */
-    public function channel_list_returns_array_with_single_channel(): void
+    public function channels_cast_deserializes_single_channel(): void
     {
         $log = AlertLog::factory()->create(['channels' => ['email']]);
         $this->assertSame(['email'], $log->channels);
     }
 
     /** @test */
-    public function channel_list_returns_all_three_channels(): void
+    public function channels_cast_deserializes_all_three_channels(): void
     {
         $log = AlertLog::factory()->create(['channels' => ['email', 'telegram', 'discord']]);
         $this->assertSame(['email', 'telegram', 'discord'], $log->channels);
     }
 
     /** @test */
-    public function channel_list_returns_two_channels(): void
+    public function channels_cast_deserializes_two_channels(): void
     {
         $log = AlertLog::factory()->create(['channels' => ['telegram', 'discord']]);
         $this->assertSame(['telegram', 'discord'], $log->channels);
     }
 
     /** @test */
-    public function channel_list_returns_empty_array_when_channels_is_null(): void
+    public function channels_cast_returns_empty_array_for_null(): void
     {
         $log = AlertLog::factory()->create(['channels' => null]);
         $this->assertSame([], $log->channels);

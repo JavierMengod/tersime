@@ -59,13 +59,13 @@ $operatorOptions = [
             </div>
             <span class="small text-muted">{{ __('durante') }}</span>
             <div class="input-group input-group-sm" style="width:8rem;">
-              <input type="number" name="for_duration" min="0" step="1" class="form-control"
+              <input type="number" name="for_duration" min="0" max="168" step="1" class="form-control"
                      placeholder="0" value="{{ old('for_duration', 0) }}">
-              <span class="input-group-text">min</span>
+              <span class="input-group-text">h</span>
             </div>
           </div>
           <small class="text-muted">
-            <i class="fas fa-info-circle me-1"></i>{{ __('Ventana 0 min = alerta instantánea en cuanto se detecte el valor.') }}
+            <i class="fas fa-info-circle me-1"></i>{{ __('Ventana 0 h = alerta instantánea en cuanto se detecte el valor.') }}
           </small>
         </div>
 
@@ -234,12 +234,12 @@ $operatorOptions = [
             </div>
             <span class="small text-muted">{{ __('durante') }}</span>
             <div class="input-group input-group-sm" style="width:8rem;">
-              <input type="number" name="for_duration" id="edit-for-duration" min="0" step="1" class="form-control" placeholder="0">
-              <span class="input-group-text">min</span>
+              <input type="number" name="for_duration" id="edit-for-duration" min="0" max="168" step="1" class="form-control" placeholder="0">
+              <span class="input-group-text">h</span>
             </div>
           </div>
           <small class="text-muted">
-            <i class="fas fa-info-circle me-1"></i>{{ __('Ventana 0 min = alerta instantánea en cuanto se detecte el valor.') }}
+            <i class="fas fa-info-circle me-1"></i>{{ __('Ventana 0 h = alerta instantánea en cuanto se detecte el valor.') }}
           </small>
         </div>
 

@@ -41,8 +41,9 @@ Route::middleware('auth')->group(function () {
     // ── Configuración ──────────────────────────────────────────────────────────
     Route::prefix('configuracion')->name('configuracion.')->group(function () {
 
-        Route::get('cuenta',  [ConfigController::class, 'cuenta'])->name('cuenta');
-        Route::post('cuenta', [ConfigController::class, 'updateCuenta'])->name('cuenta.update');
+        Route::get('cuenta',              [ConfigController::class, 'cuenta'])->name('cuenta');
+        Route::post('cuenta/preferencias',[ConfigController::class, 'updatePreferencias'])->name('cuenta.preferencias');
+        Route::post('cuenta/password',    [ConfigController::class, 'updatePassword'])->name('cuenta.password');
 
         Route::get('sistema',                  [ConfigController::class, 'sistema'])->name('sistema');
         Route::post('sistema',                 [ConfigController::class, 'updateSistema'])->name('sistema.update');
@@ -117,6 +118,7 @@ Route::middleware('auth')->group(function () {
         Route::get('demanda',                    [InformeController::class, 'demanda'])->name('demanda');
         Route::post('demanda',                   [InformeController::class, 'generarInformeDemanda'])->name('demanda.store');
         Route::get('demanda/{filename}/download',[InformeController::class, 'descargarBajoDemanda'])->name('demanda.download');
+        Route::get('{informe}/status',           [InformeController::class, 'status'])->name('status');
         Route::get('{informe}/download',         [InformeController::class, 'download'])->name('download');
         Route::delete('{informe}',               [InformeController::class, 'destroy'])->name('destroy');
     });

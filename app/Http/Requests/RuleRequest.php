@@ -33,8 +33,7 @@ class RuleRequest extends FormRequest
 
     public function rules(): array
     {
-        $user   = $this->user();
-        $userId = $user ? $user->id : null;
+        $userId = $this->user() ? $this->user()->id : null;
 
         return [
             'name'              => 'required|string|max:100',
@@ -43,7 +42,7 @@ class RuleRequest extends FormRequest
                                         ->where('user_id', $userId)],
             'operator'          => 'required|in:>,<,==,!=,>=,<=',
             'value'             => 'required|numeric',
-            'for_duration'      => 'required|integer|min:0|max:10080',
+            'for_duration'      => 'required|integer|min:0|max:168',
             'methods'           => 'nullable|array',
             'methods.*'         => 'in:telegram,email,discord',
             'template_telegram' => 'nullable|string|max:1000',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RuleRequest;
+use App\Http\Resources\RuleResource;
 use App\Models\Rule;
 use App\Traits\BuildsRuleAttributes;
 use Illuminate\Http\Request;
@@ -15,18 +16,16 @@ class RuleController extends Controller
 
     public function index(Request $request)
     {
-        $rules = $request->user()
-            ->rules()
-            ->with('dispositivos')
-            ->get()
-            ->map(fn($r) => $this->format($r));
+        $rules = $request->user()->rules()->with('dispositivos')->get();
 
-        return response()->json($rules);
+        return response()->json(
+            $rules->map(fn($r) => (new RuleResource($r))->toArray($request))
+        );
     }
 
     public function store(RuleRequest $request)
     {
-        if ($request->user()->rules()->count() >= 50) {
+        if (Rule::userHasReachedLimit($request->user()->id)) {
             return response()->json(['error' => 'Has alcanzado el límite de 50 reglas.'], 422);
         }
 
@@ -42,7 +41,7 @@ class RuleController extends Controller
 
         Log::info('[API] Regla creada: ' . $rule->id);
 
-        return response()->json($this->format($rule), 201);
+        return (new RuleResource($rule))->response()->setStatusCode(201);
     }
 
     public function update(RuleRequest $request, $id)
@@ -57,15 +56,12 @@ class RuleController extends Controller
         $rule->dispositivos()->sync($validated['devices']);
         $rule->load('dispositivos');
 
-        return response()->json($this->format($rule));
+        return new RuleResource($rule);
     }
 
     public function destroy(Request $request, $id)
     {
-        $rule = Rule::where('id', $id)
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
-
+        $rule = $this->findOwnedRule($request, $id);
         $rule->delete();
 
         return response()->json(['message' => 'Regla eliminada.']);
@@ -73,10 +69,7 @@ class RuleController extends Controller
 
     public function toggle(Request $request, $id)
     {
-        $rule = Rule::where('id', $id)
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
-
+        $rule     = $this->findOwnedRule($request, $id);
         $newState = !$rule->is_active;
         $rule->update(['is_active' => $newState]);
 
@@ -86,26 +79,10 @@ class RuleController extends Controller
         ]);
     }
 
-    private function format(Rule $r): array
+    private function findOwnedRule(Request $request, $id): Rule
     {
-        return [
-            'id'                => $r->id,
-            'name'              => $r->name,
-            'operator'          => $r->operator,
-            'value'             => $r->comparison_value,
-            'for_duration'      => $r->for_duration,
-            'is_active'         => $r->is_active,
-            'email_enabled'     => $r->email_enabled,
-            'telegram_enabled'  => $r->telegram_enabled,
-            'discord_enabled'   => $r->discord_enabled,
-            'recipient_email'   => $r->recipient_email,
-            'last_triggered_at' => $r->last_triggered_at,
-            'devices'           => $r->dispositivos->map(fn($d) => [
-                'id'        => $d->id,
-                'nombre'    => $d->nombre,
-            ]),
-            'created_at'        => $r->created_at,
-            'updated_at'        => $r->updated_at,
-        ];
+        return Rule::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
     }
 }

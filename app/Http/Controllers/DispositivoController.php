@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dispositivo;
+use App\Services\InfluxService;
 use App\Models\DispositivoEstadoLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

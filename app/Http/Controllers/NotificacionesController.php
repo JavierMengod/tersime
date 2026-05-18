@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AlertLog;
 use App\Models\Informe;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class NotificacionesController extends Controller
 {
@@ -28,7 +29,7 @@ class NotificacionesController extends Controller
                 'mensaje'    => $alerta->message ?? '',
                 'fecha'      => $alerta->created_at,
                 'meta'       => $alerta->device_name ?? '',
-                'canales'    => $alerta->channelList(),
+                'canales'    => $alerta->channels,
                 'objeto'     => $alerta,
                 'iconClass'  => $firing ? 'bi bi-exclamation-octagon-fill text-danger' : 'bi bi-check-circle-fill text-success',
                 'badgeClass' => $firing ? 'bg-danger' : 'bg-success',
@@ -61,10 +62,18 @@ class NotificacionesController extends Controller
         $feed     = $feed->sortByDesc('fecha')->values();
         $noLeidas = $user->unreadNotifications->count();
 
-        $dbNotificaciones = $user->notifications()->latest()->take(50)->get();
+        $perPage = 20;
+        $page    = LengthAwarePaginator::resolveCurrentPage();
+        $feed    = new LengthAwarePaginator(
+            $feed->forPage($page, $perPage),
+            $feed->count(),
+            $perPage,
+            $page,
+            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
 
         return view('usuarios.notificaciones', compact(
-            'alertas', 'informes', 'dbNotificaciones', 'tipo', 'feed', 'noLeidas'
+            'alertas', 'informes', 'tipo', 'feed', 'noLeidas'
         ));
     }
 

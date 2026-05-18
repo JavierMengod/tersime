@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdatePasswordRequest;
+use App\Http\Requests\UpdatePreferencesRequest;
+use App\Http\Requests\UserRequest;
 use App\Models\AlertLog;
 use App\Models\Informe;
 use App\Models\Setting;
@@ -13,81 +16,62 @@ use Illuminate\Support\Facades\Storage;
 
 class ConfigController extends Controller
 {
-    private static array $timezones = [
-        'Europe/Madrid'       => 'Europe/Madrid (ES)',
-        'Europe/London'       => 'Europe/London (UK)',
-        'Europe/Paris'        => 'Europe/Paris (FR)',
-        'Europe/Berlin'       => 'Europe/Berlin (DE)',
-        'America/New_York'    => 'America/New_York (US East)',
-        'America/Chicago'     => 'America/Chicago (US Central)',
-        'America/Denver'      => 'America/Denver (US Mountain)',
-        'America/Los_Angeles' => 'America/Los_Angeles (US West)',
-        'America/Sao_Paulo'   => 'America/Sao_Paulo (BR)',
-        'Asia/Tokyo'          => 'Asia/Tokyo (JP)',
-        'Asia/Shanghai'       => 'Asia/Shanghai (CN)',
-        'UTC'                 => 'UTC',
-    ];
+    private const DEFAULT_ALERT_RETENTION_DAYS  = '90';
+    private const DEFAULT_REPORT_RETENTION_DAYS = '180';
+
+    public function __construct()
+    {
+        $adminOnly = ['sistema', 'updateSistema', 'purgarAlertas', 'purgarInformes',
+                      'conexiones', 'updateConexiones', 'logs', 'clearLogs', 'downloadLog'];
+
+        $this->middleware(function ($request, $next) {
+            abort_unless(auth()->user() && auth()->user()->admin, 403);
+            return $next($request);
+        })->only($adminOnly);
+    }
 
     // ── Cuenta ─────────────────────────────────────────────────────────────────
 
     public function cuenta()
     {
         return view('configuracion.cuenta', [
-            'timezones' => self::$timezones,
+            'timezones' => UserRequest::timezones(),
         ]);
     }
 
-    public function updateCuenta(Request $request)
+    public function updatePreferencias(UpdatePreferencesRequest $request)
+    {
+        auth()->user()->fill($request->validated())->save();
+
+        return back()->with('success_prefs', 'Preferencias guardadas.');
+    }
+
+    public function updatePassword(UpdatePasswordRequest $request)
     {
         $user = auth()->user();
 
-        // Preferencias
-        if ($request->has('save_prefs')) {
-            $data = $request->validate([
-                'language' => 'required|in:es,en,fr',
-                'theme'    => 'required|in:light,dark',
-                'timezone' => 'required|string|in:' . implode(',', array_keys(self::$timezones)),
-            ]);
-
-            $user->language = $data['language'];
-            $user->theme    = $data['theme'];
-            $user->timezone = $data['timezone'];
-            $user->save();
-
-            return back()->with('success_prefs', 'Preferencias guardadas.');
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'La contraseña actual no es correcta.'])
+                         ->with('open_password', true);
         }
 
-        // Contraseña
-        if ($request->has('save_password')) {
-            $request->validate([
-                'current_password'      => 'required|string',
-                'new_password'          => 'required|string|min:6|confirmed',
-            ]);
+        $user->password = Hash::make($request->new_password);
+        $user->save();
 
-            if (!Hash::check($request->current_password, $user->password)) {
-                return back()->withErrors(['current_password' => 'La contraseña actual no es correcta.'])
-                             ->with('open_password', true);
-            }
-
-            $user->password = Hash::make($request->new_password);
-            $user->save();
-
-            Log::info('[Config] Contraseña cambiada: ' . $user->name);
-            return back()->with('success_password', 'Contraseña actualizada.');
-        }
-
-        return back();
+        Log::info('[Config] Contraseña cambiada: ' . $user->name);
+        return back()->with('success_password', 'Contraseña actualizada.');
     }
 
     // ── Sistema (admin) ────────────────────────────────────────────────────────
 
     public function sistema()
     {
-        abort_unless(auth()->user()->admin, 403);
+        $settingKeys = ['alert_log_retention_days', 'report_retention_days'];
+        $saved       = Setting::whereIn('key', $settingKeys)->get()->keyBy('key');
 
         $settings = [
-            'alert_log_retention_days' => Setting::get('alert_log_retention_days', '90'),
-            'report_retention_days'    => Setting::get('report_retention_days', '180'),
+            'alert_log_retention_days' => optional($saved->get('alert_log_retention_days'))->value ?? self::DEFAULT_ALERT_RETENTION_DAYS,
+            'report_retention_days'    => optional($saved->get('report_retention_days'))->value    ?? self::DEFAULT_REPORT_RETENTION_DAYS,
         ];
 
         $stats = [
@@ -100,8 +84,6 @@ class ConfigController extends Controller
 
     public function updateSistema(Request $request)
     {
-        abort_unless(auth()->user()->admin, 403);
-
         $data = $request->validate([
             'alert_log_retention_days' => 'required|integer|min:1|max:3650',
             'report_retention_days'    => 'required|integer|min:1|max:3650',
@@ -115,43 +97,29 @@ class ConfigController extends Controller
         return back()->with('success', 'Configuración guardada.');
     }
 
-    public function purgarAlertas(Request $request)
+    public function purgarAlertas()
     {
-        abort_unless(auth()->user()->admin, 403);
-
-        $days     = (int) Setting::get('alert_log_retention_days', '90');
-        $cutoff   = Carbon::now()->subDays($days);
-        $deleted  = AlertLog::where('created_at', '<', $cutoff)->delete();
+        $days    = (int) Setting::get('alert_log_retention_days', self::DEFAULT_ALERT_RETENTION_DAYS);
+        $cutoff  = Carbon::now()->subDays($days);
+        $deleted = AlertLog::where('created_at', '<', $cutoff)->delete();
 
         Log::info("[Config] Purgadas {$deleted} alertas anteriores a {$cutoff->toDateString()}");
         return back()->with('success', "Purgados {$deleted} registros de alerta anteriores a {$days} días.");
     }
 
-    public function purgarInformes(Request $request)
+    public function purgarInformes()
     {
-        abort_unless(auth()->user()->admin, 403);
+        $days    = (int) Setting::get('report_retention_days', self::DEFAULT_REPORT_RETENTION_DAYS);
+        $cutoff  = Carbon::now()->subDays($days);
+        $deleted = 0;
 
-        $days   = (int) Setting::get('report_retention_days', '180');
-        $cutoff = Carbon::now()->subDays($days);
-
-        $informes = Informe::where('generated_at', '<', $cutoff)->get();
-        $deleted  = 0;
-
-        foreach ($informes as $informe) {
-            if (!empty($informe->pdf_path)) {
-                $relative = ltrim(preg_replace('#^public/#', '', ltrim($informe->pdf_path, '/')), '/');
-                if (Storage::disk('public')->exists($relative)) {
-                    Storage::disk('public')->delete($relative);
-                } else {
-                    $abs = $this->resolveAbsPath($informe->pdf_path);
-                    if ($abs && is_file($abs)) {
-                        @unlink($abs);
-                    }
-                }
+        Informe::where('generated_at', '<', $cutoff)->chunk(100, function ($informes) use (&$deleted) {
+            foreach ($informes as $informe) {
+                $this->deleteInformePdf($informe->pdf_path);
+                $informe->delete();
+                $deleted++;
             }
-            $informe->delete();
-            $deleted++;
-        }
+        });
 
         Log::info("[Config] Purgados {$deleted} informes anteriores a {$cutoff->toDateString()}");
         return back()->with('success', "Purgados {$deleted} informes anteriores a {$days} días.");
@@ -161,32 +129,35 @@ class ConfigController extends Controller
 
     public function conexiones()
     {
-        abort_unless(auth()->user()->admin, 403);
+        $keys  = ['influxdb_url', 'influxdb_org', 'influxdb_bucket', 'influxdb_token',
+                  'grafana_base_url', 'grafana_datasource_id', 'grafana_renderer_url', 'grafana_api_key',
+                  'predictor_url', 'predictor_timeout', 'predictor_default_hours',
+                  'openrouter_model', 'openrouter_api_key'];
+        $saved = Setting::whereIn('key', $keys)->get()->keyBy('key');
+        $s     = fn(string $key, $default = '') => optional($saved->get($key))->value ?? $default;
 
         $settings = [
-            'influxdb_url'            => Setting::get('influxdb_url', env('INFLUXDB_URL', '')),
-            'influxdb_org'            => Setting::get('influxdb_org', env('INFLUXDB_ORG', '')),
-            'influxdb_bucket'         => Setting::get('influxdb_bucket', env('INFLUX_BUCKET', 'PINZAS')),
-            'grafana_base_url'        => Setting::get('grafana_base_url', env('GRAFANA_BASE_URL', '')),
-            'grafana_datasource_id'   => Setting::get('grafana_datasource_id', env('GRAFANA_DATASOURCE_ID', '3')),
-            'grafana_renderer_url'    => Setting::get('grafana_renderer_url', env('GRAFANA_RENDERER_URL', '')),
-            'predictor_url'           => Setting::get('predictor_url', env('PREDICTOR_URL', '')),
-            'predictor_timeout'       => Setting::get('predictor_timeout', '120'),
-            'predictor_default_hours' => Setting::get('predictor_default_hours', '24'),
-            'openrouter_model'        => Setting::get('openrouter_model', env('OPENROUTER_MODEL', '')),
+            'influxdb_url'            => $s('influxdb_url',            env('INFLUXDB_URL', '')),
+            'influxdb_org'            => $s('influxdb_org',            env('INFLUXDB_ORG', '')),
+            'influxdb_bucket'         => $s('influxdb_bucket',         env('INFLUX_BUCKET', 'PINZAS')),
+            'grafana_base_url'        => $s('grafana_base_url',        env('GRAFANA_BASE_URL', '')),
+            'grafana_datasource_id'   => $s('grafana_datasource_id',   env('GRAFANA_DATASOURCE_ID', '3')),
+            'grafana_renderer_url'    => $s('grafana_renderer_url',    env('GRAFANA_RENDERER_URL', '')),
+            'predictor_url'           => $s('predictor_url',           env('PREDICTOR_URL', '')),
+            'predictor_timeout'       => $s('predictor_timeout',       '120'),
+            'predictor_default_hours' => $s('predictor_default_hours', '24'),
+            'openrouter_model'        => $s('openrouter_model',        env('OPENROUTER_MODEL', '')),
         ];
 
-        $hasInfluxToken      = !empty(Setting::get('influxdb_token', env('INFLUXDB_TOKEN', '')));
-        $hasGrafanaKey       = !empty(Setting::get('grafana_api_key', env('GRAFANA_API_KEY', '')));
-        $hasOpenRouterKey    = !empty(Setting::get('openrouter_api_key', env('OPENROUTER_API_KEY', '')));
+        $hasInfluxToken   = !empty($s('influxdb_token',      env('INFLUXDB_TOKEN', '')));
+        $hasGrafanaKey    = !empty($s('grafana_api_key',      env('GRAFANA_API_KEY', '')));
+        $hasOpenRouterKey = !empty($s('openrouter_api_key',   env('OPENROUTER_API_KEY', '')));
 
         return view('configuracion.conexiones', compact('settings', 'hasInfluxToken', 'hasGrafanaKey', 'hasOpenRouterKey'));
     }
 
     public function updateConexiones(Request $request)
     {
-        abort_unless(auth()->user()->admin, 403);
-
         $data = $request->validate([
             'influxdb_url'            => 'required|string|max:500',
             'influxdb_org'            => 'required|string|max:255',
@@ -221,10 +192,8 @@ class ConfigController extends Controller
 
     // ── Logs ───────────────────────────────────────────────────────────────────
 
-    public function logs(Request $request)
+    public function logs()
     {
-        abort_unless(auth()->user()->admin, 403);
-
         $logPath = storage_path('logs/laravel.log');
         $entries = [];
 
@@ -240,8 +209,6 @@ class ConfigController extends Controller
 
     public function clearLogs()
     {
-        abort_unless(auth()->user()->admin, 403);
-
         $logPath = storage_path('logs/laravel.log');
         if (is_file($logPath)) {
             file_put_contents($logPath, '');
@@ -253,12 +220,30 @@ class ConfigController extends Controller
 
     public function downloadLog()
     {
-        abort_unless(auth()->user()->admin, 403);
-
         $logPath = storage_path('logs/laravel.log');
         abort_unless(is_file($logPath), 404);
 
         return response()->download($logPath, 'laravel-' . now()->format('Ymd') . '.log');
+    }
+
+    // ── Privados ───────────────────────────────────────────────────────────────
+
+    private function deleteInformePdf(?string $pdfPath): void
+    {
+        if (empty($pdfPath)) {
+            return;
+        }
+
+        $relative = ltrim(preg_replace('#^public/#', '', ltrim($pdfPath, '/')), '/');
+        if (Storage::disk('public')->exists($relative)) {
+            Storage::disk('public')->delete($relative);
+            return;
+        }
+
+        $abs = $this->resolveAbsPath($pdfPath);
+        if ($abs && is_file($abs)) {
+            unlink($abs);
+        }
     }
 
     private function tailFile(string $path, int $maxLines): array
@@ -267,8 +252,8 @@ class ConfigController extends Controller
         $file->seek(PHP_INT_MAX);
         $total = $file->key();
 
-        $start  = max(0, $total - $maxLines);
-        $lines  = [];
+        $start = max(0, $total - $maxLines);
+        $lines = [];
 
         $file->seek($start);
         while (!$file->eof()) {

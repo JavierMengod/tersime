@@ -54,7 +54,7 @@ class InformeController extends Controller
 
     public function demanda()
     {
-        $dispositivos = auth()->user()->dispositivos()->get() ?? collect();
+        $dispositivos = auth()->user()->dispositivos()->get();
         return view('informes.demanda', compact('dispositivos'));
     }
 

@@ -33,4 +33,9 @@ class AlertLog extends Model
     {
         return $this->belongsTo(Dispositivo::class);
     }
+
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
 }

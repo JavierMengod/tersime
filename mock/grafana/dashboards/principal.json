@@ -98,7 +98,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "orientation": "auto",
         "showValue": "auto",
@@ -108,7 +108,8 @@
           "sort": "none"
         },
         "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
+        "xTickLabelSpacing": 0,
+        "xField": "name"
       },
       "pluginVersion": "11.4.0",
       "targets": [
@@ -117,7 +118,7 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "hourly = from(bucket: v.defaultBucket)\r\n  |> range(start: -7d)\r\n  |> filter(fn: (r) =>\r\n      r._measurement == \"hourly\" and\r\n      r._field == \"kwh\" and\r\n      r.name =~ /^(${dispositivos:regex})$/\r\n  )\r\n  |> keep(columns: [\"_time\", \"_value\", \"name\"])\r\n\r\nmean_values =\r\n  hourly\r\n    |> group(columns: [\"name\"])\r\n    |> mean(column: \"_value\")\r\n    |> rename(columns: {_value: \"mean_kwh\"})\r\n\r\nmax_values =\r\n  hourly\r\n    |> group(columns: [\"name\"])\r\n    |> max(column: \"_value\")\r\n    |> rename(columns: {_value: \"max_kwh\"})\r\n\r\njoin(\r\n    tables: {mean: mean_values, max: max_values},\r\n    on: [\"name\"]\r\n)\r\n  |> map(fn: (r) => ({\r\n        name: r.name,\r\n        _time: now(),\r\n        _field: \"factor_carga\",\r\n        _value: float(v: r.mean_kwh) / float(v: r.max_kwh)\r\n    }))\r\n  |> sort(columns: [\"_value\"], desc: true)\r\n  |> yield(name: \"factor_carga\")\r\n",
+          "query": "hourly = from(bucket: v.defaultBucket)\r\n  |> range(start: -7d)\r\n  |> filter(fn: (r) =>\r\n      r._measurement == \"hourly\" and\r\n      r._field == \"kwh\" and\r\n      r.name =~ /^(${dispositivos:regex})$/\r\n  )\r\n  |> keep(columns: [\"_time\", \"_value\", \"name\"])\r\n\r\nmean_values =\r\n  hourly\r\n    |> group(columns: [\"name\"])\r\n    |> mean(column: \"_value\")\r\n    |> rename(columns: {_value: \"mean_kwh\"})\r\n\r\nmax_values =\r\n  hourly\r\n    |> group(columns: [\"name\"])\r\n    |> max(column: \"_value\")\r\n    |> rename(columns: {_value: \"max_kwh\"})\r\n\r\njoin(\r\n    tables: {mean: mean_values, max: max_values},\r\n    on: [\"name\"]\r\n)\r\n  |> map(fn: (r) => ({\r\n        name: r.name,\r\n        _time: now(),\r\n        _field: \"factor_carga\",\r\n        _value: float(v: r.mean_kwh) / float(v: r.max_kwh)\r\n    }))\r\n  |> group()\n  |> sort(columns: [\"_value\"], desc: true)\r\n  |> yield(name: \"factor_carga\")\r\n",
           "refId": "A"
         }
       ],
@@ -258,7 +259,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "orientation": "horizontal",
         "showValue": "auto",
@@ -357,7 +358,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "orientation": "auto",
         "showValue": "auto",
@@ -455,7 +456,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "orientation": "horizontal",
         "showValue": "auto",
@@ -566,7 +567,7 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "monthly_sum = \r\n  from(bucket: v.defaultBucket)\r\n    |> range(start: 0, stop: now())\r\n    |> filter(fn: (r) =>\r\n         r._measurement == \"hourly\" and\r\n         r._field == \"kwh\" and\r\n         r.name =~ /^(${dispositivos:regex})$/\r\n       )\r\n    |> group(columns: [\"name\"])\r\n    |> aggregateWindow(every: 1mo, fn: sum, createEmpty: true)\r\n    |> keep(columns: [\"_time\", \"name\", \"_value\"])\r\n    |> rename(columns: {_value: \"monthly_sum\"})\r\n\r\nmonthly_count_flag =\r\n  from(bucket: v.defaultBucket)\r\n    |> range(start: 0, stop: now())\r\n    |> filter(fn: (r) =>\r\n         r._measurement == \"hourly\" and\r\n         r._field == \"kwh\" and\r\n         r.name =~ /^(${dispositivos:regex})$/\r\n       )\r\n    |> group(columns: [\"name\"])\r\n    |> aggregateWindow(every: 1mo, fn: count, createEmpty: true)\r\n    |> keep(columns: [\"_time\", \"name\", \"_value\"])\r\n    |> rename(columns: {_value: \"has_count\"})\r\n    |> map(fn: (r) => ({\r\n         _time: r._time,\r\n         name: r.name,\r\n         has_count: if r.has_count > 0 then 1 else 0\r\n       }))\r\n    |> cumulativeSum(columns: [\"has_count\"])\r\n    |> rename(columns: {has_count: \"seen\"})\r\n\r\njoined =\r\n  join(\r\n    tables: {s: monthly_sum, v: monthly_count_flag},\r\n    on: [\"_time\", \"name\"],\r\n    method: \"inner\"\r\n  )\r\n  |> map(fn: (r) => ({\r\n       _time: r._time,\r\n       name: r.name,\r\n       monthly_sum: r.monthly_sum,\r\n       seen: r.seen\r\n     }))\r\n\r\nresult_ready =\r\n  joined\r\n    |> filter(fn: (r) => r.seen > 0)\r\n    |> map(fn: (r) => ({ _time: r._time, name: r.name, _value: r.monthly_sum }))\r\n\r\nresult_ready\r\n  |> group(columns: [\"name\"])\r\n  |> difference(nonNegative: false, columns: [\"_value\"])\r\n  |> map(fn: (r) => ({ _time: r._time, name: r.name, delta: r._value }))\r\n  |> yield(name: \"monthly_variation\")\r\n",
+          "query": "monthly_sum = \r\n  from(bucket: v.defaultBucket)\r\n    |> range(start: 0, stop: now())\r\n    |> filter(fn: (r) =>\r\n         r._measurement == \"hourly\" and\r\n         r._field == \"kwh\" and\r\n         r.name =~ /^(${dispositivos:regex})$/\r\n       )\r\n    |> group(columns: [\"name\"])\r\n    |> aggregateWindow(every: 1mo, fn: sum, createEmpty: true)\r\n    |> keep(columns: [\"_time\", \"name\", \"_value\"])\r\n    |> rename(columns: {_value: \"monthly_sum\"})\r\n\r\nmonthly_count_flag =\r\n  from(bucket: v.defaultBucket)\r\n    |> range(start: 0, stop: now())\r\n    |> filter(fn: (r) =>\r\n         r._measurement == \"hourly\" and\r\n         r._field == \"kwh\" and\r\n         r.name =~ /^(${dispositivos:regex})$/\r\n       )\r\n    |> group(columns: [\"name\"])\r\n    |> aggregateWindow(every: 1mo, fn: count, createEmpty: true)\r\n    |> keep(columns: [\"_time\", \"name\", \"_value\"])\r\n    |> rename(columns: {_value: \"has_count\"})\r\n    |> map(fn: (r) => ({\r\n         _time: r._time,\r\n         name: r.name,\r\n         has_count: if r.has_count > 0 then 1 else 0\r\n       }))\r\n    |> cumulativeSum(columns: [\"has_count\"])\r\n    |> rename(columns: {has_count: \"seen\"})\r\n\r\njoined =\r\n  join(\r\n    tables: {s: monthly_sum, v: monthly_count_flag},\r\n    on: [\"_time\", \"name\"],\r\n    method: \"inner\"\r\n  )\r\n  |> map(fn: (r) => ({\r\n       _time: r._time,\r\n       name: r.name,\r\n       monthly_sum: r.monthly_sum,\r\n       seen: r.seen\r\n     }))\r\n\r\nresult_ready =\r\n  joined\r\n    |> filter(fn: (r) => r.seen > 0)\r\n    |> map(fn: (r) => ({ _time: r._time, name: r.name, _value: r.monthly_sum }))\r\n\r\nresult_ready\r\n  |> group(columns: [\"name\"])\r\n  |> difference(nonNegative: false, columns: [\"_value\"])\r\n  |> map(fn: (r) => ({ _time: r._time, name: r.name, _value: r._value }))\r\n  |> yield(name: \"monthly_variation\")\r\n",
           "refId": "A"
         }
       ],
@@ -735,7 +736,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "orientation": "auto",
         "showValue": "auto",
@@ -843,7 +844,7 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "mean_tbl = from(bucket: v.defaultBucket)\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       exists r.name and\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> group()\r\n  |> mean()\r\n\r\nmean_val = (tableFind(fn: (key) => true, tables: mean_tbl) |> getRecord(idx: 0))._value\r\n\r\nfrom(bucket: v.defaultBucket)\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       exists r.name and\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> map(fn: (r) => ({\r\n       name: r.name,\r\n       delta_media: r._value - mean_val\r\n     }))\r\n  |> keep(columns: [\"name\", \"delta_media\"])\r\n  |> group()\r\n  |> sort(columns: [\"delta_media\"], desc: true)\r\n  |> yield(name: \"baseline_variance\")\r\n",
+          "query": "mean_tbl = from(bucket: v.defaultBucket)\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       exists r.name and\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> group()\r\n  |> mean()\r\n\r\nmean_val = (tableFind(fn: (key) => true, tables: mean_tbl) |> getRecord(idx: 0))._value\r\n\r\nfrom(bucket: v.defaultBucket)\r\n  |> range(start: -7d, stop: now())\r\n  |> filter(fn: (r) =>\r\n       exists r.name and\r\n       r._measurement == \"hourly\" and\r\n       r._field == \"kwh\" and\r\n       r.name != \"total\" and\r\n       r.name =~ /^(${dispositivos:regex})$/\r\n     )\r\n  |> group(columns: [\"name\"])\r\n  |> sum()\r\n  |> map(fn: (r) => ({\r\n       _time: now(),\r\n       name: r.name,\r\n       _value: r._value - mean_val\r\n     }))\r\n  |> group(columns: [\"name\"])\r\n  |> yield(name: \"baseline_variance\")\r\n",
           "refId": "A"
         }
       ],
@@ -999,7 +1000,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "orientation": "auto",
         "showValue": "auto",
@@ -1218,8 +1219,24 @@
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 2,
-          "mappings": [],
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Inactivo",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Activo",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1256,7 +1273,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value_and_name"
       },
       "pluginVersion": "11.4.0",
       "targets": [
@@ -1265,7 +1282,7 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"hourly\" and r._field == \"kwh\"\n      and r.name =~ /^(${dispositivos:regex})$/)\n  |> keep(columns: [\"name\"])\n  |> distinct(column: \"name\")\n  |> count()",
+          "query": "todos = from(bucket: v.defaultBucket)\n  |> range(start: -720h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> first()\n  |> map(fn: (r) => ({_time: 2020-01-01T00:00:00Z, name: r.name, _value: 0}))\n\nactivos = from(bucket: v.defaultBucket)\n  |> range(start: -1h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> last()\n  |> map(fn: (r) => ({_time: now(), name: r.name, _value: 1}))\n\nunion(tables: [todos, activos])\n  |> group(columns: [\"name\"])\n  |> last()\n  |> yield(name: \"estado\")\n",
           "refId": "A"
         }
       ],

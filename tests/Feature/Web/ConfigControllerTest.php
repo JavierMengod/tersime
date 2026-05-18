@@ -65,11 +65,10 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['language' => 'es', 'theme' => 'light']);
 
-        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
-            'save_prefs' => '1',
-            'language'   => 'en',
-            'theme'      => 'dark',
-            'timezone'   => 'UTC',
+        $this->actingAs($user)->post(route('configuracion.cuenta.preferencias'), [
+            'language' => 'en',
+            'theme'    => 'dark',
+            'timezone' => 'UTC',
         ])->assertRedirect();
 
         $user->refresh();
@@ -82,11 +81,10 @@ class ConfigControllerTest extends TestCase
     public function update_cuenta_validates_language_must_be_valid(): void
     {
         $this->actingAs(User::factory()->create())
-             ->post(route('configuracion.cuenta.update'), [
-                 'save_prefs' => '1',
-                 'language'   => 'klingon',
-                 'theme'      => 'light',
-                 'timezone'   => 'UTC',
+             ->post(route('configuracion.cuenta.preferencias'), [
+                 'language' => 'klingon',
+                 'theme'    => 'light',
+                 'timezone' => 'UTC',
              ])->assertSessionHasErrors('language');
     }
 
@@ -94,11 +92,10 @@ class ConfigControllerTest extends TestCase
     public function update_cuenta_validates_theme_must_be_light_or_dark(): void
     {
         $this->actingAs(User::factory()->create())
-             ->post(route('configuracion.cuenta.update'), [
-                 'save_prefs' => '1',
-                 'language'   => 'es',
-                 'theme'      => 'solarized',
-                 'timezone'   => 'UTC',
+             ->post(route('configuracion.cuenta.preferencias'), [
+                 'language' => 'es',
+                 'theme'    => 'solarized',
+                 'timezone' => 'UTC',
              ])->assertSessionHasErrors('theme');
     }
 
@@ -109,10 +106,9 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['password' => bcrypt('old_password')]);
 
-        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
-            'save_password'            => '1',
-            'current_password'         => 'old_password',
-            'new_password'             => 'new_secure_password',
+        $this->actingAs($user)->post(route('configuracion.cuenta.password'), [
+            'current_password'          => 'old_password',
+            'new_password'              => 'new_secure_password',
             'new_password_confirmation' => 'new_secure_password',
         ])->assertRedirect();
 
@@ -124,10 +120,9 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['password' => bcrypt('correct')]);
 
-        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
-            'save_password'            => '1',
-            'current_password'         => 'wrong',
-            'new_password'             => 'new_password',
+        $this->actingAs($user)->post(route('configuracion.cuenta.password'), [
+            'current_password'          => 'wrong',
+            'new_password'              => 'new_password',
             'new_password_confirmation' => 'new_password',
         ])->assertSessionHasErrors('current_password');
     }
@@ -137,10 +132,9 @@ class ConfigControllerTest extends TestCase
     {
         $user = User::factory()->create(['password' => bcrypt('current')]);
 
-        $this->actingAs($user)->post(route('configuracion.cuenta.update'), [
-            'save_password'            => '1',
-            'current_password'         => 'current',
-            'new_password'             => 'new_pass',
+        $this->actingAs($user)->post(route('configuracion.cuenta.password'), [
+            'current_password'          => 'current',
+            'new_password'              => 'new_pass',
             'new_password_confirmation' => 'different_pass',
         ])->assertSessionHasErrors('new_password');
     }

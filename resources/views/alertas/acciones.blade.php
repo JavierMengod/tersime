@@ -91,7 +91,7 @@
                     @if($regla->for_duration > 0)
                         <span class="text-muted small">{{ __('durante') }}</span>
                         <span class="badge bg-light text-dark border" style="font-size:.8rem;">
-                            <i class="fas fa-clock me-1"></i>{{ $regla->for_duration }} min
+                            <i class="fas fa-clock me-1"></i>{{ $regla->for_duration / 60 }} h
                         </span>
                     @endif
                 </div>
@@ -114,10 +114,18 @@
             {{-- Canales + acciones --}}
             <div class="col-12 col-md-2 d-flex align-items-center justify-content-between justify-content-md-end gap-2 flex-wrap">
                 <div class="d-flex gap-2 me-1">
-                    @foreach($regla->channel_badges as $ch)
+                    @foreach($regla->enabled_channels as $channel)
+                        @php
+                            $channelMap = [
+                                'telegram' => ['icon' => 'fab fa-telegram',  'color' => 'text-info',      'label' => 'Telegram'],
+                                'email'    => ['icon' => 'fas fa-envelope',  'color' => 'text-warning',   'label' => __('Correo')],
+                                'discord'  => ['icon' => 'fab fa-discord',   'color' => 'text-secondary', 'label' => 'Discord'],
+                            ];
+                            $ch = $channelMap[$channel];
+                        @endphp
                         <span title="{{ $ch['label'] }}" class="{{ $ch['color'] }} fs-5"><i class="{{ $ch['icon'] }}"></i></span>
                     @endforeach
-                    @if(empty($regla->channel_badges))
+                    @if(empty($regla->enabled_channels))
                         <span class="text-muted small">—</span>
                     @endif
                 </div>
@@ -141,7 +149,7 @@
                             'devices'        => $regla->dispositivos->pluck('id')->toArray(),
                             'operator'       => $regla->operator,
                             'value'          => $regla->comparison_value,
-                            'for_duration'   => $regla->for_duration,
+                            'for_duration'   => $regla->for_duration / 60,
                             'methods'        => [
                                 'telegram' => $regla->telegram_enabled,
                                 'email'    => $regla->email_enabled,

@@ -49,20 +49,34 @@ class Rule extends Model
 
     public function getAlertStateAttribute(): string
     {
-        if (!$this->relationLoaded('dispositivos')) return 'ok';
+        if (!$this->relationLoaded('dispositivos')) {
+            return 'ok';
+        }
+
         $states = $this->dispositivos->pluck('pivot.alert_state')->toArray();
-        if (in_array('firing',  $states)) return 'firing';
-        if (in_array('pending', $states)) return 'pending';
+
+        if (in_array('firing',  $states)) {
+            return 'firing';
+        }
+        if (in_array('pending', $states)) {
+            return 'pending';
+        }
+
         return 'ok';
     }
 
-    public function getChannelBadgesAttribute(): array
+    public static function userHasReachedLimit(int $userId): bool
     {
-        $badges = [];
-        if ($this->telegram_enabled) $badges[] = ['icon' => 'fab fa-telegram', 'color' => 'text-info',     'label' => 'Telegram'];
-        if ($this->email_enabled)    $badges[] = ['icon' => 'fas fa-envelope',  'color' => 'text-warning',  'label' => __('Correo')];
-        if ($this->discord_enabled)  $badges[] = ['icon' => 'fab fa-discord',   'color' => 'text-secondary','label' => 'Discord'];
-        return $badges;
+        return static::where('user_id', $userId)->count() >= 50;
+    }
+
+    public function getEnabledChannelsAttribute(): array
+    {
+        $channels = [];
+        if ($this->telegram_enabled) $channels[] = 'telegram';
+        if ($this->email_enabled)    $channels[] = 'email';
+        if ($this->discord_enabled)  $channels[] = 'discord';
+        return $channels;
     }
 
     public function getOperatorLabelAttribute(): string
