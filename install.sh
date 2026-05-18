@@ -437,7 +437,7 @@ DB_CHECK=$($COMPOSE_CMD exec -T app php artisan tinker --execute="
 
 if echo "$DB_CHECK" | grep -q "^users:"; then
     USER_COUNT=$(echo "$DB_CHECK" | grep -o '[0-9]*$')
-    ok "Base de datos SQLite OK (${USER_COUNT} usuario(s))"
+    ok "Base de datos MySQL OK (${USER_COUNT} usuario(s))"
 else
     fail "Error accediendo a la base de datos"
 fi

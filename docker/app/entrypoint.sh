@@ -5,22 +5,17 @@
 #   entrypoint.sh php artisan ...  → worker / one-off commands
 set -e
 
-SQLITE_DB="${DB_DATABASE:-/var/www/database/database.sqlite}"
 INSTALLED_FLAG="/var/www/storage/.tersime_installed"
 CMD="${1:-php-fpm}"
 
 # ── Directorios y permisos ────────────────────────────────────────────────
-mkdir -p "$(dirname "$SQLITE_DB")" \
-         /var/www/storage/app/public \
+mkdir -p /var/www/storage/app/public \
          /var/www/storage/framework/{cache,sessions,views} \
          /var/www/storage/logs \
          /var/www/bootstrap/cache
 
-[ ! -f "$SQLITE_DB" ] && touch "$SQLITE_DB"
-
-chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/database
+chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-chmod 664 "$SQLITE_DB"
 
 # ── Modo worker: espera a que el contenedor app termine la instalación ────
 if [ "$CMD" != "php-fpm" ]; then

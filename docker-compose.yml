@@ -157,7 +157,7 @@ services:
 
   # ── Grafana Image Renderer — generación de PDFs de informes ───────────────
   renderer:
-    image: grafana/grafana-image-renderer:latest
+    image: grafana/grafana-image-renderer:3.11.6
     restart: unless-stopped
     # No expuesto al host — solo accesible desde dentro de la red Docker
     environment:

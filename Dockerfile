@@ -19,24 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         git \
         cron \
-        sqlite3 \
-        libsqlite3-dev \
         jpegoptim optipng pngquant gifsicle \
     && rm -rf /var/lib/apt/lists/*
 
-# ── wkhtmltopdf (para generación de PDF de informes) ─────────────────────────
-# Descargamos el paquete para Debian Bookworm (amd64)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libxrender1 libxext6 libfontconfig1 libx11-6 \
-        xfonts-75dpi xfonts-base fontconfig \
-    && curl -fsSL -o /tmp/wkhtmltopdf.deb \
-        https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb \
-    && dpkg -i /tmp/wkhtmltopdf.deb || apt-get -f install -y \
-    && rm /tmp/wkhtmltopdf.deb \
-    && rm -rf /var/lib/apt/lists/*
-
 # ── Extensiones PHP ───────────────────────────────────────────────────────────
-RUN docker-php-ext-install pdo pdo_mysql pdo_sqlite zip exif pcntl
+RUN docker-php-ext-install pdo pdo_mysql zip exif pcntl
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd
 
