@@ -106,7 +106,8 @@ services:
       GF_AUTH_PROXY_WHITELIST:            ""
       GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "false"
       # Seguridad
-      GF_AUTH_ANONYMOUS_ENABLED:         "false"
+      GF_AUTH_ANONYMOUS_ENABLED:         "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE:        "Viewer"
       GF_SECURITY_ALLOW_EMBEDDING:       "true"
       # Plugins (requiere internet en el primer arranque)
       GF_INSTALL_PLUGINS:                 marcusolsson-json-datasource
@@ -143,6 +144,24 @@ services:
       GF_RENDERER_PLUGIN_CHROME_BIN:                   /usr/bin/chromium
       GF_RENDERER_PLUGIN_IGNORE_HTTPS_ERRORS:          "true"
       GF_RENDERER_PLUGIN_SECURITY_PERMISSIVE:           "true"
+    networks:
+      - tersime
+
+  # ── Queue worker — procesa jobs asíncronos (informes, notificaciones) ────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    command: ["php", "artisan", "queue:work",
+              "--tries=1", "--timeout=1200", "--sleep=3", "--max-time=3600"]
+    volumes:
+      - tersime_storage:/var/www/storage
+      - tersime_db:/var/www/database
+    depends_on:
+      app:
+        condition: service_started
     networks:
       - tersime
 

@@ -1,38 +1,44 @@
 #!/bin/bash
-# Tersime app entrypoint — handles first-run setup and starts PHP-FPM
+# Tersime app entrypoint
+# Usage:
+#   entrypoint.sh php-fpm          → app container (default)
+#   entrypoint.sh php artisan ...  → worker / one-off commands
 set -e
 
 SQLITE_DB="${DB_DATABASE:-/var/www/database/database.sqlite}"
 INSTALLED_FLAG="/var/www/storage/.tersime_installed"
+CMD="${1:-php-fpm}"
 
-echo "[entrypoint] Preparando Tersime..."
-
-# ── Asegurar que los directorios necesarios existen ────────────────────────
+# ── Directorios y permisos ────────────────────────────────────────────────
 mkdir -p "$(dirname "$SQLITE_DB")" \
          /var/www/storage/app/public \
          /var/www/storage/framework/{cache,sessions,views} \
          /var/www/storage/logs \
          /var/www/bootstrap/cache
 
-# ── Crear fichero SQLite si no existe ──────────────────────────────────────
-if [ ! -f "$SQLITE_DB" ]; then
-    echo "[entrypoint] Creando base de datos SQLite..."
-    touch "$SQLITE_DB"
-fi
+[ ! -f "$SQLITE_DB" ] && touch "$SQLITE_DB"
 
-# ── Permisos ───────────────────────────────────────────────────────────────
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/database
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 chmod 664 "$SQLITE_DB"
 
-# ── Primera instalación ────────────────────────────────────────────────────
+# ── Modo worker: espera a que el contenedor app termine la instalación ────
+if [ "$CMD" != "php-fpm" ]; then
+    echo "[entrypoint:worker] Esperando instalación del contenedor app..."
+    until [ -f "$INSTALLED_FLAG" ]; do
+        sleep 2
+    done
+    echo "[entrypoint:worker] Listo. Arrancando: $*"
+    exec "$@"
+fi
+
+# ── Modo app (PHP-FPM): instalación / migraciones ─────────────────────────
 if [ ! -f "$INSTALLED_FLAG" ]; then
-    echo "[entrypoint] Primera ejecución — migrando base de datos..."
+    echo "[entrypoint] Primera ejecución — instalando..."
 
     php artisan key:generate --no-interaction --force 2>/dev/null || true
     php artisan migrate --force --no-interaction
 
-    # Crear usuario admin con las credenciales del .env
     ADMIN_USER="${TERSIME_ADMIN_USER:-admin}"
     ADMIN_PASS="${TERSIME_ADMIN_PASSWORD:-admin}"
 
@@ -53,17 +59,17 @@ if [ ! -f "$INSTALLED_FLAG" ]; then
 
     php artisan storage:link --no-interaction 2>/dev/null || true
     php artisan config:cache --no-interaction 2>/dev/null || true
-    php artisan view:cache  --no-interaction 2>/dev/null || true
+    php artisan view:cache   --no-interaction 2>/dev/null || true
 
     touch "$INSTALLED_FLAG"
     echo "[entrypoint] Instalación completada."
 else
-    echo "[entrypoint] Instalación ya realizada, aplicando migraciones pendientes..."
+    echo "[entrypoint] Aplicando migraciones pendientes..."
     php artisan migrate --force --no-interaction 2>/dev/null || true
     php artisan config:cache --no-interaction 2>/dev/null || true
 fi
 
-# ── Cron para el scheduler de Laravel ─────────────────────────────────────
+# ── Cron para el scheduler (solo en el contenedor app) ───────────────────
 service cron start
 
 echo "[entrypoint] Iniciando PHP-FPM..."
