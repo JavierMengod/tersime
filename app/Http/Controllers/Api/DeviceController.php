@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\InfluxController;
+use App\Services\InfluxService;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Log;
 
 class DeviceController extends Controller
 {
-    protected InfluxController $influx;
+    protected InfluxService $influx;
 
-    public function __construct(InfluxController $influx)
+    public function __construct(InfluxService $influx)
     {
         $this->influx = $influx;
     }

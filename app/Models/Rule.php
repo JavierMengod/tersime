@@ -12,7 +12,6 @@ class Rule extends Model
         'name',
         'user_id',
         'operator',
-        'time_range',
         'for_duration',
         'comparison_value',
         'is_active',
@@ -39,7 +38,8 @@ class Rule extends Model
     public function dispositivos()
     {
         return $this->belongsToMany(Dispositivo::class, 'dispositivo_rule', 'rule_id', 'dispositivo_id')
-                    ->withPivot('last_triggered_at', 'alert_state', 'pending_since');
+                    ->withPivot('last_triggered_at', 'alert_state', 'pending_since')
+                    ->withTimestamps();
     }
 
     public function user()

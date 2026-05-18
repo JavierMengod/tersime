@@ -13,14 +13,14 @@ class NotificacionAlerta extends Notification
 
     public function __construct(string $tipo, string $ruleName, string $deviceName, string $mensaje)
     {
-        $this->tipo    = $tipo; // 'firing' | 'resolution'
+        $this->tipo    = $tipo;
         $this->mensaje = $mensaje;
 
         if ($tipo === 'firing') {
-            $this->titulo = "Alerta disparada — {$ruleName}";
+            $this->titulo = "Alerta en {$deviceName} — {$ruleName}";
             $this->icono  = 'firing';
         } else {
-            $this->titulo = "Alerta resuelta — {$ruleName}";
+            $this->titulo = "Resuelta: {$deviceName} — {$ruleName}";
             $this->icono  = 'resolution';
         }
     }
@@ -33,11 +33,11 @@ class NotificacionAlerta extends Notification
     public function toArray($notifiable): array
     {
         return [
-            'tipo'   => $this->tipo,
-            'titulo' => $this->titulo,
+            'tipo'    => $this->tipo,
+            'titulo'  => $this->titulo,
             'mensaje' => $this->mensaje,
-            'url'    => route('alertas.historial'),
-            'icono'  => $this->icono,
+            'url'     => route('alertas.historial'),
+            'icono'   => $this->icono,
         ];
     }
 }

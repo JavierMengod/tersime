@@ -17,7 +17,7 @@ class PrediccionController extends Controller
         return view('monitorizacion.prediccion', compact('dispositivos'));
     }
 
-    public function obtenerDatos(Request $request, InfluxController $influx)
+    public function obtenerDatos(Request $request, InfluxService $influx)
     {
         $start        = $request->query('start');
         $stop         = $request->query('stop');

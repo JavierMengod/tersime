@@ -35,7 +35,13 @@
 @endif
 
 @forelse($reglas as $regla)
-<div class="card border-0 shadow-sm mb-3" style="border-left: 4px solid {{ $regla->border_color }} !important;">
+@php
+    $state = $regla->alert_state;
+    $borderColor = $state === 'firing' ? '#dc3545'
+        : ($state === 'pending' ? '#ffc107'
+        : ($regla->is_active ? '#198754' : '#adb5bd'));
+@endphp
+<div class="card border-0 shadow-sm mb-3" style="border-left: 4px solid {{ $borderColor }} !important;">
     <div class="card-body">
         <div class="row align-items-center g-3">
 
@@ -43,9 +49,9 @@
             <div class="col-12 col-md-3">
                 <div class="d-flex align-items-start gap-2">
                     <div class="mt-1">
-                        @if($regla->alert_state === 'firing')
+                        @if($state === 'firing')
                             <span class="text-danger"><i class="fas fa-bell fa-lg"></i></span>
-                        @elseif($regla->alert_state === 'pending')
+                        @elseif($state === 'pending')
                             <span class="text-warning"><i class="fas fa-clock fa-lg"></i></span>
                         @elseif($regla->is_active)
                             <span class="text-success"><i class="fas fa-shield-alt fa-lg"></i></span>
@@ -61,9 +67,9 @@
                             @else
                                 <span class="badge rounded-pill" style="background:#f3f4f6;color:#6b7280;font-size:.7rem;">{{ __('Inactiva') }}</span>
                             @endif
-                            @if($regla->alert_state === 'firing')
+                            @if($state === 'firing')
                                 <span class="badge rounded-pill bg-danger" style="font-size:.7rem;">🔥 {{ __('Disparada') }}</span>
-                            @elseif($regla->alert_state === 'pending')
+                            @elseif($state === 'pending')
                                 <span class="badge rounded-pill bg-warning text-dark" style="font-size:.7rem;">⏳ {{ __('Pendiente') }}</span>
                             @endif
                         </div>
@@ -147,6 +153,8 @@
                                 'discord'  => $regla->template_discord,
                             ],
                             'recipient_email' => $regla->recipient_email,
+                            'update_url'      => route('alertas.reglas.update', $regla->id),
+                            'delete_url'      => route('alertas.reglas.destroy', $regla->id),
                         ]) }}"
                         title="{{ __('Editar') }}">
                     <i class="fas fa-pencil-alt"></i>

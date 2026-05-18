@@ -36,7 +36,7 @@ class GrafanaProxyController extends Controller
         // Serve these in-process to break the loop entirely.
         if (str_contains($path, 'datasources/proxy') && str_contains($path, 'prediccion/obtener')) {
             return app(PrediccionController::class)
-                ->obtenerDatos($request, app(InfluxController::class));
+                ->obtenerDatos($request, app(InfluxService::class));
         }
 
         // Prediction requests drive a slow Python Prophet service; grant extra time.

@@ -15,7 +15,6 @@ class RuleFactory extends Factory
             'operator'         => $this->faker->randomElement(['>', '<', '>=', '<=', '==', '!=']),
             'comparison_value' => $this->faker->randomFloat(2, 10, 500),
             'for_duration'     => 0,
-            'time_range'       => 0,
             'is_active'        => true,
             'email_enabled'    => false,
             'telegram_enabled' => false,

@@ -11,11 +11,11 @@ class AlertController extends Controller
     public function index(Request $request)
     {
         $request->validate([
-            'device' => 'nullable|string',
-            'rule'   => 'nullable|string',
-            'type'   => 'nullable|string',
-            'from'   => 'nullable|date_format:Y-m-d',
-            'to'     => 'nullable|date_format:Y-m-d',
+            'device'   => 'nullable|string',
+            'rule'     => 'nullable|string',
+            'type'     => 'nullable|in:firing,resolution',
+            'from'     => 'nullable|date_format:Y-m-d',
+            'to'       => 'nullable|date_format:Y-m-d',
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 

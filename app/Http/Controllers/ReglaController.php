@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\RuleRequest;
 use App\Models\Rule;
+use App\Traits\BuildsRuleAttributes;
 use Illuminate\Support\Facades\Log;
 
 class ReglaController extends Controller
 {
+    use BuildsRuleAttributes;
+
     public function index()
     {
         $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
@@ -18,84 +21,58 @@ class ReglaController extends Controller
 
     public function store(RuleRequest $request)
     {
+        if (auth()->user()->rules()->count() >= 50) {
+            return back()->withErrors(['name' => 'Has alcanzado el límite de 50 reglas.']);
+        }
+
         $validated = $request->validated();
-        $methods   = $validated['methods'] ?? [];
 
-        $rule = Rule::create([
-            'name' => $validated['name'],
-            'user_id' => auth()->id(),
-            'operator' => $validated['operator'],
-            'comparison_value' => $validated['value'],
-            'for_duration' => $validated['for_duration'],
-            'time_range' => 0,
+        $rule = Rule::create(array_merge($this->ruleFieldsFrom($validated), [
+            'user_id'   => auth()->id(),
             'is_active' => true,
-            'email_enabled' => in_array('email', $methods, true),
-            'telegram_enabled' => in_array('telegram', $methods, true),
-            'discord_enabled' => in_array('discord', $methods, true),
-            'template_telegram' => $request->input('template_telegram'),
-            'template_email' => $request->input('template_email'),
-            'template_discord' => $request->input('template_discord'),
-            'recipient_email' => $validated['recipient_email'] ?? null,
-        ]);
+        ]));
 
-        // Asocia múltiples dispositivos usando sync
         $rule->dispositivos()->sync($validated['devices']);
 
-        Log::info("Regla creada correctamente con ID {$rule->id} y dispositivos asociados.");
+        Log::info("Regla creada correctamente con ID {$rule->id}.");
 
-        return redirect()->back()->with('success', 'Regla(s) guardada(s) correctamente.');
+        return redirect()->back()->with('success', 'Regla guardada correctamente.');
     }
 
-    public function update(RuleRequest $request, $id)
+    public function update(RuleRequest $request, Rule $regla)
     {
-        $rule      = Rule::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+        abort_unless((int) $regla->user_id === (int) auth()->id(), 403);
+
         $validated = $request->validated();
-        $methods   = $validated['methods'] ?? [];
 
-        $rule->fill([
-            'name' => $validated['name'],
-            'operator' => $validated['operator'],
-            'comparison_value' => $validated['value'],
-            'for_duration' => $validated['for_duration'],
-            'email_enabled' => in_array('email', $methods, true),
-            'telegram_enabled' => in_array('telegram', $methods, true),
-            'discord_enabled' => in_array('discord', $methods, true),
-            'template_telegram' => $request->input('template_telegram'),
-            'template_email' => $request->input('template_email'),
-            'template_discord' => $request->input('template_discord'),
-            'recipient_email' => $validated['recipient_email'] ?? null,
-        ]);
+        $regla->fill($this->ruleFieldsFrom($validated))->save();
+        $regla->dispositivos()->sync($validated['devices']);
 
-        $rule->save();
-
-        // Sincroniza dispositivos seleccionados
-        $rule->dispositivos()->sync($validated['devices']);
-
-        Log::info("Regla ID {$id} actualizada correctamente");
+        Log::info("Regla ID {$regla->id} actualizada correctamente.");
 
         return redirect()->back()->with('success', 'Regla actualizada correctamente.');
     }
 
-    public function toggle($id)
+    public function toggle(Rule $regla)
     {
-        $rule = Rule::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
-        $rule->update(['is_active' => !$rule->is_active]);
+        abort_unless((int) $regla->user_id === (int) auth()->id(), 403);
 
-        $msg = $rule->is_active ? 'Regla activada.' : 'Regla desactivada.';
-        Log::info("Regla ID {$id} " . ($rule->is_active ? 'activada' : 'desactivada'));
+        $newState = !$regla->is_active;
+        $regla->update(['is_active' => $newState]);
+
+        $msg = $newState ? 'Regla activada.' : 'Regla desactivada.';
+        Log::info("Regla ID {$regla->id} " . ($newState ? 'activada' : 'desactivada') . '.');
 
         return back()->with('success', $msg);
     }
 
-    public function destroy($id)
+    public function destroy(Rule $regla)
     {
-        $rule = Rule::where('id', $id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+        abort_unless((int) $regla->user_id === (int) auth()->id(), 403);
 
-        $rule->delete();
+        $regla->delete();
 
-        Log::info("Regla ID {$id} eliminada correctamente");
+        Log::info("Regla ID {$regla->id} eliminada correctamente.");
 
         return redirect()->back()->with('success', 'Regla eliminada correctamente.');
     }

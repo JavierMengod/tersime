@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Http\Controllers\InfluxController;
+use App\Services\InfluxService;
 use App\Http\Controllers\OpenRouterController;
 use App\Models\Informe;
 use App\Models\Setting;
@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Storage;
 
 class InformeService
 {
-    protected InfluxController $influx;
+    protected InfluxService $influx;
     protected OpenRouterController $modeloLenguaje;
 
-    public function __construct(InfluxController $influx, OpenRouterController $modeloLenguaje)
+    public function __construct(InfluxService $influx, OpenRouterController $modeloLenguaje)
     {
         $this->influx         = $influx;
         $this->modeloLenguaje = $modeloLenguaje;

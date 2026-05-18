@@ -14,7 +14,7 @@ class GrafanaController extends Controller
      * Devuelve series temporales de consumo para los dispositivos solicitados,
      * con el nombre amigable del usuario en lugar del identificador de InfluxDB.
      */
-    public function series(Request $request, InfluxController $influx): JsonResponse
+    public function series(Request $request, InfluxService $influx): JsonResponse
     {
         $urls = array_filter((array) $request->input('devices', []));
         $from = $request->input('from', '');

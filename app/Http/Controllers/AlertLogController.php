@@ -23,7 +23,7 @@ class AlertLogController extends Controller
         if ($request->filled('rule')) {
             $query->where('rule_name', $request->input('rule'));
         }
-        if ($request->filled('type')) {
+        if ($request->filled('type') && in_array($request->input('type'), ['firing', 'resolution'])) {
             $query->where('type', $request->input('type'));
         }
         if ($request->filled('from')) {
@@ -35,8 +35,12 @@ class AlertLogController extends Controller
 
         $logs = $query->orderBy($sort, $dir)->paginate(20)->withQueryString();
 
-        $devices = AlertLog::where('user_id', $user->id)->distinct()->orderBy('device_name')->pluck('device_name');
-        $rules   = AlertLog::where('user_id', $user->id)->distinct()->orderBy('rule_name')->pluck('rule_name');
+        // Single query for both filter dropdowns
+        $meta    = AlertLog::where('user_id', $user->id)
+            ->selectRaw('device_name, rule_name')
+            ->get();
+        $devices = $meta->pluck('device_name')->unique()->sort()->values();
+        $rules   = $meta->pluck('rule_name')->unique()->sort()->values();
 
         return view('alertas.historial', compact('logs', 'devices', 'rules', 'sort', 'dir'));
     }

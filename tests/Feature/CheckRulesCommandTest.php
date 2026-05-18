@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\InfluxController;
+use App\Services\InfluxService;
 use App\Services\NotificationService;
 use App\Models\AlertLog;
 use App\Models\Dispositivo;
@@ -44,7 +44,7 @@ class CheckRulesCommandTest extends TestCase
 
     private function fakeInflux(?float $value): void
     {
-        $mock = $this->mock(InfluxController::class, function ($m) use ($value) {
+        $mock = $this->mock(InfluxService::class, function ($m) use ($value) {
             $m->shouldReceive('ultimoValor')->andReturn($value);
         });
     }
@@ -277,9 +277,9 @@ class CheckRulesCommandTest extends TestCase
 
         $log = AlertLog::first();
         $this->assertNotNull($log);
-        $this->assertStringContainsString('email', $log->channels);
-        $this->assertStringContainsString('telegram', $log->channels);
-        $this->assertStringContainsString('discord', $log->channels);
+        $this->assertContains('email', $log->channels);
+        $this->assertContains('telegram', $log->channels);
+        $this->assertContains('discord', $log->channels);
     }
 
     /** @test */
@@ -349,8 +349,8 @@ class CheckRulesCommandTest extends TestCase
         ]);
         $this->attachDevice($rule, 'ok');
 
-        // If the command evaluated the rule, it would call InfluxController::ultimoValor.
-        // We do NOT fake InfluxController, so any attempt to instantiate it would fail with
+        // If the command evaluated the rule, it would call InfluxService::ultimoValor.
+        // We do NOT fake InfluxService, so any attempt to instantiate it would fail with
         // a DB configuration error — which would itself cause test failure.
         $this->fakeInflux(999.0); // safe: should never be called, but avoid crash if it is
 
@@ -542,7 +542,7 @@ class CheckRulesCommandTest extends TestCase
 
         // Device 1 value triggers rule1 (> 100), but NOT rule2
         // Device 2 value triggers rule2 (< 50), but NOT rule1
-        $mock = $this->mock(InfluxController::class, function ($m) {
+        $mock = $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('ultimoValor')
               ->with('TEST-DEV-001')
               ->andReturn(200.0);

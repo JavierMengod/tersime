@@ -4,17 +4,14 @@ namespace App\Traits;
 
 trait ResolvesInformePath
 {
-    /**
-     * Devuelve la ruta absoluta al PDF del informe, normalizando cualquier prefijo
-     * que pueda haberse grabado (absoluta, storage/app/public/..., public/...).
-     */
     private function resolveInformePath(?string $pdfPath): ?string
     {
         if (empty($pdfPath)) {
             return null;
         }
 
-        if (preg_match('/^(\/|[A-Za-z]:\\\\)/', $pdfPath) === 1) {
+        // Already an absolute path on this system
+        if (str_starts_with($pdfPath, '/')) {
             return $pdfPath;
         }
 

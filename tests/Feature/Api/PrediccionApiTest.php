@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Api;
 
-use App\Http\Controllers\InfluxController;
+use App\Services\InfluxService;
 use App\Models\Dispositivo;
 use App\Models\Setting;
 use App\Models\User;
@@ -29,7 +29,7 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function endpoint_is_publicly_accessible_without_token(): void
     {
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => [], 'values' => []]);
         });
@@ -72,7 +72,7 @@ class PrediccionApiTest extends TestCase
     {
         Setting::set('predictor_url', '');
 
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => ['2024-01-01T00:00:00Z'], 'values' => [1.0]]);
         });
@@ -85,7 +85,7 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function returns_422_when_no_historical_data(): void
     {
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => [], 'values' => []]);
         });
@@ -98,7 +98,7 @@ class PrediccionApiTest extends TestCase
     /** @test */
     public function returns_502_when_predictor_service_fails(): void
     {
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => ['2024-01-01T00:00:00Z'], 'values' => [1.0]]);
         });
@@ -117,7 +117,7 @@ class PrediccionApiTest extends TestCase
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
 
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn([
                   'timestamps' => ['2024-01-10T00:00:00Z'],
@@ -147,7 +147,7 @@ class PrediccionApiTest extends TestCase
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
 
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn([
                   'timestamps' => ['2024-01-10T00:00:00Z', '2023-12-01T00:00:00Z'],
@@ -172,7 +172,7 @@ class PrediccionApiTest extends TestCase
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
 
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => ['2024-01-10T00:00:00Z'], 'values' => [2.5]]);
         });
@@ -198,7 +198,7 @@ class PrediccionApiTest extends TestCase
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
 
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => ['2024-01-10T00:00:00Z'], 'values' => [2.5]]);
         });
@@ -226,7 +226,7 @@ class PrediccionApiTest extends TestCase
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
 
-        $this->mock(InfluxController::class, function ($m) {
+        $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')
               ->andReturn(['timestamps' => ['2024-01-10T00:00:00Z'], 'values' => [2.5]]);
         });

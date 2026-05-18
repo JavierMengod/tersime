@@ -17,7 +17,7 @@ class DispositivoController extends Controller
         return view('monitorizacion.tiempo-real', compact('dispositivos'));
     }
 
-    public function index(InfluxController $influx)
+    public function index(InfluxService $influx)
     {
         $dispositivos        = Auth::user()->dispositivos()->paginate(10);
         $asignados           = Auth::user()->dispositivos()->pluck('influx_tag')->toArray();

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\CsvArray;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,6 +13,10 @@ class AlertLog extends Model
         'user_id', 'rule_id', 'rule_name',
         'dispositivo_id', 'device_name',
         'type', 'channels', 'message',
+    ];
+
+    protected $casts = [
+        'channels' => CsvArray::class,
     ];
 
     public function user()
@@ -31,6 +36,6 @@ class AlertLog extends Model
 
     public function channelList(): array
     {
-        return $this->channels ? explode(',', $this->channels) : [];
+        return $this->channels ?? [];
     }
 }

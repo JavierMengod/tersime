@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\InfluxController;
+use App\Services\InfluxService;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -26,7 +26,7 @@ class PrediccionController extends Controller
      *   device       – influx_tag del dispositivo
      *   predic_hours – horas a predecir (opcional, default: setting predictor_default_hours)
      */
-    public function index(Request $request, InfluxController $influx)
+    public function index(Request $request, InfluxService $influx)
     {
         $request->validate([
             'start'        => 'required|string',
