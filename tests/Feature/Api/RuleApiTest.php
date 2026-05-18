@@ -7,6 +7,7 @@ use App\Models\Rule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class RuleApiTest extends TestCase
@@ -40,7 +41,7 @@ class RuleApiTest extends TestCase
 
     // ── Index ──────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function index_returns_only_authenticated_users_rules(): void
     {
         $user  = $this->user();
@@ -56,7 +57,7 @@ class RuleApiTest extends TestCase
         $this->assertCount(3, $response->json());
     }
 
-    /** @test */
+    #[Test]
     public function index_includes_devices_for_each_rule(): void
     {
         $user   = $this->user();
@@ -71,7 +72,7 @@ class RuleApiTest extends TestCase
         $this->assertCount(1, $response->json('0.devices'));
     }
 
-    /** @test */
+    #[Test]
     public function index_requires_authentication(): void
     {
         $this->getJson('/api/rules')->assertStatus(401);
@@ -79,7 +80,7 @@ class RuleApiTest extends TestCase
 
     // ── Store ──────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function store_creates_rule_with_associated_devices(): void
     {
         $user   = $this->user();
@@ -108,7 +109,7 @@ class RuleApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function store_sets_correct_notification_channels(): void
     {
         $user   = $this->user();
@@ -129,7 +130,7 @@ class RuleApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function store_validates_operator_must_be_valid(): void
     {
         $user   = $this->user();
@@ -142,7 +143,7 @@ class RuleApiTest extends TestCase
              ->assertJsonValidationErrors(['operator']);
     }
 
-    /** @test */
+    #[Test]
     public function store_validates_at_least_one_device_required(): void
     {
         Sanctum::actingAs($this->user());
@@ -152,7 +153,7 @@ class RuleApiTest extends TestCase
              ->assertJsonValidationErrors(['devices']);
     }
 
-    /** @test */
+    #[Test]
     public function store_validates_device_must_exist_in_database(): void
     {
         Sanctum::actingAs($this->user());
@@ -162,7 +163,7 @@ class RuleApiTest extends TestCase
              ->assertJsonValidationErrors(['devices.0']);
     }
 
-    /** @test */
+    #[Test]
     public function store_validates_for_duration_cannot_be_negative(): void
     {
         $user   = $this->user();
@@ -175,7 +176,7 @@ class RuleApiTest extends TestCase
              ->assertJsonValidationErrors(['for_duration']);
     }
 
-    /** @test */
+    #[Test]
     public function store_validates_name_is_required(): void
     {
         $user   = $this->user();
@@ -190,7 +191,7 @@ class RuleApiTest extends TestCase
 
     // ── Update ─────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function update_modifies_own_rule(): void
     {
         $user   = $this->user();
@@ -209,7 +210,7 @@ class RuleApiTest extends TestCase
         $this->assertDatabaseHas('rules', ['id' => $rule->id, 'name' => 'Actualizada']);
     }
 
-    /** @test */
+    #[Test]
     public function update_returns_404_for_another_users_rule(): void
     {
         $owner = $this->user();
@@ -224,7 +225,7 @@ class RuleApiTest extends TestCase
 
     // ── Toggle ─────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function toggle_deactivates_active_rule(): void
     {
         $user = $this->user();
@@ -238,7 +239,7 @@ class RuleApiTest extends TestCase
         $this->assertDatabaseHas('rules', ['id' => $rule->id, 'is_active' => 0]);
     }
 
-    /** @test */
+    #[Test]
     public function toggle_activates_inactive_rule(): void
     {
         $user = $this->user();
@@ -250,7 +251,7 @@ class RuleApiTest extends TestCase
         $response->assertStatus(200)->assertJsonFragment(['is_active' => true]);
     }
 
-    /** @test */
+    #[Test]
     public function toggle_returns_404_for_another_users_rule(): void
     {
         $rule = Rule::factory()->create(['user_id' => $this->user()->id]);
@@ -261,7 +262,7 @@ class RuleApiTest extends TestCase
 
     // ── Destroy ────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function destroy_deletes_own_rule(): void
     {
         $user = $this->user();
@@ -273,7 +274,7 @@ class RuleApiTest extends TestCase
         $this->assertDatabaseMissing('rules', ['id' => $rule->id]);
     }
 
-    /** @test */
+    #[Test]
     public function destroy_returns_404_for_another_users_rule(): void
     {
         $rule = Rule::factory()->create(['user_id' => $this->user()->id]);
@@ -282,7 +283,7 @@ class RuleApiTest extends TestCase
         $this->deleteJson("/api/rules/{$rule->id}")->assertStatus(404);
     }
 
-    /** @test */
+    #[Test]
     public function destroying_rule_also_removes_pivot_entries(): void
     {
         $user   = $this->user();

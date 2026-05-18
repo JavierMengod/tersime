@@ -4,6 +4,7 @@ namespace Tests\Unit\Models;
 
 use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class SettingTest extends TestCase
@@ -16,27 +17,27 @@ class SettingTest extends TestCase
         Setting::query()->delete();
     }
 
-    /** @test */
+    #[Test]
     public function get_returns_null_when_key_does_not_exist(): void
     {
         $this->assertNull(Setting::get('key_that_does_not_exist'));
     }
 
-    /** @test */
+    #[Test]
     public function get_returns_default_when_key_does_not_exist(): void
     {
         $result = Setting::get('nonexistent', 'fallback_value');
         $this->assertSame('fallback_value', $result);
     }
 
-    /** @test */
+    #[Test]
     public function get_returns_stored_value_ignoring_default(): void
     {
         Setting::set('my_key', 'stored_value');
         $this->assertSame('stored_value', Setting::get('my_key', 'should_be_ignored'));
     }
 
-    /** @test */
+    #[Test]
     public function set_creates_new_record_in_database(): void
     {
         Setting::set('new_key', 'new_value');
@@ -47,7 +48,7 @@ class SettingTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function set_updates_existing_record_without_creating_duplicate(): void
     {
         Setting::set('same_key', 'initial');
@@ -57,14 +58,14 @@ class SettingTest extends TestCase
         $this->assertDatabaseCount('settings', 1);
     }
 
-    /** @test */
+    #[Test]
     public function set_stores_empty_string_as_valid_value(): void
     {
         Setting::set('empty_key', '');
         $this->assertSame('', Setting::get('empty_key', 'default'));
     }
 
-    /** @test */
+    #[Test]
     public function primary_key_is_string_and_findable_by_key_name(): void
     {
         Setting::set('find_me', '42');
@@ -75,7 +76,7 @@ class SettingTest extends TestCase
         $this->assertSame('42', $record->value);
     }
 
-    /** @test */
+    #[Test]
     public function multiple_settings_are_stored_independently(): void
     {
         Setting::set('key_a', 'value_a');
@@ -88,13 +89,13 @@ class SettingTest extends TestCase
         $this->assertDatabaseCount('settings', 3);
     }
 
-    /** @test */
+    #[Test]
     public function get_returns_null_default_when_no_default_given_and_key_missing(): void
     {
         $this->assertNull(Setting::get('missing_key'));
     }
 
-    /** @test */
+    #[Test]
     public function set_can_overwrite_with_numeric_string(): void
     {
         Setting::set('timeout', '30');

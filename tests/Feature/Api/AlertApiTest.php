@@ -6,6 +6,7 @@ use App\Models\AlertLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AlertApiTest extends TestCase
@@ -21,13 +22,13 @@ class AlertApiTest extends TestCase
 
     // ── Autorización ───────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function index_requires_authentication(): void
     {
         $this->getJson('/api/alerts')->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function index_returns_only_current_users_alerts(): void
     {
         $user  = $this->authAs();
@@ -43,7 +44,7 @@ class AlertApiTest extends TestCase
 
     // ── Paginación ─────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function index_returns_paginated_results_with_default_20_per_page(): void
     {
         $user = $this->authAs();
@@ -57,7 +58,7 @@ class AlertApiTest extends TestCase
         $this->assertSame(20, $response->json('per_page'));
     }
 
-    /** @test */
+    #[Test]
     public function index_respects_per_page_param(): void
     {
         $user = $this->authAs();
@@ -68,7 +69,7 @@ class AlertApiTest extends TestCase
         $this->assertCount(5, $response->json('data'));
     }
 
-    /** @test */
+    #[Test]
     public function index_validates_per_page_maximum_is_100(): void
     {
         $this->authAs();
@@ -77,7 +78,7 @@ class AlertApiTest extends TestCase
 
     // ── Filtro por dispositivo ─────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function filter_by_device_returns_only_matching_logs(): void
     {
         $user = $this->authAs();
@@ -101,7 +102,7 @@ class AlertApiTest extends TestCase
 
     // ── Filtro por regla ───────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function filter_by_rule_returns_only_matching_logs(): void
     {
         $user = $this->authAs();
@@ -121,7 +122,7 @@ class AlertApiTest extends TestCase
 
     // ── Filtro por tipo ────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function filter_by_type_firing_returns_only_firing_logs(): void
     {
         $user = $this->authAs();
@@ -136,7 +137,7 @@ class AlertApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function filter_by_type_resolution_returns_only_resolution_logs(): void
     {
         $user = $this->authAs();
@@ -150,7 +151,7 @@ class AlertApiTest extends TestCase
 
     // ── Filtro por fecha ───────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function filter_by_from_date_excludes_older_logs(): void
     {
         $user = $this->authAs();
@@ -173,7 +174,7 @@ class AlertApiTest extends TestCase
         $this->assertSame(2, $response->json('total'));
     }
 
-    /** @test */
+    #[Test]
     public function filter_by_to_date_excludes_newer_logs(): void
     {
         $user = $this->authAs();
@@ -192,7 +193,7 @@ class AlertApiTest extends TestCase
         $this->assertSame(1, $response->json('total'));
     }
 
-    /** @test */
+    #[Test]
     public function from_and_to_filters_can_be_combined(): void
     {
         $user = $this->authAs();
@@ -209,7 +210,7 @@ class AlertApiTest extends TestCase
         $this->assertSame(2, $response->json('total'));
     }
 
-    /** @test */
+    #[Test]
     public function from_date_must_be_valid_date_format(): void
     {
         $this->authAs();
@@ -218,7 +219,7 @@ class AlertApiTest extends TestCase
 
     // ── Orden ──────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function results_are_ordered_by_created_at_descending(): void
     {
         $user = $this->authAs();

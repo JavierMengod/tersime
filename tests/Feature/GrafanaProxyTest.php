@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class GrafanaProxyTest extends TestCase
@@ -27,13 +28,13 @@ class GrafanaProxyTest extends TestCase
 
     // ── Autenticación ──────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function unauthenticated_request_redirects_to_login(): void
     {
         $this->get('/grafana/d/dashboard-id/panel')->assertRedirect(route('login'));
     }
 
-    /** @test */
+    #[Test]
     public function unauthenticated_api_request_redirects_to_login(): void
     {
         $this->get('/grafana/api/dashboards/uid/abc123')->assertRedirect(route('login'));
@@ -41,7 +42,7 @@ class GrafanaProxyTest extends TestCase
 
     // ── Cabecera X-WEBAUTH-USER ────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function proxy_injects_x_webauth_user_header_with_user_email(): void
     {
         Http::fake([
@@ -55,7 +56,7 @@ class GrafanaProxyTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function proxy_uses_authenticated_users_email_not_a_generic_value(): void
     {
         $other = User::factory()->create(['email' => 'other@tersime.com']);
@@ -73,7 +74,7 @@ class GrafanaProxyTest extends TestCase
 
     // ── Respuesta del proxy ────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function proxy_returns_grafana_response_body_and_status(): void
     {
         Http::fake([
@@ -86,7 +87,7 @@ class GrafanaProxyTest extends TestCase
         $this->assertStringContainsString('grafana dashboard html', $response->getContent());
     }
 
-    /** @test */
+    #[Test]
     public function proxy_forwards_non_200_status_codes_from_grafana(): void
     {
         Http::fake([
@@ -98,7 +99,7 @@ class GrafanaProxyTest extends TestCase
         $response->assertStatus(404);
     }
 
-    /** @test */
+    #[Test]
     public function proxy_returns_502_when_grafana_is_unreachable(): void
     {
         Http::fake([
@@ -115,7 +116,7 @@ class GrafanaProxyTest extends TestCase
 
     // ── Cabeceras de seguridad ─────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function proxy_strips_x_frame_options_from_grafana_response(): void
     {
         Http::fake([
@@ -130,7 +131,7 @@ class GrafanaProxyTest extends TestCase
         $this->assertNull($response->headers->get('X-Frame-Options'));
     }
 
-    /** @test */
+    #[Test]
     public function proxy_strips_content_security_policy_from_grafana_response(): void
     {
         Http::fake([
@@ -145,7 +146,7 @@ class GrafanaProxyTest extends TestCase
         $this->assertNull($response->headers->get('Content-Security-Policy'));
     }
 
-    /** @test */
+    #[Test]
     public function proxy_passes_through_cache_control_header(): void
     {
         Http::fake([
@@ -164,7 +165,7 @@ class GrafanaProxyTest extends TestCase
 
     // ── Rutas y métodos ────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function proxy_forwards_query_string_to_grafana(): void
     {
         Http::fake([
@@ -179,7 +180,7 @@ class GrafanaProxyTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function proxy_constructs_upstream_url_from_setting(): void
     {
         Setting::set('grafana_base_url', 'http://custom-grafana:4000/grafana');
@@ -195,7 +196,7 @@ class GrafanaProxyTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function proxy_supports_post_method_for_api_queries(): void
     {
         Http::fake([
@@ -213,7 +214,7 @@ class GrafanaProxyTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function proxy_injects_x_webauth_user_even_on_post_requests(): void
     {
         Http::fake([
@@ -231,7 +232,7 @@ class GrafanaProxyTest extends TestCase
 
     // ── Content-Type ───────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function proxy_preserves_json_content_type_from_grafana(): void
     {
         Http::fake([
@@ -243,7 +244,7 @@ class GrafanaProxyTest extends TestCase
         $this->assertStringContainsString('application/json', $response->headers->get('Content-Type'));
     }
 
-    /** @test */
+    #[Test]
     public function proxy_preserves_javascript_content_type_from_grafana(): void
     {
         Http::fake([

@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class PrediccionApiTest extends TestCase
@@ -26,7 +27,7 @@ class PrediccionApiTest extends TestCase
 
     // ── Acceso público ─────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function endpoint_is_publicly_accessible_without_token(): void
     {
         $this->mock(InfluxService::class, function ($m) {
@@ -41,7 +42,7 @@ class PrediccionApiTest extends TestCase
 
     // ── Validación de parámetros ───────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function missing_start_returns_422(): void
     {
         $this->getJson('/api/prediction?stop=2024-01-31&device=DEV-001')
@@ -49,7 +50,7 @@ class PrediccionApiTest extends TestCase
              ->assertJsonValidationErrors('start');
     }
 
-    /** @test */
+    #[Test]
     public function missing_stop_returns_422(): void
     {
         $this->getJson('/api/prediction?start=2024-01-01&device=DEV-001')
@@ -57,7 +58,7 @@ class PrediccionApiTest extends TestCase
              ->assertJsonValidationErrors('stop');
     }
 
-    /** @test */
+    #[Test]
     public function missing_device_returns_422(): void
     {
         $this->getJson('/api/prediction?start=2024-01-01&stop=2024-01-31')
@@ -67,7 +68,7 @@ class PrediccionApiTest extends TestCase
 
     // ── Configuración ──────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function returns_503_when_predictor_url_not_configured(): void
     {
         Setting::set('predictor_url', '');
@@ -82,7 +83,7 @@ class PrediccionApiTest extends TestCase
              ->assertJsonFragment(['message' => 'Servicio de predicción no configurado.']);
     }
 
-    /** @test */
+    #[Test]
     public function returns_422_when_no_historical_data(): void
     {
         $this->mock(InfluxService::class, function ($m) {
@@ -95,7 +96,7 @@ class PrediccionApiTest extends TestCase
              ->assertJsonFragment(['message' => 'Sin datos históricos para este dispositivo.']);
     }
 
-    /** @test */
+    #[Test]
     public function returns_502_when_predictor_service_fails(): void
     {
         $this->mock(InfluxService::class, function ($m) {
@@ -112,7 +113,7 @@ class PrediccionApiTest extends TestCase
 
     // ── Formato de respuesta ───────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function returns_json_array_with_metric_time_value_keys(): void
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
@@ -142,7 +143,7 @@ class PrediccionApiTest extends TestCase
         Carbon::setTestNow();
     }
 
-    /** @test */
+    #[Test]
     public function real_data_is_filtered_to_start_stop_range(): void
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
@@ -167,7 +168,7 @@ class PrediccionApiTest extends TestCase
         Carbon::setTestNow();
     }
 
-    /** @test */
+    #[Test]
     public function past_predictions_are_excluded(): void
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
@@ -193,7 +194,7 @@ class PrediccionApiTest extends TestCase
         Carbon::setTestNow();
     }
 
-    /** @test */
+    #[Test]
     public function predictions_with_bounds_produce_three_series(): void
     {
         Carbon::setTestNow('2024-01-15 12:00:00');
@@ -221,7 +222,7 @@ class PrediccionApiTest extends TestCase
         Carbon::setTestNow();
     }
 
-    /** @test */
+    #[Test]
     public function predictions_without_bounds_produce_only_main_series(): void
     {
         Carbon::setTestNow('2024-01-15 12:00:00');

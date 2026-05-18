@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AuthApiTest extends TestCase
@@ -13,7 +14,7 @@ class AuthApiTest extends TestCase
 
     // ── Login ──────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function user_can_login_with_valid_credentials_and_receives_token(): void
     {
         User::factory()->create([
@@ -36,7 +37,7 @@ class AuthApiTest extends TestCase
         $this->assertNotEmpty($response->json('token'));
     }
 
-    /** @test */
+    #[Test]
     public function login_creates_personal_access_token_in_database(): void
     {
         $user = User::factory()->create(['password' => bcrypt('pass')]);
@@ -51,7 +52,7 @@ class AuthApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function login_uses_device_name_for_token_when_provided(): void
     {
         $user = User::factory()->create(['password' => bcrypt('pass')]);
@@ -68,7 +69,7 @@ class AuthApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function login_returns_401_with_wrong_password(): void
     {
         User::factory()->create([
@@ -83,7 +84,7 @@ class AuthApiTest extends TestCase
           ->assertJsonFragment(['message' => 'Credenciales incorrectas.']);
     }
 
-    /** @test */
+    #[Test]
     public function login_returns_401_for_nonexistent_user(): void
     {
         $this->postJson('/api/auth/login', [
@@ -92,7 +93,7 @@ class AuthApiTest extends TestCase
         ])->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function login_returns_403_for_disabled_user(): void
     {
         User::factory()->disabled()->create([
@@ -107,7 +108,7 @@ class AuthApiTest extends TestCase
           ->assertJsonFragment(['message' => 'Esta cuenta está deshabilitada.']);
     }
 
-    /** @test */
+    #[Test]
     public function login_returns_422_when_name_is_missing(): void
     {
         $this->postJson('/api/auth/login', ['password' => 'pass'])
@@ -115,7 +116,7 @@ class AuthApiTest extends TestCase
              ->assertJsonValidationErrors(['name']);
     }
 
-    /** @test */
+    #[Test]
     public function login_returns_422_when_password_is_missing(): void
     {
         $this->postJson('/api/auth/login', ['name' => 'user'])
@@ -125,7 +126,7 @@ class AuthApiTest extends TestCase
 
     // ── Me ─────────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function authenticated_user_can_get_their_profile(): void
     {
         $user = User::factory()->create(['admin' => true, 'language' => 'en']);
@@ -143,7 +144,7 @@ class AuthApiTest extends TestCase
              ]);
     }
 
-    /** @test */
+    #[Test]
     public function unauthenticated_request_to_me_returns_401(): void
     {
         $this->getJson('/api/auth/me')->assertStatus(401);
@@ -151,7 +152,7 @@ class AuthApiTest extends TestCase
 
     // ── Logout ─────────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function logout_deletes_the_current_access_token(): void
     {
         $user  = User::factory()->create();
@@ -165,7 +166,7 @@ class AuthApiTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
-    /** @test */
+    #[Test]
     public function logout_only_deletes_current_token_not_others(): void
     {
         $user         = User::factory()->create();
@@ -180,7 +181,7 @@ class AuthApiTest extends TestCase
         $this->assertDatabaseHas('personal_access_tokens', ['name' => 'other-device']);
     }
 
-    /** @test */
+    #[Test]
     public function unauthenticated_logout_returns_401(): void
     {
         $this->postJson('/api/auth/logout')->assertStatus(401);

@@ -12,6 +12,7 @@ use App\Notifications\NotificacionAlerta;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class CheckRulesCommandTest extends TestCase
@@ -60,7 +61,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── ok → firing (for_duration = 0) ────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function ok_transitions_to_firing_immediately_when_condition_met_and_no_duration(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -81,7 +82,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertNull($pivot->pending_since);
     }
 
-    /** @test */
+    #[Test]
     public function ok_stays_ok_when_condition_not_met(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -98,7 +99,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── ok → pending (for_duration > 0) ───────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function ok_transitions_to_pending_when_condition_met_and_duration_set(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->withDuration(15)->create([
@@ -117,7 +118,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── pending → firing (duration elapsed) ───────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function pending_transitions_to_firing_after_duration_elapsed(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->withDuration(15)->create([
@@ -137,7 +138,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertSame('firing', $pivot->alert_state);
     }
 
-    /** @test */
+    #[Test]
     public function pending_stays_pending_when_duration_not_yet_elapsed(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->withDuration(60)->create([
@@ -155,7 +156,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── pending → ok (false alarm) ─────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function pending_resets_to_ok_when_condition_resolves_before_firing(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->withDuration(15)->create([
@@ -175,7 +176,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── firing → ok (resolution) ──────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function firing_transitions_to_ok_when_condition_resolves(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -195,7 +196,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertNull($pivot->pending_since);
     }
 
-    /** @test */
+    #[Test]
     public function firing_stays_firing_when_condition_still_met(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -212,7 +213,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── AlertLog creation ──────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function firing_transition_creates_alert_log_with_type_firing(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -236,7 +237,7 @@ class CheckRulesCommandTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function resolution_transition_creates_alert_log_with_type_resolution(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -258,7 +259,7 @@ class CheckRulesCommandTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function alert_log_records_multiple_enabled_channels(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -282,7 +283,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertContains('discord', $log->channels);
     }
 
-    /** @test */
+    #[Test]
     public function alert_log_records_device_name_and_rule_name(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -305,7 +306,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── Null / sin datos ───────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function null_influx_value_triggers_alert_regardless_of_operator(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -321,7 +322,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
     }
 
-    /** @test */
+    #[Test]
     public function null_value_alert_log_message_mentions_sin_datos(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -341,7 +342,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── Regla inactiva ─────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function inactive_rule_is_not_evaluated(): void
     {
         $rule = Rule::factory()->inactive()->withOperator('>', 100)->create([
@@ -362,7 +363,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── Operadores ─────────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function operator_less_than_triggers_when_value_below_threshold(): void
     {
         $rule = Rule::factory()->withOperator('<', 50)->create([
@@ -378,7 +379,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
     }
 
-    /** @test */
+    #[Test]
     public function operator_less_than_does_not_trigger_when_value_above_threshold(): void
     {
         $rule = Rule::factory()->withOperator('<', 50)->create([
@@ -392,7 +393,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertSame('ok', $rule->dispositivos()->first()->pivot->alert_state);
     }
 
-    /** @test */
+    #[Test]
     public function operator_equals_triggers_only_on_exact_match(): void
     {
         $rule = Rule::factory()->withOperator('==', 100.0)->create([
@@ -408,7 +409,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
     }
 
-    /** @test */
+    #[Test]
     public function operator_not_equals_triggers_when_values_differ(): void
     {
         $rule = Rule::factory()->withOperator('!=', 100.0)->create([
@@ -426,7 +427,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── Notificaciones ─────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function firing_dispatches_database_notification_to_user(): void
     {
         Notification::fake();
@@ -445,7 +446,7 @@ class CheckRulesCommandTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function resolution_dispatches_database_notification_to_user(): void
     {
         Notification::fake();
@@ -464,7 +465,7 @@ class CheckRulesCommandTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function no_notification_dispatched_while_rule_stays_firing(): void
     {
         Notification::fake();
@@ -480,7 +481,7 @@ class CheckRulesCommandTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    /** @test */
+    #[Test]
     public function email_notification_sent_when_email_enabled_and_recipient_set(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -505,7 +506,7 @@ class CheckRulesCommandTest extends TestCase
         $this->artisan('rules:check')->assertExitCode(0);
     }
 
-    /** @test */
+    #[Test]
     public function email_not_sent_when_recipient_email_is_null(): void
     {
         $rule = Rule::factory()->withOperator('>', 100)->create([
@@ -528,7 +529,7 @@ class CheckRulesCommandTest extends TestCase
 
     // ── Múltiples reglas ───────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function command_evaluates_multiple_active_rules_independently(): void
     {
         $rule1 = Rule::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
@@ -560,7 +561,7 @@ class CheckRulesCommandTest extends TestCase
         $this->assertDatabaseCount('alert_logs', 2);
     }
 
-    /** @test */
+    #[Test]
     public function inactive_rules_are_skipped_while_active_rules_are_evaluated(): void
     {
         $active   = Rule::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);

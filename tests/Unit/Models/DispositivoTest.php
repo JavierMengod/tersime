@@ -5,13 +5,14 @@ namespace Tests\Unit\Models;
 use App\Models\Dispositivo;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class DispositivoTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function nombre_returns_influx_tag_as_fallback_when_no_user_context(): void
     {
         $device = Dispositivo::factory()->create(['influx_tag' => 'RAW_TAG_001']);
@@ -19,7 +20,7 @@ class DispositivoTest extends TestCase
         $this->assertSame('RAW_TAG_001', $device->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function nombre_returns_pivot_nombre_when_loaded_via_user_relation(): void
     {
         $user   = User::factory()->create();
@@ -35,7 +36,7 @@ class DispositivoTest extends TestCase
         $this->assertSame('Medidor Planta Baja', $loaded->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function nombre_returns_db_lookup_for_authenticated_user_without_pivot(): void
     {
         $user   = User::factory()->create();
@@ -52,7 +53,7 @@ class DispositivoTest extends TestCase
         $this->assertSame('Contador Principal', $fresh->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function nombre_returns_influx_tag_for_authenticated_user_with_no_association(): void
     {
         $user   = User::factory()->create();
@@ -63,7 +64,7 @@ class DispositivoTest extends TestCase
         $this->assertSame('ORPHAN_DEV', $device->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function belongs_to_many_users_with_nombre_pivot(): void
     {
         $user1  = User::factory()->create();
@@ -78,7 +79,7 @@ class DispositivoTest extends TestCase
         $this->assertTrue($device->usuarios->contains($user2));
     }
 
-    /** @test */
+    #[Test]
     public function different_users_can_assign_different_nombres_to_same_device(): void
     {
         $user1  = User::factory()->create();
@@ -95,7 +96,7 @@ class DispositivoTest extends TestCase
         $this->assertSame('Nombre User2', $fromUser2->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function habilitado_pivot_filters_devices_correctly(): void
     {
         $user     = User::factory()->create();
