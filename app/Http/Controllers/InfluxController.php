@@ -15,10 +15,17 @@ class InfluxController
 
     public function __construct()
     {
-        $this->bucket      = Setting::get('influxdb_bucket') ?: config('app.influx_bucket', 'PINZAS');
-        $this->influxUrl   = rtrim(Setting::get('influxdb_url') ?: env('INFLUXDB_URL', 'http://localhost:8086'), '/')
-            . '/api/v2/query?org=' . (Setting::get('influxdb_org') ?: env('INFLUXDB_ORG', 'tersime'));
-        $this->influxToken = Setting::get('influxdb_token') ?: env('INFLUXDB_TOKEN', '');
+        $this->bucket      = Setting::get('influxdb_bucket') ?: config('tersime.influxdb.bucket', 'PINZAS');
+        $this->influxUrl   = rtrim(Setting::get('influxdb_url') ?: config('tersime.influxdb.url', 'http://localhost:8086'), '/')
+            . '/api/v2/query?org=' . (Setting::get('influxdb_org') ?: config('tersime.influxdb.org', 'tersime'));
+        $this->influxToken = Setting::get('influxdb_token') ?: config('tersime.influxdb.token', '');
+
+        if (empty($this->influxToken)) {
+            Log::warning('[InfluxController] influxdb_token no configurado — las queries fallarán con HTTP 401');
+        }
+        if (empty($this->bucket)) {
+            Log::warning('[InfluxController] influxdb_bucket no configurado');
+        }
     }
 
     // ---------------------------------------------------------
@@ -27,6 +34,7 @@ class InfluxController
 
     public function consumoTotal(string $device, string $start, string $stop): float
     {
+        $device    = $this->sanitizeTag($device);
         $startFlux = $this->fluxTimeLiteral($start, true);
         $stopFlux  = $this->fluxTimeLiteral($stop, false);
 
@@ -53,6 +61,7 @@ FLUX;
 
     public function datosHorarios(string $device, string $start, string $stop): array
     {
+        $device    = $this->sanitizeTag($device);
         $startFlux = $this->fluxTimeLiteral($start, true);
         $stopFlux  = $this->fluxTimeLiteral($stop, false);
 
@@ -68,6 +77,7 @@ FLUX;
 
     public function datosDiarios(string $device, string $start, string $stop): array
     {
+        $device    = $this->sanitizeTag($device);
         $startFlux = $this->fluxTimeLiteral($start, true);
         $stopFlux  = $this->fluxTimeLiteral($stop, false);
 
@@ -85,27 +95,51 @@ FLUX;
 
     public function datosEstadisticos(string $device, string $start, string $stop): array
     {
-        $startFlux  = $this->fluxTimeLiteral($start, true);
-        $stopFlux   = $this->fluxTimeLiteral($stop, false);
-        $baseFilter = <<<FLUX
-from(bucket: "{$this->bucket}")
+        $device    = $this->sanitizeTag($device);
+        $startFlux = $this->fluxTimeLiteral($start, true);
+        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+
+        $flux = <<<FLUX
+import "math"
+
+data = from(bucket: "{$this->bucket}")
   |> range(start: {$startFlux}, stop: {$stopFlux})
-  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
+  |> filter(fn: (r) =>
+       r._measurement == "hourly" and
+       r._field == "kwh" and
+       r.name == "{$device}"
+  )
+  |> group()
+
+data
+  |> reduce(
+      identity: {n: 0.0, sum: 0.0, min: 9999999.0, max: -9999999.0, sumSq: 0.0},
+      fn: (r, accumulator) => ({
+          n:     accumulator.n + 1.0,
+          sum:   accumulator.sum + r._value,
+          min:   if r._value < accumulator.min   then r._value else accumulator.min,
+          max:   if r._value > accumulator.max   then r._value else accumulator.max,
+          sumSq: accumulator.sumSq + r._value * r._value
+      })
+  )
+  |> map(fn: (r) => ({
+      mean:   if r.n > 0.0 then r.sum / r.n else 0.0,
+      stddev: if r.n > 1.0 then math.sqrt(x: (r.sumSq - r.sum * r.sum / r.n) / (r.n - 1.0)) else 0.0,
+      max:    if r.max > -9999999.0 then r.max else 0.0,
+      min:    if r.min <  9999999.0 then r.min else 0.0,
+      sum:    r.sum
+  }))
+  |> keep(columns: ["mean", "stddev", "max", "min", "sum"])
 FLUX;
 
         $result = ['mean' => null, 'stddev' => null, 'max' => null, 'min' => null, 'sum' => null];
-
-        foreach (array_keys($result) as $fn) {
-            $q    = $baseFilter . "\n  |> {$fn}(column: \"_value\") |> keep(columns:[\"_value\"]) |> limit(n:1)";
-            $rows = $this->query($q);
-            foreach ($rows as $row) {
-                foreach ($row as $v) {
-                    if (is_numeric($v)) {
-                        $result[$fn] = (float) $v;
-                        break 2;
-                    }
+        foreach ($this->query($flux) as $row) {
+            foreach (['mean', 'stddev', 'max', 'min', 'sum'] as $key) {
+                if (isset($row[$key]) && is_numeric($row[$key])) {
+                    $result[$key] = (float) $row[$key];
                 }
             }
+            break;
         }
 
         return $result;
@@ -114,11 +148,21 @@ FLUX;
     public function resumen(string $device, string $start, string $stop): array
     {
         try {
-            return [
-                'total' => $this->consumoTotal($device, $start, $stop),
-                'horas' => $this->datosHorarios($device, $start, $stop),
-                'dias'  => $this->datosDiarios($device, $start, $stop),
-            ];
+            $horas = $this->datosHorarios($device, $start, $stop);
+
+            $total = array_sum($horas);
+
+            // Aggregate hourly into daily using local timezone so 23:00 UTC = 00:00 Madrid
+            // falls in the correct calendar day.
+            $tz   = config('app.timezone', 'Europe/Madrid');
+            $dias = [];
+            foreach ($horas as $ts => $kwh) {
+                $day = Carbon::parse($ts)->setTimezone($tz)->startOfDay()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                $dias[$day] = ($dias[$day] ?? 0.0) + (float) $kwh;
+            }
+            ksort($dias);
+
+            return ['total' => $total, 'horas' => $horas, 'dias' => $dias];
         } catch (\Throwable $e) {
             Log::error('[InfluxController] resumen ERROR', ['error' => $e->getMessage()]);
             return ['total' => 0, 'horas' => [], 'dias' => []];
@@ -146,6 +190,7 @@ FLUX;
 
     public function factorCarga(string $device = 'general', string $start = null, string $stop = null): ?float
     {
+        $device = $this->sanitizeTag($device);
         if (empty($device)) {
             Log::error('[InfluxController] factorCarga: parámetro device vacío');
             return null;
@@ -195,11 +240,17 @@ FLUX;
             }
         }
 
+        Log::info('[InfluxController] factorCarga sin resultado (sin datos en el período)', [
+            'device' => $device,
+            'start'  => $start,
+            'stop'   => $stop,
+        ]);
         return null;
     }
 
     public function mediaPorHora(string $device, string $start, string $stop): array
     {
+        $device = $this->sanitizeTag($device);
         try {
             $tz        = config('app.timezone', 'Europe/Madrid');
             $baseDate  = '2025-01-01';
@@ -231,7 +282,8 @@ FLUX;
             foreach ($this->query($flux) as $row) {
                 if (!isset($row['_time'], $row['_value']) || !is_numeric($row['_value'])) continue;
                 try {
-                    $h          = Carbon::parse($row['_time'])->setTimezone('UTC')->format('H');
+                    // Parse preserving the offset from the string so format('H') gives local hour.
+                    $h          = Carbon::parse($row['_time'])->format('H');
                     $result[$h] = (float) $row['_value'];
                 } catch (\Throwable $e) {
                     Log::warning('[InfluxController] mediaPorHora: timestamp inválido', [
@@ -241,7 +293,6 @@ FLUX;
                 }
             }
 
-            Log::debug("[InfluxController][mediaPorHora][{$device}] " . json_encode($result));
             return $result;
 
         } catch (\Throwable $e) {
@@ -257,6 +308,7 @@ FLUX;
 
     public function datosParaPrediccion(string $device, string $stop): array
     {
+        $device    = $this->sanitizeTag($device);
         $startFlux = $this->fluxTimeLiteral(Carbon::parse($stop)->subYear()->format('Y-m-d'), true);
         $stopFlux  = $this->fluxTimeLiteral($stop, false);
 
@@ -289,6 +341,7 @@ FLUX;
 
     public function ultimoValor(string $device): ?float
     {
+        $device = $this->sanitizeTag($device);
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
   |> range(start: -24h)
@@ -312,7 +365,7 @@ FLUX;
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
   |> range(start: -2y)
-  |> filter(fn: (r) => r._measurement == "daily" and r._field == "kwh_total")
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh")
   |> distinct(column: "name")
   |> keep(columns: ["name"])
 FLUX;
@@ -333,26 +386,38 @@ FLUX;
     //  PRIVATE HELPERS
     // ---------------------------------------------------------
 
-    private function query(string $flux, int $timeout = 30): array
+    private function query(string $flux, int $timeout = 30, int $maxRetries = 2): array
     {
-        $response = Http::withHeaders([
+        $headers = [
             'Authorization' => "Token {$this->influxToken}",
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/csv',
-        ])->timeout($timeout)->post($this->influxUrl, [
+        ];
+        $body = [
             'query'   => $flux,
             'dialect' => ['header' => true, 'delimiter' => ','],
-        ]);
+        ];
 
-        if (!$response->successful()) {
-            Log::error('[InfluxController] query error', [
-                'status' => $response->status(),
-                'body'   => substr($response->body(), 0, 500),
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            $response = Http::withHeaders($headers)->timeout($timeout)->post($this->influxUrl, $body);
+
+            if ($response->successful()) {
+                return $this->parseCsv($response->body());
+            }
+
+            Log::warning('[InfluxController] query error', [
+                'status'  => $response->status(),
+                'attempt' => $attempt,
+                'body'    => substr($response->body(), 0, 300),
             ]);
-            return [];
+
+            if ($attempt < $maxRetries) {
+                sleep(1);
+            }
         }
 
-        return $this->parseCsv($response->body());
+        Log::error('[InfluxController] query falló tras reintentos');
+        return [];
     }
 
     private function parseCsv(string $csv): array
@@ -407,12 +472,26 @@ FLUX;
         return gmdate('Y-m-d\TH:i:s\Z', $sec);
     }
 
-    private function fluxTimeLiteral(string $ymd, bool $startOfDay = true): string
+    private function sanitizeTag(string $tag): string
     {
+        return str_replace(['"', "\n", "\r", '\\'], '', $tag);
+    }
+
+    private function fluxTimeLiteral(string $date, bool $startOfDay = true): string
+    {
+        // Si la cadena ya contiene hora (datetime completo), respetarla sin redondear
+        if (strlen($date) > 10) {
+            try {
+                return Carbon::parse($date)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
+            } catch (\Throwable $e) {
+                // cae al bloque de fecha-pura
+            }
+        }
+
         try {
-            $dt = Carbon::createFromFormat('Y-m-d', $ymd, config('app.timezone'));
+            $dt = Carbon::createFromFormat('Y-m-d', $date, config('app.timezone'));
         } catch (\Throwable $e) {
-            $dt = Carbon::parse($ymd);
+            $dt = Carbon::parse($date);
         }
 
         $dt = $startOfDay ? $dt->startOfDay() : $dt->endOfDay();

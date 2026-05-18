@@ -5,11 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\ProgramacionInformes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ProgramacionInformesController extends Controller
 {
     public function store(Request $request)
     {
+        if (ProgramacionInformes::where('user_id', Auth::id())->count() >= 10) {
+            return back()->withErrors(['nombre' => 'Has alcanzado el límite de 10 programaciones.']);
+        }
+
         $data = $this->validar($request);
 
         $programacion = ProgramacionInformes::create([
@@ -17,12 +22,11 @@ class ProgramacionInformesController extends Controller
             'nombre'         => $data['nombre'],
             'tipo_periodo'   => $data['tipo_periodo'],
             'valor_periodo'  => $data['valor_periodo'],
-            'periodicidad'   => $this->calcularPeriodicidad($data['tipo_periodo'], $data['valor_periodo']),
-            'telegram'       => $request->has('telegram'),
-            'discord'        => $request->has('discord'),
-            'correo'         => $request->has('correo'),
+            'telegram'       => $data['telegram'] ?? false,
+            'discord'        => $data['discord'] ?? false,
+            'correo'         => $data['correo'] ?? false,
             'correo_destino' => $data['correo_destino'] ?? null,
-            'activo'         => $request->has('activo'),
+            'activo'         => $data['activo'] ?? false,
         ]);
 
         $programacion->dispositivos()->sync($data['dispositivos']);
@@ -41,12 +45,11 @@ class ProgramacionInformesController extends Controller
             'nombre'         => $data['nombre'],
             'tipo_periodo'   => $data['tipo_periodo'],
             'valor_periodo'  => $data['valor_periodo'],
-            'periodicidad'   => $this->calcularPeriodicidad($data['tipo_periodo'], $data['valor_periodo']),
-            'telegram'       => $request->has('telegram'),
-            'discord'        => $request->has('discord'),
-            'correo'         => $request->has('correo'),
+            'telegram'       => $data['telegram'] ?? false,
+            'discord'        => $data['discord'] ?? false,
+            'correo'         => $data['correo'] ?? false,
             'correo_destino' => $data['correo_destino'] ?? null,
-            'activo'         => $request->has('activo'),
+            'activo'         => $data['activo'] ?? false,
         ]);
 
         $programacion->dispositivos()->sync($data['dispositivos']);
@@ -79,9 +82,9 @@ class ProgramacionInformesController extends Controller
         return $request->validate([
             'nombre'         => 'required|string|max:255',
             'tipo_periodo'   => 'required|in:horas,dias,meses',
-            'valor_periodo'  => 'required|integer|min:1',
+            'valor_periodo'  => 'required|integer|min:1|max:8760',
             'dispositivos'   => 'required|array|min:1',
-            'dispositivos.*' => 'integer|exists:dispositivos,id',
+            'dispositivos.*' => ['integer', Rule::exists('user_dispositivo', 'dispositivo_id')->where('user_id', Auth::id())],
             'correo'         => 'sometimes|boolean',
             'correo_destino' => 'nullable|email|required_if:correo,1',
             'telegram'       => 'sometimes|boolean',
@@ -90,12 +93,4 @@ class ProgramacionInformesController extends Controller
         ]);
     }
 
-    private function calcularPeriodicidad(string $tipo, int $valor): int
-    {
-        switch ($tipo) {
-            case 'dias':   return $valor * 24;
-            case 'meses':  return $valor * 24 * 30;
-            default:       return $valor;
-        }
-    }
 }

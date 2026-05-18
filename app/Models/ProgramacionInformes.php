@@ -15,7 +15,6 @@ class ProgramacionInformes extends Model
     protected $fillable = [
         'user_id',
         'nombre',
-        'periodicidad',
         'tipo_periodo',
         'valor_periodo',
         'telegram',
@@ -77,10 +76,10 @@ class ProgramacionInformes extends Model
 
         $valor = (int) ($this->valor_periodo ?? 1);
 
-        return match ($this->tipo_periodo ?? 'horas') {
-            'meses' => $this->last_run_at->copy()->addMonths($valor),
-            'dias'  => $this->last_run_at->copy()->addDays($valor),
-            default => $this->last_run_at->copy()->addHours($valor),
-        };
+        switch ($this->tipo_periodo ?? 'horas') {
+            case 'meses': return $this->last_run_at->copy()->addMonths($valor);
+            case 'dias':  return $this->last_run_at->copy()->addDays($valor);
+            default:      return $this->last_run_at->copy()->addHours($valor);
+        }
     }
 }

@@ -14,23 +14,27 @@ class Informe extends Model
         'pdf_path',
         'periodo_from',
         'periodo_to',
-        'periodicidad',
-        'notificaciones',
         'correo_destino',
-        'activo',
         'telegram',
         'discord',
         'correo',
         'size_bytes',
         'generated_at',
+        'status',
+        'error_message',
     ];
 
     protected $casts = [
-        'notificaciones' => 'array',
+        'user_id'      => 'integer',
         'generated_at' => 'datetime',
         'periodo_from' => 'date',
-        'periodo_to' => 'date',
+        'periodo_to'   => 'date',
     ];
+
+    public function isPending(): bool    { return $this->status === 'pending'; }
+    public function isProcessing(): bool { return $this->status === 'processing'; }
+    public function isCompleted(): bool  { return $this->status === 'completed'; }
+    public function isFailed(): bool     { return $this->status === 'failed'; }
 
     public function user()
     {

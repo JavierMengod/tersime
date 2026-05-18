@@ -10,11 +10,14 @@ class NotificacionInforme extends Notification
     public string $mensaje;
     public string $downloadUrl;
 
-    public function __construct(string $filename, string $fromDate, string $toDate)
+    public function __construct(int $informeId, string $fromDate, string $toDate)
     {
+        $desde = \Carbon\Carbon::parse($fromDate)->format('d/m/Y');
+        $hasta = \Carbon\Carbon::parse($toDate)->format('d/m/Y');
+
         $this->titulo      = 'Informe generado';
-        $this->mensaje     = "Tu informe del período {$fromDate} al {$toDate} está listo.";
-        $this->downloadUrl = route('informes.demanda.download', ['filename' => $filename]);
+        $this->mensaje     = "Tu informe del período {$desde} al {$hasta} está listo.";
+        $this->downloadUrl = route('informes.download', $informeId, false);
     }
 
     public function via($notifiable): array
