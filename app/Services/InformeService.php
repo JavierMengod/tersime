@@ -524,7 +524,6 @@ class InformeService
             for ($attempt = 1; $attempt <= 2; $attempt++) {
                 try {
                     $response = Http::withHeaders($headers)
-                        ->withOptions(['verify' => false])
                         ->timeout($phpTimeout)
                         ->get($url);
 

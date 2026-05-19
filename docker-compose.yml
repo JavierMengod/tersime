@@ -129,8 +129,8 @@ services:
       GF_AUTH_PROXY_AUTO_SIGN_UP:        "true"
       GF_AUTH_PROXY_WHITELIST:            ""
       GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "true"
-      # Seguridad
-      GF_AUTH_ANONYMOUS_ENABLED:         "true"
+      # Seguridad — acceso anónimo desactivado: solo usuarios autenticados en Laravel
+      GF_AUTH_ANONYMOUS_ENABLED:         "false"
       GF_AUTH_ANONYMOUS_ORG_ROLE:        "Viewer"
       GF_SECURITY_ALLOW_EMBEDDING:       "true"
       # Plugins (requiere internet en el primer arranque)

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\ValidationException;
 
 class NotificationMethodController extends Controller
 {
@@ -80,11 +81,13 @@ class NotificationMethodController extends Controller
 
             $data = $request->validate([
                 'from_address' => 'required|email',
-                'smtp_host'    => 'required|string',
-                'smtp_port'    => 'required|integer',
+                'smtp_host'    => 'required|string|max:255',
+                'smtp_port'    => 'required|integer|min:1|max:65535',
                 'smtp_user'    => 'required|string',
                 'smtp_pass'    => $cred ? 'nullable|string' : 'required|string',
             ]);
+
+            $this->assertPublicHost($data['smtp_host'], 'smtp_host');
 
             // Resolver contraseña: usar la nueva si se proporcionó, o la existente
             $rawPassword = !empty($data['smtp_pass']) ? $data['smtp_pass'] : null;
@@ -154,6 +157,8 @@ class NotificationMethodController extends Controller
                 'webhook_url' => 'required|url',
             ]);
 
+            $this->assertPublicHttpsUrl($data['webhook_url']);
+
             // Test primero
             try {
                 $response = Http::post($data['webhook_url'], [
@@ -198,6 +203,50 @@ class NotificationMethodController extends Controller
 
         Log::info("Canal {$type} desconectado para usuario {$user->id}");
         return back()->with('status', ($names[$type] ?? $type) . ' desconectado correctamente.');
+    }
+
+    /**
+     * Throws ValidationException if the URL or host resolves to a private/loopback address
+     * (SSRF protection). Only HTTPS scheme is permitted for webhook URLs.
+     */
+    private function assertPublicHttpsUrl(string $url, string $field = 'webhook_url'): void
+    {
+        $parsed = parse_url($url);
+
+        if (($parsed['scheme'] ?? '') !== 'https') {
+            throw ValidationException::withMessages([$field => 'Solo se permiten URLs con HTTPS.']);
+        }
+
+        $host = $parsed['host'] ?? '';
+        if (empty($host)) {
+            throw ValidationException::withMessages([$field => 'URL inválida.']);
+        }
+
+        $ip = gethostbyname($host);
+
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            throw ValidationException::withMessages([$field => 'No se pudo resolver el host de la URL.']);
+        }
+
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            throw ValidationException::withMessages([$field => 'La URL apunta a una dirección de red privada o reservada.']);
+        }
+    }
+
+    /**
+     * Throws ValidationException if the hostname resolves to a private/loopback address.
+     */
+    private function assertPublicHost(string $host, string $field = 'smtp_host'): void
+    {
+        $ip = gethostbyname($host);
+
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            throw ValidationException::withMessages([$field => 'No se pudo resolver el host SMTP.']);
+        }
+
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            throw ValidationException::withMessages([$field => 'El host SMTP apunta a una dirección de red privada o reservada.']);
+        }
     }
 
 }

@@ -34,7 +34,7 @@ class UserRequest extends FormRequest
         $user       = $this->route('user');
         $userId     = $user ? $user->id : null;
         $nameRule   = 'required|string|max:255|unique:users,name' . ($userId ? ",{$userId}" : '');
-        $passRule   = $userId ? 'nullable|string|min:6|confirmed' : 'required|string|min:6|confirmed';
+        $passRule   = $userId ? 'nullable|string|min:8|confirmed' : 'required|string|min:8|confirmed';
         $tzValues   = implode(',', array_keys(self::timezones()));
 
         return [
