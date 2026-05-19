@@ -3,6 +3,7 @@
 use App\Http\Controllers\AlertLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConfigController;
+use App\Http\Controllers\PasswordResetRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispositivoController;
 use App\Http\Controllers\GrafanaController;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.store');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/password/request', [PasswordResetRequestController::class, 'store'])->middleware('throttle:3,10')->name('password.request');
 
 // ── Rutas públicas: datos JSON para paneles Grafana — requieren X-Datasource-Token
 Route::get('/prediccion/obtener', [PrediccionController::class, 'obtenerDatos'])
@@ -145,10 +147,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Usuarios (solo admin) ──────────────────────────────────────────────────
-    Route::middleware(function ($request, $next) {
-        abort_unless(auth()->user()?->admin, 403);
-        return $next($request);
-    })->prefix('usuarios')->name('usuarios.')->group(function () {
+    Route::middleware('admin')->prefix('usuarios')->name('usuarios.')->group(function () {
 
         Route::get('/',               [UserController::class, 'index'])->name('index');
         Route::post('/',              [UserController::class, 'store'])->name('store');

@@ -61,7 +61,7 @@
                             @endif
 
                             <div class="text-center">
-                                <a href="#" class="small-link">{{ __('¿Olvidaste tu contraseña?') }}</a>
+                                <a href="#" class="small-link" data-bs-toggle="modal" data-bs-target="#modalResetPassword">{{ __('¿Olvidaste tu contraseña?') }}</a>
                             </div>
                         </form>
                     </section>
@@ -71,6 +71,58 @@
         </div>
     </main>
 
+    {{-- Modal: solicitud de reset de contraseña --}}
+    <div class="modal fade" id="modalResetPassword" tabindex="-1" aria-labelledby="modalResetLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalResetLabel">{{ __('Restablecer contraseña') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Cerrar') }}"></button>
+                </div>
+
+                @if(session('reset_sent'))
+                <div class="modal-body">
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        {{ __('Tu solicitud ha sido enviada. Un administrador recibirá una notificación y restablecerá tu acceso en breve.') }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cerrar') }}</button>
+                </div>
+                @else
+                <form action="{{ route('password.request') }}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="text-muted small">{{ __('Introduce tu nombre de usuario y se notificará a los administradores del sistema para que restablezcan tu acceso.') }}</p>
+                        <div class="mb-0">
+                            <label for="reset_username" class="form-label">{{ __('Nombre de usuario') }}</label>
+                            <input type="text" class="form-control @error('username') is-invalid @enderror"
+                                   id="reset_username" name="username"
+                                   value="{{ old('username') }}" required autocomplete="username">
+                            @error('username')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancelar') }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Enviar solicitud') }}</button>
+                    </div>
+                </form>
+                @endif
+            </div>
+        </div>
+    </div>
+
     <script src="{{ asset('assets/bootstrap/js/bootstrap.min.js') }}"></script>
+    @if(session('reset_sent') || $errors->has('username'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modal = new bootstrap.Modal(document.getElementById('modalResetPassword'));
+            modal.show();
+        });
+    </script>
+    @endif
 </body>
 </html>

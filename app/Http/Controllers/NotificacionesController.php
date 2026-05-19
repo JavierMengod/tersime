@@ -19,6 +19,31 @@ class NotificacionesController extends Controller
 
         $feed = collect();
 
+        // Solicitudes de reset de contraseña — solo visibles para admins
+        if ($user->admin) {
+            $resetSolicitudes = $user->notifications()
+                ->where('data->tipo', 'reset_password')
+                ->latest()
+                ->get();
+
+            foreach ($resetSolicitudes as $notif) {
+                $data = $notif->data;
+                $feed->push([
+                    'tipo'       => 'reset_password',
+                    'subtipo'    => 'reset_password',
+                    'titulo'     => $data['titulo'] ?? __('Solicitud de contraseña'),
+                    'mensaje'    => $data['mensaje'] ?? '',
+                    'fecha'      => $notif->created_at,
+                    'meta'       => '',
+                    'objeto'     => $notif,
+                    'url'        => $data['url'] ?? route('usuarios.index'),
+                    'iconClass'  => 'bi bi-key-fill text-warning',
+                    'badgeClass' => 'bg-warning text-dark',
+                    'badgeText'  => __('Reset contraseña'),
+                ]);
+            }
+        }
+
         foreach ($alertas as $alerta) {
             $subtipo = $alerta->type ?? 'info';
             $firing  = $subtipo === 'firing';
@@ -57,6 +82,8 @@ class NotificacionesController extends Controller
             $feed = $feed->filter(fn ($i) => $i['tipo'] === 'alerta');
         } elseif ($tipo === 'informes') {
             $feed = $feed->filter(fn ($i) => $i['tipo'] === 'informe');
+        } elseif ($tipo === 'reset_password') {
+            $feed = $feed->filter(fn ($i) => $i['tipo'] === 'reset_password');
         }
 
         $feed     = $feed->sortByDesc('fecha')->values();

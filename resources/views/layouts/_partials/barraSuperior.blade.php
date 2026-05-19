@@ -112,6 +112,10 @@
                                     <div class="icon-circle bg-success d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
                                         <i class="fas fa-check text-white" style="font-size:.8rem;"></i>
                                     </div>
+                                @elseif($icono === 'reset_password')
+                                    <div class="icon-circle bg-warning d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                                        <i class="fas fa-key text-white" style="font-size:.8rem;"></i>
+                                    </div>
                                 @else
                                     <div class="icon-circle bg-primary d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
                                         <i class="fas fa-file-alt text-white" style="font-size:.8rem;"></i>
