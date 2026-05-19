@@ -584,9 +584,8 @@
   Período analizado: {{ \Carbon\Carbon::parse($fromDate)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($toDate)->format('d/m/Y') }}
   ({{ $resumenGlobal['dias_periodo'] }} días) &nbsp;|&nbsp;
   Dispositivos: {{ $dispositivos->count() }} &nbsp;|&nbsp;
-  Fuente de datos: InfluxDB — medición <em>hourly</em>, campo <em>kwh</em> &nbsp;|&nbsp;
   Generado: {{ now()->format('Y-m-d H:i:s') }} &nbsp;|&nbsp;
-  Sistema: TERSIME v2
+  Sistema: TERSIME
 </div>
 
 </div>{{-- /content --}}
