@@ -114,7 +114,7 @@ class PrediccionController extends Controller
                 'line' => $e->getLine(),
                 'file' => $e->getFile(),
             ]);
-            return response()->json(['error' => 'Excepción: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error interno generando la predicción.'], 500);
         }
     }
 

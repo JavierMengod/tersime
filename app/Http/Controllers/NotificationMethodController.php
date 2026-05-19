@@ -119,7 +119,7 @@ class NotificationMethodController extends Controller
                 });
             } catch (\Exception $e) {
                 Log::error('Error enviando correo de prueba: ' . $e->getMessage());
-                return back()->withErrors('No se pudo enviar el correo de prueba: ' . $e->getMessage())
+                return back()->withErrors('No se pudo enviar el correo de prueba. Revisa el host, puerto y credenciales SMTP.')
                              ->with('error_channel', 'email');
             }
 
@@ -169,7 +169,7 @@ class NotificationMethodController extends Controller
                 }
             } catch (\Exception $e) {
                 Log::error('Error enviando prueba a Discord: ' . $e->getMessage());
-                return back()->withErrors('No se pudo enviar el mensaje de prueba a Discord: ' . $e->getMessage())
+                return back()->withErrors('No se pudo enviar el mensaje de prueba a Discord. Revisa que el webhook sea correcto.')
                              ->with('error_channel', 'discord');
             }
 

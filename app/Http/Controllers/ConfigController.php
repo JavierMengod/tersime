@@ -159,20 +159,34 @@ class ConfigController extends Controller
     public function updateConexiones(Request $request)
     {
         $data = $request->validate([
-            'influxdb_url'            => 'required|string|max:500',
+            'influxdb_url'            => 'required|url|max:500',
             'influxdb_org'            => 'required|string|max:255',
             'influxdb_bucket'         => 'required|string|max:255',
             'influxdb_token'          => 'nullable|string|max:1000',
-            'grafana_base_url'        => 'required|string|max:500',
+            'grafana_base_url'        => 'required|url|max:500',
             'grafana_datasource_id'   => 'required|integer|min:1',
             'grafana_api_key'         => 'nullable|string|max:1000',
-            'grafana_renderer_url'    => 'nullable|string|max:500',
-            'predictor_url'           => 'nullable|string|max:500',
+            'grafana_renderer_url'    => 'nullable|url|max:500',
+            'predictor_url'           => 'nullable|url|max:500',
             'predictor_timeout'       => 'required|integer|min:5|max:600',
             'predictor_default_hours' => 'required|integer|min:1|max:168',
             'openrouter_api_key'      => 'nullable|string|max:1000',
             'openrouter_model'        => 'nullable|string|max:255',
         ]);
+
+        // Block SSRF: service URLs must not resolve to private/reserved IP ranges.
+        // Even for admin users, pointing these at internal metadata services is dangerous.
+        $urlFields = ['influxdb_url', 'grafana_base_url', 'grafana_renderer_url', 'predictor_url'];
+        foreach ($urlFields as $field) {
+            if (empty($data[$field])) continue;
+            $host = parse_url($data[$field], PHP_URL_HOST);
+            if (!$host) continue;
+            $ip = gethostbyname($host);
+            if (filter_var($ip, FILTER_VALIDATE_IP) &&
+                !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return back()->withErrors([$field => "La URL apunta a una dirección de red privada o reservada."]);
+            }
+        }
 
         $sensitive = ['influxdb_token', 'grafana_api_key', 'openrouter_api_key'];
 
