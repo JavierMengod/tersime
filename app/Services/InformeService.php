@@ -248,11 +248,10 @@ class InformeService
         }
         $graficas['tiempo-real']    = $archivosGraficas['tiempo-real']    ?? null;
         $graficas['consumo-diario'] = $archivosGraficas['consumo-diario'] ?? null;
-        try {
-            $graficas = $this->convertirGraficasABase64($graficas);
-        } finally {
-            $this->limpiarGraficasTemporales($archivosGraficas);
-        }
+        // Convertir rutas absolutas a file:// para que mPDF las lea del disco
+        // directamente, evitando incrustar base64 en el HTML (causa pcre overflow).
+        // Los ficheros se borran DESPUÉS de que mPDF haya escrito el PDF.
+        $graficas = $this->resolverRutasParaMpdf($graficas);
 
         // ── 3. Anomalías (reutiliza datos ya descargados) ─────────────────
         $anomalias = $this->obtenerAnomalias($dispositivos, $fromDate, $toDate, $horariosPrefetchados, $mediasHorariaHistorico);
@@ -297,9 +296,7 @@ class InformeService
 
         // ── 6. PDF ────────────────────────────────────────────────────────
         $logoPath = public_path('assets/img/TERSIME.png');
-        $logo     = file_exists($logoPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
-            : null;
+        $logo     = file_exists($logoPath) ? 'file://' . $logoPath : null;
 
         $viewData = [
             'fromDate'                   => $fromDate,
@@ -336,10 +333,13 @@ class InformeService
             'margin_left'   => 0,
             'margin_right'  => 0,
             'tempDir'       => $tempDir,
+            // Allow mPDF to load images from these filesystem roots
+            'basepath'      => storage_path('app/'),
         ]);
         $mpdf->SetFooter('© ' . date('Y') . ' TERSIME — Informe generado automáticamente||Pág. {PAGENO}/{nbpg}');
         $mpdf->WriteHTML($html);
         Storage::put($storagePath, $mpdf->Output('', 'S'));
+        $this->limpiarGraficasTemporales($archivosGraficas);
 
         $fileSize = 0;
         try {
@@ -740,19 +740,16 @@ class InformeService
         return $dispositivo->influx_tag ?? $dispositivo->nombre ?? "device_{$dispositivo->id}";
     }
 
-    private function convertirGraficasABase64(array $graficas): array
+    private function resolverRutasParaMpdf(array $graficas): array
     {
         foreach ($graficas as $key => &$valor) {
             if (is_array($valor)) {
-                $valor = $this->convertirGraficasABase64($valor);
+                $valor = $this->resolverRutasParaMpdf($valor);
             } elseif (is_string($valor) && $valor !== '' && file_exists($valor)) {
-                $mime   = mime_content_type($valor) ?: 'image/png';
-                $base64 = base64_encode(file_get_contents($valor));
-                $valor  = "data:{$mime};base64,{$base64}";
+                $valor = 'file://' . $valor;
             }
         }
         unset($valor);
-
         return $graficas;
     }
 }
