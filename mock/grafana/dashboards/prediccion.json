@@ -251,7 +251,7 @@
           "groupBy": "metric"
         }
       ],
-      "title": "Visualizacion Prediccion",
+      "title": "Predicción de Consumo",
       "transformations": [
         {
           "id": "prepareTimeSeries",

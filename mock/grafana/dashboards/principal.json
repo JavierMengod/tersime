@@ -122,7 +122,7 @@
           "refId": "A"
         }
       ],
-      "title": "Factor Carga",
+      "title": "Factor de Carga por Dispositivo",
       "type": "barchart"
     },
     {
@@ -282,7 +282,7 @@
           "refId": "A"
         }
       ],
-      "title": "Actividad Dispositivos",
+      "title": "Último Valor por Dispositivo",
       "type": "barchart"
     },
     {
@@ -381,7 +381,7 @@
           "refId": "A"
         }
       ],
-      "title": "Horas activas por semana",
+      "title": "Horas Activas (últimos 7 días)",
       "type": "barchart"
     },
     {
@@ -479,7 +479,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo total Semanal",
+      "title": "Consumo Total (últimos 7 días)",
       "type": "barchart"
     },
     {
@@ -571,7 +571,7 @@
           "refId": "A"
         }
       ],
-      "title": "Variación mensual",
+      "title": "Variación de Consumo Mensual",
       "type": "timeseries"
     },
     {
@@ -657,7 +657,7 @@
           "refId": "A"
         }
       ],
-      "title": "TOP 5 Dispositivos",
+      "title": "Top 5 Dispositivos por Consumo",
       "type": "barchart"
     },
     {
@@ -759,7 +759,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo medio",
+      "title": "Consumo Medio Diario por Dispositivo",
       "type": "barchart"
     },
     {
@@ -848,7 +848,7 @@
           "refId": "A"
         }
       ],
-      "title": "Desviación media (últimos 7 días)",
+      "title": "Desviación del Consumo (últimos 7 días)",
       "type": "barchart"
     },
     {
@@ -934,7 +934,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo anormalmente alto",
+      "title": "Por Encima de la Media (últimos 7 días)",
       "type": "barchart"
     },
     {
@@ -1023,7 +1023,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo anormalmente bajo",
+      "title": "Por Debajo de la Media (últimos 7 días)",
       "type": "barchart"
     },
     {
@@ -1080,11 +1080,11 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"hourly\" and r._field == \"kwh\"\n      and r.name =~ /^(${dispositivos:regex})$/)\n  |> group()\n  |> sum()",
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"hourly\" and r._field == \"kwh\"\n      and r.name =~ /^(${dispositivos:regex})$/)\n  |> group()\n  |> sum()",
           "refId": "A"
         }
       ],
-      "title": "Últimas 24 h",
+      "title": "Consumo del Período",
       "type": "stat"
     },
     {
@@ -1141,11 +1141,11 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "import \"date\"\nfrom(bucket: v.defaultBucket)\n  |> range(start: date.truncate(t: now(), unit: 1mo))\n  |> filter(fn: (r) => r._measurement == \"daily\" and r._field == \"kwh_total\"\n      and r.name =~ /^(${dispositivos:regex})$/)\n  |> group()\n  |> sum()",
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"daily\" and r._field == \"kwh_total\"\n      and r.name =~ /^(${dispositivos:regex})$/)\n  |> group()\n  |> mean()",
           "refId": "A"
         }
       ],
-      "title": "Este mes",
+      "title": "Media Diaria del Período",
       "type": "stat"
     },
     {
@@ -1202,11 +1202,11 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "import \"date\"\nfrom(bucket: v.defaultBucket)\n  |> range(start: date.truncate(t: now(), unit: 1mo))\n  |> filter(fn: (r) => r._measurement == \"daily\" and r._field == \"kwh_total\"\n      and r.name =~ /^(${dispositivos:regex})$/)\n  |> group()\n  |> sum()\n  |> map(fn: (r) => ({r with _value: r._value * float(v: \"${coste_kwh}\")}))",
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"daily\" and r._field == \"kwh_total\"\n      and r.name =~ /^(${dispositivos:regex})$/)\n  |> group()\n  |> sum()\n  |> map(fn: (r) => ({r with _value: r._value * float(v: \"${coste_kwh}\")}))",
           "refId": "A"
         }
       ],
-      "title": "Coste estimado",
+      "title": "Coste del Período",
       "type": "stat"
     },
     {
@@ -1286,7 +1286,7 @@
           "refId": "A"
         }
       ],
-      "title": "Activos (24 h)",
+      "title": "Dispositivos Activos Ahora",
       "type": "stat"
     },
     {
@@ -1401,7 +1401,7 @@
           "refId": "A"
         }
       ],
-      "title": "Último dato por dispositivo",
+      "title": "Último Dato por Dispositivo",
       "type": "table"
     }
   ],
@@ -1433,12 +1433,17 @@
         "type": "query"
       },
       {
-        "hide": 2,
-        "label": "Coste €/kWh",
+        "hide": 0,
+        "label": "€/kWh",
         "name": "coste_kwh",
         "query": "0.15",
         "skipUrlSync": false,
-        "type": "constant"
+        "type": "textbox",
+        "current": {
+          "selected": false,
+          "text": "0.15",
+          "value": "0.15"
+        }
       }
     ]
   },

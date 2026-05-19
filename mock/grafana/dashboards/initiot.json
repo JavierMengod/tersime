@@ -111,7 +111,7 @@
           "refId": "A"
         }
       ],
-      "title": "Periodos sin actividad por dispositivo",
+      "title": "Períodos sin Actividad",
       "type": "timeseries"
     },
     {
@@ -138,7 +138,7 @@
       "pluginVersion": "11.4.0",
       "repeat": "dispositivos",
       "repeatDirection": "h",
-      "title": "$dispositivos",
+      "title": "Dispositivo: $dispositivos",
       "type": "text"
     },
     {
@@ -244,7 +244,7 @@
           "refId": "A"
         }
       ],
-      "title": "Media por Horas Diaria Por Dispositivo",
+      "title": "Consumo Medio por Hora del Día",
       "type": "timeseries"
     },
     {
@@ -383,7 +383,7 @@
           "urlPath": "/api/prediction?start=$start&stop=$end&device=$dispositivos&predic_hours=$predict_hours"
         }
       ],
-      "title": "Visualizacion Prediccion",
+      "title": "Predicción de Consumo",
       "transformations": [
         {
           "id": "prepareTimeSeries",
@@ -480,7 +480,7 @@
           "refId": "A"
         }
       ],
-      "title": "Media consumo diario",
+      "title": "Media de Consumo Diario",
       "type": "barchart"
     },
     {
@@ -585,7 +585,7 @@
           "refId": "A"
         }
       ],
-      "title": "Tiempo real",
+      "title": "Consumo en Tiempo Real",
       "transformations": [
         {
           "id": "renameByRegex",
@@ -686,7 +686,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo diario por dispositivo",
+      "title": "Consumo Diario",
       "type": "timeseries"
     }
   ],
