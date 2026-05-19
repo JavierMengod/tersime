@@ -144,7 +144,7 @@ services:
       GF_AUTH_PROXY_HEADER_PROPERTY:      email
       GF_AUTH_PROXY_AUTO_SIGN_UP:        "true"
       GF_AUTH_PROXY_WHITELIST:            ""
-      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "true"
+      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "false"
       # Seguridad — acceso anónimo desactivado: solo usuarios autenticados en Laravel
       GF_AUTH_ANONYMOUS_ENABLED:         "false"
       GF_AUTH_ANONYMOUS_ORG_ROLE:        "Viewer"
