@@ -79,8 +79,8 @@ services:
       mysql:
         condition: service_healthy
     networks:
-      tersime:
-        ipv4_address: 172.21.0.10
+      - tersime
+      - grafana_internal
     deploy:
       resources:
         limits:
@@ -144,7 +144,7 @@ services:
       GF_AUTH_PROXY_HEADER_NAME:          X-WEBAUTH-USER
       GF_AUTH_PROXY_HEADER_PROPERTY:      username
       GF_AUTH_PROXY_AUTO_SIGN_UP:        "true"
-      GF_AUTH_PROXY_WHITELIST:            "172.21.0.10"
+      GF_AUTH_PROXY_WHITELIST:            "10.10.10.0/28"
       GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "false"
       # Seguridad — acceso anónimo desactivado: solo usuarios autenticados en Laravel
       GF_AUTH_ANONYMOUS_ENABLED:         "false"
@@ -166,6 +166,7 @@ services:
       INFLUXDB_TOKEN:                     ${INFLUXDB_TOKEN}
     networks:
       - tersime
+      - grafana_internal
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q ok"]
       interval: 15s
@@ -252,10 +253,14 @@ services:
 networks:
   tersime:
     driver: bridge
+  # Red aislada app↔grafana: solo estos dos servicios están en ella,
+  # así el whitelist del auth proxy puede apuntar a esta subred sin
+  # depender de IPs dinámicas de la red principal.
+  grafana_internal:
+    driver: bridge
     ipam:
       config:
-        - subnet: 172.21.0.0/24
-          gateway: 172.21.0.1
+        - subnet: 10.10.10.0/28
 
 # ── Volúmenes persistentes ─────────────────────────────────────────────────────
 volumes:
