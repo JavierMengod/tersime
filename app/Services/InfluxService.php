@@ -113,7 +113,7 @@ data = from(bucket: "{$this->bucket}")
 
 data
   |> reduce(
-      identity: {n: 0.0, sum: 0.0, min: 1.0e15, max: -1.0e15, sumSq: 0.0},
+      identity: {n: 0.0, sum: 0.0, min: 1000000000000000.0, max: -1000000000000000.0, sumSq: 0.0},
       fn: (r, accumulator) => ({
           n:     accumulator.n + 1.0,
           sum:   accumulator.sum + r._value,
@@ -125,8 +125,8 @@ data
   |> map(fn: (r) => ({
       mean:   if r.n > 0.0 then r.sum / r.n else 0.0,
       stddev: if r.n > 1.0 then math.sqrt(x: (r.sumSq - r.sum * r.sum / r.n) / (r.n - 1.0)) else 0.0,
-      max:    if r.max > -1.0e15 then r.max else 0.0,
-      min:    if r.min <  1.0e15 then r.min else 0.0,
+      max:    if r.max > -1000000000000000.0 then r.max else 0.0,
+      min:    if r.min <  1000000000000000.0 then r.min else 0.0,
       sum:    r.sum
   }))
   |> keep(columns: ["mean", "stddev", "max", "min", "sum"])
