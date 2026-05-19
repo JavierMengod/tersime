@@ -83,8 +83,9 @@ class GrafanaProxyController extends Controller
             $laravelResponse = response($response->body(), $status)->withHeaders($out);
 
             // Pass Grafana session cookies to the browser so token rotation works.
-            foreach ($response->cookies() as $cookie) {
-                $laravelResponse->headers->setCookie($cookie);
+            // Use raw Set-Cookie headers to avoid Guzzle↔Symfony type mismatch.
+            foreach ($response->toPsrResponse()->getHeader('Set-Cookie') as $raw) {
+                $laravelResponse->headers->set('Set-Cookie', $raw, false);
             }
 
             return $laravelResponse;
