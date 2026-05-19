@@ -52,6 +52,12 @@ if [ ! -f "$INSTALLED_FLAG" ]; then
         }
     " 2>/dev/null || true
 
+    # Fijar la URL interna de Grafana a la IP estática en grafana_internal
+    # para que el proxy siempre conecte por esa red (necesario para el whitelist).
+    php artisan tinker --execute="
+        App\Models\Setting::set('grafana_base_url', 'http://10.10.10.2:3000/grafana');
+    " 2>/dev/null || true
+
     php artisan storage:link --no-interaction 2>/dev/null || true
     php artisan config:cache --no-interaction 2>/dev/null || true
     php artisan view:cache   --no-interaction 2>/dev/null || true
