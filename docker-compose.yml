@@ -68,15 +68,16 @@ services:
     volumes:
       - tersime_storage:/var/www/storage
     depends_on:
-      influxdb:
-        condition: service_healthy
       mysql:
         condition: service_healthy
     networks:
       - tersime
 
   # ── InfluxDB — base de datos de series temporales ──────────────────────────
+  # Solo se levanta si COMPOSE_PROFILES incluye "local-influxdb"
   influxdb:
+    profiles:
+      - local-influxdb
     image: influxdb:2.7
     restart: unless-stopped
     ports:
@@ -101,7 +102,10 @@ services:
       start_period: 30s
 
   # ── Grafana — dashboards de monitorización ─────────────────────────────────
+  # Solo se levanta si COMPOSE_PROFILES incluye "local-grafana"
   grafana:
+    profiles:
+      - local-grafana
     image: grafana/grafana:11.4.0
     restart: unless-stopped
     ports:
@@ -143,9 +147,6 @@ services:
       INFLUXDB_ORG:                       ${INFLUXDB_ORG:-tersime}
       INFLUX_BUCKET:                      ${INFLUX_BUCKET:-tersime}
       INFLUXDB_TOKEN:                     ${INFLUXDB_TOKEN}
-    depends_on:
-      influxdb:
-        condition: service_healthy
     networks:
       - tersime
     healthcheck:
