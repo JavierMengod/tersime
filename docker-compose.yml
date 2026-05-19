@@ -37,6 +37,10 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 64m
 
   # ── MySQL — base de datos relacional ──────────────────────────────────────
   mysql:
@@ -57,6 +61,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   # ── PHP-FPM — aplicación Laravel ──────────────────────────────────────────
   app:
@@ -72,6 +80,10 @@ services:
         condition: service_healthy
     networks:
       - tersime
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   # ── InfluxDB — base de datos de series temporales ──────────────────────────
   # Solo se levanta si COMPOSE_PROFILES incluye "local-influxdb"
@@ -100,6 +112,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   # ── Grafana — dashboards de monitorización ─────────────────────────────────
   # Solo se levanta si COMPOSE_PROFILES incluye "local-grafana"
@@ -155,6 +171,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   # ── Grafana Image Renderer — generación de PDFs de informes ───────────────
   renderer:
@@ -162,12 +182,18 @@ services:
     restart: unless-stopped
     # No expuesto al host — solo accesible desde dentro de la red Docker
     environment:
-      AUTH_TOKEN:                                       ${GRAFANA_RENDERER_TOKEN:-1234567890}
+      AUTH_TOKEN:                                       ${GRAFANA_RENDERER_TOKEN}
       IGNORE_HTTPS_ERRORS:                             "true"
       GF_RENDERER_PLUGIN_CHROME_BIN:                   /usr/bin/chromium
       GF_RENDERER_PLUGIN_IGNORE_HTTPS_ERRORS:          "true"
+    # Chromium necesita memoria compartida para renderizar dashboards complejos
+    shm_size: 256m
     networks:
       - tersime
+    deploy:
+      resources:
+        limits:
+          memory: 768m
 
   # ── Queue worker — procesa jobs asíncronos (informes, notificaciones) ────
   worker:
@@ -177,7 +203,7 @@ services:
     restart: unless-stopped
     env_file: .env
     command: ["php", "artisan", "queue:work",
-              "--tries=1", "--timeout=1200", "--sleep=3", "--max-time=3600"]
+              "--tries=3", "--timeout=1200", "--sleep=3", "--max-time=3600"]
     volumes:
       - tersime_storage:/var/www/storage
     depends_on:
@@ -187,6 +213,17 @@ services:
         condition: service_healthy
     networks:
       - tersime
+    healthcheck:
+      # Comprueba que el proceso queue:work sigue vivo como PID 1
+      test: ["CMD-SHELL", "cat /proc/1/cmdline | tr '\\0' ' ' | grep -q 'queue:work'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   # ── Predictor Prophet — forecasting de consumo ────────────────────────────
   predictor:
@@ -205,6 +242,10 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
 # ── Redes ──────────────────────────────────────────────────────────────────────
 networks:

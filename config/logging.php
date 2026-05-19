@@ -54,6 +54,14 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        // Canal para Docker: escribe en stderr (visible con "docker logs")
+        // y en fichero rotativo diario. Usar LOG_CHANNEL=docker en producción.
+        'docker' => [
+            'driver' => 'stack',
+            'channels' => ['stderr', 'daily'],
+            'ignore_exceptions' => false,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
@@ -64,7 +72,7 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
+            'days' => 30,
         ],
 
         'slack' => [

@@ -102,6 +102,7 @@ _GF_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
 _INFLUX_PASS="$(openssl rand -base64 12 | tr -d '/+=' | head -c 12)"
 _DB_PASS="$(openssl rand -base64 18 | tr -d '/+=' | head -c 20)"
 _DB_ROOT_PASS="$(openssl rand -base64 18 | tr -d '/+=' | head -c 20)"
+_RENDERER_TOKEN="$(openssl rand -base64 32 | tr -d '/+=' | head -c 40)"
 
 USE_LOCAL_INFLUXDB=1
 USE_LOCAL_GRAFANA=1
@@ -230,6 +231,7 @@ GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASS}"
         -e "s|^DOCKER_INFLUXDB_INIT_ORG=.*|DOCKER_INFLUXDB_INIT_ORG=${INFLUX_ORG}|" \
         -e "s|^DOCKER_INFLUXDB_INIT_BUCKET=.*|DOCKER_INFLUXDB_INIT_BUCKET=${INFLUX_BUCKET}|" \
         -e "s|^DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=.*|DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN}|" \
+        -e "s|^GRAFANA_RENDERER_TOKEN=.*|GRAFANA_RENDERER_TOKEN=${_RENDERER_TOKEN}|" \
         .env.docker > .env
 
     success ".env generado"
