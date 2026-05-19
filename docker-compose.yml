@@ -156,6 +156,7 @@ services:
       # Renderer
       GF_RENDERING_SERVER_URL:            http://renderer:8081/render
       GF_RENDERING_CALLBACK_URL:          http://grafana:3000/
+      GF_RENDERING_RENDERER_TOKEN:        ${GRAFANA_RENDERER_TOKEN}
       # Datasource proxy timeouts
       GF_DATAPROXY_TIMEOUT:              "120"
       GF_DATAPROXY_DIAL_TIMEOUT:         "10"

@@ -237,7 +237,7 @@ class InformeService
             $mediasHorariaHistorico[$tag] = $mediaHistorica;
         }
 
-        $archivosGraficas = $this->renderizarGraficas($panelUrls);
+        $archivosGraficas = $this->renderizarGraficas($panelUrls, $user->name);
 
         foreach ($dispositivos as $dispositivo) {
             $tag = $this->resolveTag($dispositivo);
@@ -496,36 +496,36 @@ class InformeService
         return $resultados;
     }
 
-    private function renderizarGraficas(array $panelUrls): array
+    private function renderizarGraficas(array $panelUrls, string $grafanaUser = 'admin'): array
     {
-        $rendererBase  = rtrim(config('tersime.grafana.renderer_url', 'http://localhost:8081/render'), '/');
-        $width         = config('tersime.grafana.renderer_width', 1000);
-        $height        = config('tersime.grafana.renderer_height', 500);
-        $token         = config('tersime.grafana.renderer_token');
-        $grafanaApiKey = config('tersime.grafana.api_key');
-
-        $headers = ['X-Auth-Token' => $token, 'Accept' => 'image/png'];
-        if ($grafanaApiKey) {
-            $headers['Authorization'] = "Bearer {$grafanaApiKey}";
-        }
+        $width  = (int) config('tersime.grafana.renderer_width', 1000);
+        $height = (int) config('tersime.grafana.renderer_height', 500);
 
         $result = [];
         foreach ($panelUrls as $key => [$panelUrl, $nombreArchivo, $rendererTimeout]) {
             $phpTimeout = $rendererTimeout + 45;
-            $url = "{$rendererBase}?url=" . urlencode($panelUrl)
-                . "&width={$width}&height={$height}&timeout={$rendererTimeout}";
+
+            // Call Grafana's own render endpoint instead of the renderer directly.
+            // Grafana authenticates via auth proxy header, then calls the renderer
+            // internally with a renderKey so Chrome can authenticate.
+            $renderUrl = preg_replace('#/d-solo/#', '/render/d-solo/', $panelUrl, 1);
+            $renderUrl .= (str_contains($renderUrl, '?') ? '&' : '?')
+                . "width={$width}&height={$height}";
 
             Log::info('[Renderer] Solicitando panel', [
-                'key'             => $key,
+                'key'              => $key,
                 'renderer_timeout' => $rendererTimeout,
             ]);
 
             $result[$key] = null;
             for ($attempt = 1; $attempt <= 2; $attempt++) {
                 try {
-                    $response = Http::withHeaders($headers)
-                        ->timeout($phpTimeout)
-                        ->get($url);
+                    $response = Http::withHeaders([
+                        'X-WEBAUTH-USER' => $grafanaUser,
+                        'Accept'         => 'image/png',
+                    ])
+                    ->timeout($phpTimeout)
+                    ->get($renderUrl);
 
                     if ($response->successful()) {
                         Log::info('[Renderer] Panel OK', [
