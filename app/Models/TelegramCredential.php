@@ -14,7 +14,9 @@ class TelegramCredential extends Model
         'bot_token',
         'active',
     ];
-    
+
+    protected $hidden = ['bot_token'];
+
     public function user()
     {
         return $this->belongsTo(User::class);

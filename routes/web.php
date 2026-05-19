@@ -20,15 +20,17 @@ use Illuminate\Support\Facades\Route;
 
 // ── Autenticación ──────────────────────────────────────────────────────────────
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.store');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// ── Rutas públicas: datos JSON para paneles Grafana (sin sesión) ───────────────
+// ── Rutas públicas: datos JSON para paneles Grafana — requieren X-Datasource-Token
 Route::get('/prediccion/obtener', [PrediccionController::class, 'obtenerDatos'])
+    ->middleware('datasource.token')
     ->name('prediccion.obtener');
 
 // Alias legacy — paneles Grafana ya configurados, no modificar
 Route::get('/monitorizacion-prediccion/obtener-datos', [PrediccionController::class, 'obtenerDatos'])
+    ->middleware('datasource.token')
     ->name('prediccion.obtener.legacy');
 
 // ── Rutas autenticadas ─────────────────────────────────────────────────────────
@@ -132,26 +134,36 @@ Route::middleware('auth')->group(function () {
         Route::patch('{programacion}/toggle', [ProgramacionInformesController::class, 'toggle'])->name('toggle');
     });
 
-    // ── Usuarios ───────────────────────────────────────────────────────────────
-    Route::prefix('usuarios')->name('usuarios.')->group(function () {
+    // ── Cambio de idioma (cualquier usuario autenticado) ──────────────────────
+    Route::put('usuarios/language', [AuthController::class, 'updateLanguage'])->name('usuarios.language');
+
+    // ── Tokens de API (cualquier usuario autenticado) ─────────────────────────
+    Route::prefix('usuarios/tokens')->name('usuarios.tokens.')->group(function () {
+        Route::get('/',       [TokenController::class, 'index'])->name('index');
+        Route::post('/',      [TokenController::class, 'store'])->name('store');
+        Route::delete('{id}', [TokenController::class, 'destroy'])->name('destroy');
+    });
+
+    // ── Usuarios (solo admin) ──────────────────────────────────────────────────
+    Route::middleware(function ($request, $next) {
+        abort_unless(auth()->user()?->admin, 403);
+        return $next($request);
+    })->prefix('usuarios')->name('usuarios.')->group(function () {
 
         Route::get('/',               [UserController::class, 'index'])->name('index');
         Route::post('/',              [UserController::class, 'store'])->name('store');
-        Route::put('language',        [AuthController::class, 'updateLanguage'])->name('language');  // estático antes que {user}
         Route::put('{user}',          [UserController::class, 'update'])->name('update');
         Route::delete('{user}',       [UserController::class, 'destroy'])->name('destroy');
         Route::patch('{user}/toggle', [UserController::class, 'toggle'])->name('toggle');
-
-        // ── Tokens de API ──────────────────────────────────────────────────────
-        Route::prefix('tokens')->name('tokens.')->group(function () {
-            Route::get('/',       [TokenController::class, 'index'])->name('index');
-            Route::post('/',      [TokenController::class, 'store'])->name('store');
-            Route::delete('{id}', [TokenController::class, 'destroy'])->name('destroy');
-        });
     });
 
     // ── Proxy autenticado hacia Grafana (Auth Proxy) ───────────────────────────
-    // Toda petición pasa por aquí; Laravel inyecta X-WEBAUTH-USER antes de reenviarla.
-    Route::any('/grafana',        [GrafanaProxyController::class, 'proxy'])->defaults('path', '');
-    Route::any('/grafana/{path}', [GrafanaProxyController::class, 'proxy'])->where('path', '.*');
+    // Exime CSRF aquí (no globalmente): Grafana envía sus propias peticiones AJAX
+    // sin token de formulario Laravel. El usuario ya está autenticado vía sesión.
+    Route::any('/grafana',        [GrafanaProxyController::class, 'proxy'])
+        ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
+        ->defaults('path', '');
+    Route::any('/grafana/{path}', [GrafanaProxyController::class, 'proxy'])
+        ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
+        ->where('path', '.*');
 });

@@ -19,7 +19,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         // Registrar valores de entrada en el archivo de log
-        Log::info('Intento de login', ['name' => $request->user, 'password' => $request->password]);
+        Log::info('Intento de login', ['name' => $request->user]);
 
         // Validación de los datos
         $request->validate([
@@ -33,6 +33,7 @@ class AuthController extends Controller
                 Log::warning('Login denegado (usuario deshabilitado): ' . $request->user);
                 return back()->withErrors(['username' => 'Esta cuenta está deshabilitada.']);
             }
+            $request->session()->regenerate();
             Log::info('Login exitoso para el usuario: ' . $request->user);
             return redirect()->intended('/inicio');
         }

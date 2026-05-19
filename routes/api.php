@@ -12,8 +12,9 @@ use App\Http\Controllers\Api\PrediccionController;
 // ── Rutas públicas ─────────────────────────────────────────────────────────────
 Route::post('/auth/login', [AuthController::class, 'login']);
 
-// Consumida por el datasource JSON-API de Grafana (sin sesión de usuario)
-Route::get('/prediction', [PrediccionController::class, 'index']);
+// Consumida por el datasource JSON-API de Grafana — requiere X-Datasource-Token
+Route::get('/prediction', [PrediccionController::class, 'index'])
+    ->middleware('datasource.token');
 
 // ── Rutas protegidas con Sanctum ────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
