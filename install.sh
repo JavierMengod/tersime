@@ -291,15 +291,14 @@ section "4 · Esperando servicios"
 wait_http() {
     local name="$1" url="$2" max="${3:-120}" i=0
     printf "  Esperando %-18s" "$name..."
-    until curl -sf "$url" >/dev/null 2>&1; do
+    until curl -sf -o /dev/null -w "%{http_code}" "$url" 2>/dev/null | grep -qE "^[23]"; do
         sleep 3; i=$((i+3)); printf "."
         [ $i -ge $max ] && echo "" && error "Timeout esperando $name ($url)"
     done
     echo " listo"
 }
 
-# MySQL siempre local
-wait_http "MySQL" "http://localhost/" 10 2>/dev/null || true  # no expuesto — usamos compose
+# MySQL siempre local (no expuesto por HTTP — usamos compose exec)
 printf "  Esperando %-18s" "MySQL..."
 until COMPOSE_PROFILES="$COMPOSE_PROFILES_VAL" $COMPOSE_CMD exec -T mysql \
     mysqladmin ping -h localhost --silent 2>/dev/null; do
@@ -319,8 +318,8 @@ else
     fi
 fi
 
-# App Laravel
-wait_http "App" "http://localhost:8080/" 120
+# App Laravel (primer arranque incluye migraciones — puede tardar más)
+wait_http "App" "http://localhost:8080/" 300
 
 # Grafana
 if [ "$USE_LOCAL_GRAFANA" = "1" ]; then
