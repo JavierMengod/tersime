@@ -217,6 +217,7 @@ services:
         condition: service_healthy
     networks:
       - tersime
+      - grafana_internal
     healthcheck:
       # Comprueba que el proceso queue:work sigue vivo como PID 1
       test: ["CMD-SHELL", "cat /proc/1/cmdline | tr '\\0' ' ' | grep -q 'queue:work'"]
