@@ -1433,17 +1433,12 @@
         "type": "query"
       },
       {
-        "hide": 0,
+        "hide": 2,
         "label": "€/kWh",
         "name": "coste_kwh",
         "query": "0.15",
         "skipUrlSync": false,
-        "type": "textbox",
-        "current": {
-          "selected": false,
-          "text": "0.15",
-          "value": "0.15"
-        }
+        "type": "constant"
       }
     ]
   },

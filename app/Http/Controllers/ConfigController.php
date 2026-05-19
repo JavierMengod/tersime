@@ -18,6 +18,7 @@ class ConfigController extends Controller
 {
     private const DEFAULT_ALERT_RETENTION_DAYS  = '90';
     private const DEFAULT_REPORT_RETENTION_DAYS = '180';
+    private const DEFAULT_COSTE_KWH             = '0.15';
 
     public function __construct()
     {
@@ -66,12 +67,13 @@ class ConfigController extends Controller
 
     public function sistema()
     {
-        $settingKeys = ['alert_log_retention_days', 'report_retention_days'];
+        $settingKeys = ['alert_log_retention_days', 'report_retention_days', 'coste_kwh'];
         $saved       = Setting::whereIn('key', $settingKeys)->get()->keyBy('key');
 
         $settings = [
             'alert_log_retention_days' => optional($saved->get('alert_log_retention_days'))->value ?? self::DEFAULT_ALERT_RETENTION_DAYS,
             'report_retention_days'    => optional($saved->get('report_retention_days'))->value    ?? self::DEFAULT_REPORT_RETENTION_DAYS,
+            'coste_kwh'                => optional($saved->get('coste_kwh'))->value                ?? self::DEFAULT_COSTE_KWH,
         ];
 
         $stats = [
@@ -87,6 +89,7 @@ class ConfigController extends Controller
         $data = $request->validate([
             'alert_log_retention_days' => 'required|integer|min:1|max:3650',
             'report_retention_days'    => 'required|integer|min:1|max:3650',
+            'coste_kwh'                => 'required|numeric|min:0|max:99',
         ]);
 
         foreach ($data as $key => $value) {

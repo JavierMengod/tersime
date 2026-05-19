@@ -49,6 +49,29 @@
 </div>
 
 
+{{-- Energía ─────────────────────────────────────────────────────────────── --}}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-lightning-charge me-1"></i>{{ __('Energía') }}
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label">{{ __('Precio del kWh') }}
+                    <span class="text-muted fw-normal small">(€)</span>
+                </label>
+                <div class="input-group">
+                    <input type="number" name="coste_kwh" class="form-control"
+                           min="0" max="99" step="0.001"
+                           value="{{ $settings['coste_kwh'] }}" required>
+                    <span class="input-group-text">€/kWh</span>
+                </div>
+                <div class="form-text">{{ __('Se usa para calcular el coste estimado en el dashboard.') }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="mb-5">
     <button type="submit" class="btn btn-primary">{{ __('Guardar configuración') }}</button>
 </div>

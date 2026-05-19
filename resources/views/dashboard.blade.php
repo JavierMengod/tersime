@@ -23,7 +23,7 @@
                 $dispositivos   = $dispositivos ?? collect([]);
                 $deviceParams   = $dispositivos->map(fn($d) => 'var-dispositivos=' . rawurlencode($d->influx_tag))->implode('&');
                 $deviceQuery    = $deviceParams ? '&' . $deviceParams : '';
-                $costeKwh       = config('tersime.costes.kwh', 0.15);
+                $costeKwh       = \App\Models\Setting::get('coste_kwh', '0.15');
                 $deviceQuery   .= '&var-coste_kwh=' . $costeKwh;
 
                 $grafanaTheme   = Auth::user()->theme ?? 'light';
@@ -52,31 +52,38 @@
             @endphp
 
             {{-- ═══ Fila KPI: 4 stat panels ══════════════════════════════════════════ --}}
+            {{-- Paneles 20-22 usan grafana-range → siguen el selector de período.   --}}
+            {{-- Panel 23 usa grafana-kpi → siempre muestra actividad en última 1 h. --}}
             <div class="row g-3 mb-3">
                 @php
-                    $kpiPanels = [
-                        20 => ['title' => __('Últimas 24 h'),        'color' => 'primary'],
-                        21 => ['title' => __('Este mes (kWh)'),       'color' => 'purple'],
-                        22 => ['title' => __('Coste estimado (mes)'), 'color' => 'warning'],
-                        23 => ['title' => __('Dispositivos activos'), 'color' => 'success'],
+                    $statPanels = [
+                        20 => __('Consumo del período'),
+                        21 => __('Media diaria del período'),
+                        22 => __('Coste del período'),
                     ];
                 @endphp
-                @foreach($kpiPanels as $pid => $kpi)
+                @foreach($statPanels as $pid => $title)
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white fw-semibold small text-muted py-1">
-                            {{ $kpi['title'] }}
-                        </div>
+                        <div class="card-header bg-white fw-semibold small text-muted py-1">{{ $title }}</div>
                         <div class="card-body p-0">
-                            @php
-                                $src = $grafanaBase . '?' . $commonParams($pid, $from7DaysMs, $toNowMs) . $deviceQuery;
-                            @endphp
+                            @php $src = $grafanaBase . '?' . $commonParams($pid, $defaultFrom, $defaultTo) . $deviceQuery; @endphp
+                            <iframe src="{{ $src }}" width="100%" height="130" frameborder="0"
+                                    class="grafana-range"></iframe>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white fw-semibold small text-muted py-1">{{ __('Dispositivos activos ahora') }}</div>
+                        <div class="card-body p-0">
+                            @php $src = $grafanaBase . '?' . $commonParams(23, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="130" frameborder="0"
                                     class="grafana-kpi"></iframe>
                         </div>
                     </div>
                 </div>
-                @endforeach
             </div>
 
             {{-- ═══ Último dato por dispositivo ══════════════════════════════════════ --}}
