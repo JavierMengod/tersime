@@ -80,8 +80,7 @@ services:
         condition: service_healthy
     networks:
       - tersime
-      grafana_internal:
-        ipv4_address: 10.10.10.3
+      - grafana_internal
     deploy:
       resources:
         limits:
@@ -108,6 +107,7 @@ services:
       DOCKER_INFLUXDB_INIT_RETENTION:      ${DOCKER_INFLUXDB_INIT_RETENTION:-0}
     networks:
       - tersime
+      - grafana_internal
     healthcheck:
       test: ["CMD", "influx", "ping"]
       interval: 10s
@@ -166,9 +166,7 @@ services:
       INFLUX_BUCKET:                      ${INFLUX_BUCKET:-tersime}
       INFLUXDB_TOKEN:                     ${INFLUXDB_TOKEN}
     networks:
-      - tersime
-      grafana_internal:
-        ipv4_address: 10.10.10.2
+      - grafana_internal
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q ok"]
       interval: 15s
@@ -194,6 +192,7 @@ services:
     shm_size: 256m
     networks:
       - tersime
+      - grafana_internal
     deploy:
       resources:
         limits:
@@ -255,9 +254,9 @@ services:
 networks:
   tersime:
     driver: bridge
-  # Red aislada app↔grafana: solo estos dos servicios están en ella,
-  # así el whitelist del auth proxy puede apuntar a esta subred sin
-  # depender de IPs dinámicas de la red principal.
+  # Red aislada para grafana y sus dependencias: app, grafana, renderer, influxdb.
+  # Grafana NO está en "tersime", así el DNS siempre resuelve a esta subred
+  # y el whitelist del auth proxy (10.10.10.0/28) funciona sin IPs hardcodeadas.
   grafana_internal:
     driver: bridge
     ipam:
