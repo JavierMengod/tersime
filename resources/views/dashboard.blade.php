@@ -220,7 +220,7 @@
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(7, $from1YearMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="360" frameborder="0"
-                                    class="grafana-range"></iframe>
+                                    class="grafana-kpi"></iframe>
                         </div>
                     </div>
                 </div>
