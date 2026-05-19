@@ -41,6 +41,13 @@ class GrafanaProxyController extends Controller
             $headers['Cookie'] = $grafanaCookies;
         }
 
+        // Intercept token rotation — with ENABLE_LOGIN_TOKEN=false there are no
+        // session tokens to rotate, but Grafana's JS still calls this endpoint
+        // periodically; a 401 triggers a page reload loop.
+        if ($path === 'api/user/auth-tokens/rotate') {
+            return response()->json(['message' => 'Token rotated']);
+        }
+
         // Datasource proxy requests for the prediction endpoint create a deadlock:
         // GrafanaProxy holds the single PHP worker while waiting for Grafana, and
         // Grafana calls back to the same PHP server for /prediccion/obtener.
