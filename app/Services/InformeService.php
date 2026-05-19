@@ -337,7 +337,10 @@ class InformeService
             'basepath'      => storage_path('app/'),
         ]);
         $mpdf->SetFooter('© ' . date('Y') . ' TERSIME — Informe generado automáticamente||Pág. {PAGENO}/{nbpg}');
+        $prev = ini_get('pcre.backtrack_limit');
+        ini_set('pcre.backtrack_limit', PHP_INT_MAX);
         $mpdf->WriteHTML($html);
+        ini_set('pcre.backtrack_limit', $prev);
         Storage::put($storagePath, $mpdf->Output('', 'S'));
         $this->limpiarGraficasTemporales($archivosGraficas);
 
