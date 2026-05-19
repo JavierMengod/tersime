@@ -79,7 +79,8 @@ services:
       mysql:
         condition: service_healthy
     networks:
-      - tersime
+      tersime:
+        ipv4_address: 172.21.0.10
     deploy:
       resources:
         limits:
@@ -143,7 +144,7 @@ services:
       GF_AUTH_PROXY_HEADER_NAME:          X-WEBAUTH-USER
       GF_AUTH_PROXY_HEADER_PROPERTY:      username
       GF_AUTH_PROXY_AUTO_SIGN_UP:        "true"
-      GF_AUTH_PROXY_WHITELIST:            ""
+      GF_AUTH_PROXY_WHITELIST:            "172.21.0.10"
       GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "false"
       # Seguridad — acceso anónimo desactivado: solo usuarios autenticados en Laravel
       GF_AUTH_ANONYMOUS_ENABLED:         "false"
@@ -251,6 +252,10 @@ services:
 networks:
   tersime:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+          gateway: 172.21.0.1
 
 # ── Volúmenes persistentes ─────────────────────────────────────────────────────
 volumes:
