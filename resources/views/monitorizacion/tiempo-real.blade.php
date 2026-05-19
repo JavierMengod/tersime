@@ -115,7 +115,7 @@
 
 @push('scripts')
 <script>
-const GRAFANA_BASE        = '/grafana/d-solo/tersime-tr-embed/dashboard-initiot-embed';
+const GRAFANA_BASE        = '/grafana/d-solo/eegznxsjl47i8b/dashboard-initiot';
 const GRAFANA_PARAMS      = 'orgId=1&timezone=browser&panelId=1&__feature.dashboardSceneSolo&theme={{ Auth::user()->theme ?? "light" }}';
 const MSG_SIN_DISPOSITIVO = '{{ __('Debes seleccionar al menos un dispositivo') }}';
 </script>

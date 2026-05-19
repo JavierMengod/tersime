@@ -32,6 +32,15 @@ class GrafanaProxyController extends Controller
             $headers['Content-Type'] = $contentType;
         }
 
+        // Forward Grafana session cookies so token rotation works correctly.
+        $grafanaCookies = collect($request->cookies->all())
+            ->filter(fn($v, $k) => str_starts_with($k, 'grafana_'))
+            ->map(fn($v, $k) => $k . '=' . $v)
+            ->join('; ');
+        if ($grafanaCookies) {
+            $headers['Cookie'] = $grafanaCookies;
+        }
+
         // Datasource proxy requests for the prediction endpoint create a deadlock:
         // GrafanaProxy holds the single PHP worker while waiting for Grafana, and
         // Grafana calls back to the same PHP server for /prediccion/obtener.
@@ -71,7 +80,14 @@ class GrafanaProxyController extends Controller
             // X-Frame-Options y Content-Security-Policy se omiten deliberadamente
             // para que los paneles carguen dentro de iframes en esta aplicación.
 
-            return response($response->body(), $status)->withHeaders($out);
+            $laravelResponse = response($response->body(), $status)->withHeaders($out);
+
+            // Pass Grafana session cookies to the browser so token rotation works.
+            foreach ($response->cookies() as $cookie) {
+                $laravelResponse->headers->setCookie($cookie);
+            }
+
+            return $laravelResponse;
 
         } catch (\Throwable $e) {
             Log::error('[GrafanaProxy] ' . $e->getMessage(), ['upstream' => $upstream]);

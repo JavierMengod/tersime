@@ -33,7 +33,7 @@ services:
     networks:
       - tersime
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -124,7 +124,7 @@ services:
       GF_AUTH_PROXY_HEADER_PROPERTY:      email
       GF_AUTH_PROXY_AUTO_SIGN_UP:        "true"
       GF_AUTH_PROXY_WHITELIST:            ""
-      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "false"
+      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN:  "true"
       # Seguridad
       GF_AUTH_ANONYMOUS_ENABLED:         "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE:        "Viewer"
@@ -139,7 +139,7 @@ services:
       GF_DATAPROXY_DIAL_TIMEOUT:         "10"
       GF_DATAPROXY_KEEP_ALIVE_SECONDS:   "30"
       # Variables para sustitución en ficheros de provisioning
-      INFLUXDB_URL:                       ${INFLUXDB_URL:-http://influxdb:8086}
+      INFLUXDB_URL:                       http://influxdb:8086
       INFLUXDB_ORG:                       ${INFLUXDB_ORG:-tersime}
       INFLUX_BUCKET:                      ${INFLUX_BUCKET:-tersime}
       INFLUXDB_TOKEN:                     ${INFLUXDB_TOKEN}
@@ -161,9 +161,10 @@ services:
     restart: unless-stopped
     # No expuesto al host — solo accesible desde dentro de la red Docker
     environment:
+      AUTH_TOKEN:                                       ${GRAFANA_RENDERER_TOKEN:-1234567890}
+      IGNORE_HTTPS_ERRORS:                             "true"
       GF_RENDERER_PLUGIN_CHROME_BIN:                   /usr/bin/chromium
       GF_RENDERER_PLUGIN_IGNORE_HTTPS_ERRORS:          "true"
-      GF_RENDERER_PLUGIN_SECURITY_PERMISSIVE:           "true"
     networks:
       - tersime
 
