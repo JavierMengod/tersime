@@ -64,6 +64,10 @@ else
     php artisan config:cache --no-interaction 2>/dev/null || true
 fi
 
+# Los comandos artisan ejecutados como root pueden crear ficheros de log
+# que www-data (PHP-FPM) no puede escribir. Corregimos permisos aquí.
+chown -R www-data:www-data /var/www/storage/logs/ 2>/dev/null || true
+
 # ── Cron para el scheduler (solo en el contenedor app) ───────────────────
 service cron start
 

@@ -11,7 +11,12 @@ class EncryptCookies extends Middleware
      *
      * @var array<int, string>
      */
-    protected $except = [
-        //
-    ];
+    protected $except = [];
+
+    // Las cookies de Grafana no están cifradas por Laravel; pasarlas tal cual
+    // para que el GrafanaProxyController las reenvíe correctamente.
+    public function isDisabled($name)
+    {
+        return str_starts_with($name, 'grafana_') || parent::isDisabled($name);
+    }
 }
