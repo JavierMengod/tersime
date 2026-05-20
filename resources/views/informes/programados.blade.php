@@ -299,6 +299,8 @@
     const inputValor = document.getElementById('field-valor-periodo');
     const selTipo    = document.getElementById('field-tipo-periodo');
     const preview    = document.getElementById('preview-periodicidad');
+    const rowHoraInicio   = document.getElementById('row-hora-inicio');
+    const fieldHoraInicio = document.getElementById('field-hora-inicio');
 
     const labels = {
         horas:  ['hora',  'horas'],
@@ -320,8 +322,6 @@
     const checkCorreo     = document.getElementById('field-correo');
     const rowCorreoDest   = document.getElementById('row-correo-destino');
     const fieldCorreoDest = document.getElementById('field-correo-destino');
-    const rowHoraInicio   = document.getElementById('row-hora-inicio');
-    const fieldHoraInicio = document.getElementById('field-hora-inicio');
     const avisoCanal      = document.getElementById('aviso-canal');
     const avisoTexto      = document.getElementById('aviso-canal-texto');
 

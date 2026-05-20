@@ -68,6 +68,9 @@ else
     echo "[entrypoint] Aplicando migraciones pendientes..."
     php artisan migrate --force --no-interaction 2>/dev/null || true
     php artisan config:cache --no-interaction 2>/dev/null || true
+    php artisan view:clear   --no-interaction 2>/dev/null || true
+    php artisan view:cache   --no-interaction 2>/dev/null || true
+    php artisan route:cache  --no-interaction 2>/dev/null || true
 fi
 
 # Los comandos artisan ejecutados como root pueden crear ficheros de log

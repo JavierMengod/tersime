@@ -65,7 +65,7 @@
                 @foreach($statPanels as $pid => $title)
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white fw-semibold small text-muted py-1 d-flex align-items-center" style="min-height:2.25rem">{{ $title }}</div>
+                        <div class="card-header bg-white fw-semibold small text-muted py-1 d-flex align-items-center" style="min-height:3.5rem">{{ $title }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams($pid, $defaultFrom, $defaultTo) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="130" frameborder="0"
@@ -76,7 +76,7 @@
                 @endforeach
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white fw-semibold small text-muted py-1 d-flex align-items-center" style="min-height:2.25rem">{{ __('Dispositivos activos ahora') }}</div>
+                        <div class="card-header bg-white fw-semibold small text-muted py-1 d-flex align-items-center" style="min-height:3.5rem">{{ __('Dispositivos activos ahora') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(23, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="130" frameborder="0"

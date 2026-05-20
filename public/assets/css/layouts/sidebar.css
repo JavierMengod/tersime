@@ -333,14 +333,33 @@ body.sidebar-toggled {
             0 8px 32px rgba(0, 0, 0, 0.35),
             0 2px 8px rgba(0, 0, 0, 0.2);
 
-        overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
+        /* El propio sidebar NO hace scroll; scroll sólo en #sidebarMenu */
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
 
         transition:
             transform .22s cubic-bezier(.4, 0, .2, 1),
             opacity .18s ease;
+    }
+
+    /* El contenedor flex debe encogerse para que el menú pueda desbordarse */
+    .sidebar .sidebar__container {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Sólo el listado de ítems hace scroll */
+    .sidebar #sidebarMenu {
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     /* Visible */
