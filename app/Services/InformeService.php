@@ -189,14 +189,14 @@ class InformeService
 
         $graficas  = [];
         $datos     = [];
-        $defaultTimeout = (int) config('tersime.grafana.renderer_timeout', 60);
+        $defaultTimeout = (int) config('tersime.grafana.renderer_timeout', 90);
         $panelUrls = [
-            'tiempo-real'    => [$panelUrlTendencia, 'tiempo-real', 120],
+            'tiempo-real'    => [$panelUrlTendencia, 'tiempo-real', 180],
             'consumo-diario' => [
                 "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
                 . "?orgId=1&from={$fromMillis}&to={$toMillis}&timezone=Europe%2FMadrid{$dispositivosQuery}&theme=light&panelId=panel-7",
                 'consumo-diario',
-                $defaultTimeout,
+                120,
             ],
         ];
 
@@ -214,14 +214,14 @@ class InformeService
                 "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
                 . "?orgId=1&var-start={$fechaInicio}&var-end={$fechaFin}&var-dispositivos={$tag}&theme=light&panelId=panel-5&from={$panel5From}&to={$panel5To}&timezone=Europe%2FMadrid",
                 "media-horaria-{$tag}",
-                $defaultTimeout,
+                240,
             ];
             $historicalStartIso = Carbon::parse($historicalStart)->toDateString() . 'T00:00:00Z';
             $panelUrls["media-horaria-historico-{$tag}"] = [
                 "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
                 . "?orgId=1&var-start={$historicalStartIso}&var-end={$fechaFin}&var-dispositivos={$tag}&theme=light&panelId=panel-5&from={$panel5From}&to={$panel5To}&timezone=Europe%2FMadrid",
                 "media-horaria-historico-{$tag}",
-                120,
+                300,
             ];
 
             $mediaHistorica = $this->influx->mediaPorHora($tag, $historicalStart, $end);
@@ -506,14 +506,15 @@ class InformeService
 
         $result = [];
         foreach ($panelUrls as $key => [$panelUrl, $nombreArchivo, $rendererTimeout]) {
-            $phpTimeout = $rendererTimeout + 45;
+            // PHP must wait longer than the renderer's own timeout plus Chrome overhead
+            $phpTimeout = $rendererTimeout + 120;
 
             // Call Grafana's own render endpoint instead of the renderer directly.
             // Grafana authenticates via auth proxy header, then calls the renderer
             // internally with a renderKey so Chrome can authenticate.
             $renderUrl = preg_replace('#/d-solo/#', '/render/d-solo/', $panelUrl, 1);
             $renderUrl .= (str_contains($renderUrl, '?') ? '&' : '?')
-                . "width={$width}&height={$height}";
+                . "width={$width}&height={$height}&timeout={$rendererTimeout}";
 
             Log::info('[Renderer] Solicitando panel', [
                 'key'              => $key,
@@ -556,11 +557,13 @@ class InformeService
                 }
 
                 if ($attempt < 2) {
-                    sleep(3);
+                    // Give renderer/Chrome time to fully exit before retrying
+                    sleep(30);
                 }
             }
 
-            sleep(1);
+            // Let Chrome fully release resources before next render
+            sleep(15);
         }
 
         return $result;

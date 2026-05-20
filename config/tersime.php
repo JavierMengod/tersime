@@ -7,7 +7,7 @@ return [
         'renderer_base_url' => env('GRAFANA_RENDERER_BASE_URL'),
         'renderer_width'    => env('GRAFANA_RENDERER_WIDTH', 1000),
         'renderer_height'   => env('GRAFANA_RENDERER_HEIGHT', 500),
-        'renderer_timeout'  => env('GRAFANA_RENDERER_TIMEOUT', 60),
+        'renderer_timeout'  => env('GRAFANA_RENDERER_TIMEOUT', 90),
         'renderer_token'    => env('GRAFANA_RENDERER_TOKEN'),
         'api_key'           => env('GRAFANA_API_KEY'),
     ],

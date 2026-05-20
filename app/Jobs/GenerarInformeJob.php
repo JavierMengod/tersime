@@ -20,8 +20,8 @@ class GenerarInformeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 1200;
-    public $tries   = 3;
+    public $timeout = 7200;
+    public $tries   = 2;
     public $backoff = [30, 120];
 
     public int    $informeId;

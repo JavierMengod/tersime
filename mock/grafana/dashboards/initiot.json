@@ -111,7 +111,7 @@
           "refId": "A"
         }
       ],
-      "title": "Períodos sin Actividad",
+      "title": "Per\u00edodos sin Actividad",
       "type": "timeseries"
     },
     {
@@ -244,7 +244,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo Medio por Hora del Día",
+      "title": "Consumo Medio por Hora del D\u00eda",
       "type": "timeseries"
     },
     {
@@ -383,7 +383,7 @@
           "urlPath": "/api/prediction?start=$start&stop=$end&device=$dispositivos&predic_hours=$predict_hours"
         }
       ],
-      "title": "Predicción de Consumo",
+      "title": "Predicci\u00f3n de Consumo",
       "transformations": [
         {
           "id": "prepareTimeSeries",
@@ -728,9 +728,9 @@
         "name": "alias",
         "options": [],
         "query": "",
-        "refresh": 1,
+        "refresh": 0,
         "regex": "",
-        "type": "query"
+        "type": "custom"
       },
       {
         "current": {
