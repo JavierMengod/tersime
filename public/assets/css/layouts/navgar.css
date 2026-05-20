@@ -206,8 +206,8 @@
     margin: 0 !important;
     animation: none !important;
 
-    min-width: min(88vw, 300px);
-    max-width: min(94vw, 320px);
+    min-width: min(88vw, 300px) !important;
+    max-width: min(94vw, 320px) !important;
     max-height: calc(100vh - var(--topbar-height) - 1rem);
     overflow-y: auto;
 

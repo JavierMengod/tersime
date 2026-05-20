@@ -141,9 +141,10 @@ Route::middleware('auth')->group(function () {
 
     // ── Tokens de API (cualquier usuario autenticado) ─────────────────────────
     Route::prefix('usuarios/tokens')->name('usuarios.tokens.')->group(function () {
-        Route::get('/',       [TokenController::class, 'index'])->name('index');
-        Route::post('/',      [TokenController::class, 'store'])->name('store');
-        Route::delete('{id}', [TokenController::class, 'destroy'])->name('destroy');
+        Route::get('/',      [TokenController::class, 'index'])->name('index');
+        Route::get('/docs',  [TokenController::class, 'apiDocs'])->name('docs');
+        Route::post('/',     [TokenController::class, 'store'])->name('store');
+        Route::delete('{id}',[TokenController::class, 'destroy'])->name('destroy');
     });
 
     // ── Usuarios (solo admin) ──────────────────────────────────────────────────

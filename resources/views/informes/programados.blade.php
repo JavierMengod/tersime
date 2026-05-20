@@ -34,10 +34,10 @@
                     <tr>
                         <th>{{ __('Nombre') }}</th>
                         <th>{{ __('Frecuencia') }}</th>
-                        <th>{{ __('Dispositivos') }}</th>
+                        <th class="d-none d-md-table-cell">{{ __('Dispositivos') }}</th>
                         <th>{{ __('Canales') }}</th>
-                        <th>{{ __('Última ejec.') }}</th>
-                        <th>{{ __('Próxima ejec.') }}</th>
+                        <th class="d-none d-lg-table-cell">{{ __('Última ejec.') }}</th>
+                        <th class="d-none d-sm-table-cell">{{ __('Próxima ejec.') }}</th>
                         <th>{{ __('Acciones') }}</th>
                     </tr>
                 </thead>
@@ -47,9 +47,14 @@
                     <tr>
                         <td class="fw-semibold">{{ $informe->nombre }}</td>
 
-                        <td class="text-nowrap">{{ $informe->formatearFrecuencia() }}</td>
+                        <td class="text-nowrap">
+                            {{ $informe->formatearFrecuencia() }}
+                            @if($informe->hora_inicio && in_array($informe->tipo_periodo, ['dias','meses']))
+                                <br><span class="text-muted" style="font-size:.75rem;"><i class="bi bi-clock me-1"></i>{{ $informe->hora_inicio }}</span>
+                            @endif
+                        </td>
 
-                        <td style="max-width:150px;">
+                        <td style="max-width:150px;" class="d-none d-md-table-cell">
                             @if($informe->dispositivos->isNotEmpty())
                                 <span class="text-truncate d-block"
                                       title="{{ $informe->dispositivos->map(fn($d) => $d->nombre ?? $d->name)->implode(', ') }}">
@@ -77,11 +82,11 @@
                             </div>
                         </td>
 
-                        <td class="text-nowrap text-muted">
+                        <td class="text-nowrap text-muted d-none d-lg-table-cell">
                             {{ $informe->last_run_at ? $informe->last_run_at->format('d/m/y H:i') : '—' }}
                         </td>
 
-                        <td class="text-nowrap {{ ($proxima && $proxima->isPast() && $informe->activo) ? 'text-danger fw-semibold' : 'text-muted' }}">
+                        <td class="text-nowrap d-none d-sm-table-cell {{ ($proxima && $proxima->isPast() && $informe->activo) ? 'text-danger fw-semibold' : 'text-muted' }}">
                             @if($proxima)
                                 {{ $proxima->format('d/m/y H:i') }}
                             @elseif($informe->activo)
@@ -110,7 +115,8 @@
                                         data-telegram="{{ $informe->telegram ? '1' : '0' }}"
                                         data-correo="{{ $informe->correo ? '1' : '0' }}"
                                         data-discord="{{ $informe->discord ? '1' : '0' }}"
-                                        data-correo-destino="{{ $informe->correo_destino ?? '' }}">
+                                        data-correo-destino="{{ $informe->correo_destino ?? '' }}"
+                                        data-hora-inicio="{{ $informe->hora_inicio ?? '' }}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="POST" action="{{ route('programaciones.destroy', $informe) }}"
@@ -177,7 +183,7 @@
                         {{-- Periodicidad --}}
                         <div class="col-12">
                             <label class="form-label">{{ __('Repetir cada') }}</label>
-                            <div class="d-flex gap-2 align-items-center">
+                            <div class="d-flex gap-2 align-items-center flex-wrap">
                                 <input type="number" name="valor_periodo" id="field-valor-periodo"
                                        class="form-control text-center" min="1" step="1" value="1" required
                                        style="max-width:90px;">
@@ -189,6 +195,16 @@
                                 </select>
                                 <span class="text-muted small">→ {{ __('cada') }} <strong id="preview-periodicidad">1 hora</strong></span>
                             </div>
+                        </div>
+
+                        {{-- Hora de inicio (solo para días o meses) --}}
+                        <div class="col-12 d-none" id="row-hora-inicio">
+                            <label class="form-label" for="field-hora-inicio">
+                                {{ __('Hora de entrega') }}
+                            </label>
+                            <input type="time" name="hora_inicio" id="field-hora-inicio"
+                                   class="form-control" style="max-width:140px;" value="09:00">
+                            <div class="form-text">{{ __('El informe se generará a esta hora del día.') }}</div>
                         </div>
 
                         {{-- Dispositivos --}}
@@ -295,6 +311,7 @@
         const tipo = selTipo.value;
         const [s, p] = labels[tipo] || labels.horas;
         preview.textContent = v + ' ' + (v === 1 ? s : p);
+        rowHoraInicio.classList.toggle('d-none', tipo === 'horas');
     }
     inputValor.addEventListener('input', actualizarPreview);
     selTipo.addEventListener('change', actualizarPreview);
@@ -303,6 +320,8 @@
     const checkCorreo     = document.getElementById('field-correo');
     const rowCorreoDest   = document.getElementById('row-correo-destino');
     const fieldCorreoDest = document.getElementById('field-correo-destino');
+    const rowHoraInicio   = document.getElementById('row-hora-inicio');
+    const fieldHoraInicio = document.getElementById('field-hora-inicio');
     const avisoCanal      = document.getElementById('aviso-canal');
     const avisoTexto      = document.getElementById('aviso-canal-texto');
 
@@ -367,6 +386,7 @@
         rowCorreoDest.classList.add('d-none');
         fieldCorreoDest.required = false;
         avisoCanal.classList.add('d-none');
+        rowHoraInicio.classList.add('d-none');
     }
 
     document.querySelectorAll('#btn-nueva-programacion, #btn-nueva-programacion-empty')
@@ -386,6 +406,7 @@
             inputValor.value = d.valorPeriodo;
             selTipo.value    = d.tipoPeriodo;
             actualizarPreview();
+            fieldHoraInicio.value = d.horaInicio || '09:00';
 
             // Dispositivos
             const ids = d.dispositivos ? d.dispositivos.split(',').filter(Boolean) : [];

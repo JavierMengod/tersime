@@ -335,6 +335,8 @@ body.sidebar-toggled {
 
         overflow-y: auto;
         overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
 
         transition:
             transform .22s cubic-bezier(.4, 0, .2, 1),

@@ -14,6 +14,11 @@ class TokenController extends Controller
         return view('usuarios.tokens', compact('tokens'));
     }
 
+    public function apiDocs()
+    {
+        return view('usuarios.api-docs');
+    }
+
     public function store(Request $request)
     {
         $request->validate([

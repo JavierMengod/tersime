@@ -219,6 +219,7 @@ $isConfig     = request()->routeIs('configuracion.*');
                     <span class="sidebar__text">{{ __('Usuarios') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isUsuarios ? 'show' : '' }}" id="sidebarUsuarios">
+                    @if(auth()->user()->admin)
                     <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios.index') ? 'active' : '' }}"
                        href="{{ route('usuarios.index') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
@@ -230,6 +231,7 @@ $isConfig     = request()->routeIs('configuracion.*');
                         </svg>
                         <span class="sidebar__dropdown-text">{{ __('Usuarios') }}</span>
                     </a>
+                    @endif
                     <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios.tokens.*') ? 'active' : '' }}"
                        href="{{ route('usuarios.tokens.index') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor"

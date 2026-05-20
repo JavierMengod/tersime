@@ -25,7 +25,7 @@
 @endif
 
 {{-- Preferencias ──────────────────────────────────────────────────────────── --}}
-<div class="card border-0 shadow-sm mb-4">
+<div class="card border-0 shadow-sm mb-4" id="ajustes">
     <div class="card-header bg-transparent fw-semibold">
         <i class="bi bi-sliders me-1"></i>{{ __('Preferencias') }}
     </div>
@@ -67,7 +67,7 @@
 </div>
 
 {{-- Cambio de contraseña ─────────────────────────────────────────────────── --}}
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm" id="perfil">
     <div class="card-header bg-transparent fw-semibold">
         <i class="bi bi-lock me-1"></i>{{ __('Cambiar contraseña') }}
     </div>

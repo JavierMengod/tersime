@@ -17,6 +17,7 @@ class ProgramacionInformes extends Model
         'nombre',
         'tipo_periodo',
         'valor_periodo',
+        'hora_inicio',
         'telegram',
         'discord',
         'correo',
@@ -75,11 +76,21 @@ class ProgramacionInformes extends Model
         }
 
         $valor = (int) ($this->valor_periodo ?? 1);
+        $tipo  = $this->tipo_periodo ?? 'horas';
 
-        switch ($this->tipo_periodo ?? 'horas') {
-            case 'meses': return $this->last_run_at->copy()->addMonths($valor);
-            case 'dias':  return $this->last_run_at->copy()->addDays($valor);
-            default:      return $this->last_run_at->copy()->addHours($valor);
+        if ($tipo === 'horas') {
+            return $this->last_run_at->copy()->addHours($valor);
         }
+
+        $next = $tipo === 'meses'
+            ? $this->last_run_at->copy()->addMonths($valor)
+            : $this->last_run_at->copy()->addDays($valor);
+
+        if ($this->hora_inicio) {
+            [$h, $m] = array_map('intval', explode(':', $this->hora_inicio));
+            $next->setTime($h, $m, 0);
+        }
+
+        return $next;
     }
 }

@@ -116,10 +116,23 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('modal-device-edit').addEventListener('show.bs.modal', e => {
-        const btn = e.relatedTarget;
+        const btn    = e.relatedTarget;
+        const select = document.getElementById('edit-influx-tag');
+        const tag    = btn.dataset.influxTag;
+
+        // Remove any tag injected for a previous device
+        select.querySelectorAll('option[data-injected]').forEach(o => o.remove());
+
+        // Insert current tag if not already in the list (it's filtered out server-side)
+        if (!Array.from(select.options).some(o => o.value === tag)) {
+            const opt = new Option(tag, tag);
+            opt.dataset.injected = '1';
+            select.add(opt, select.options[1] ?? undefined);
+        }
+
         document.getElementById('form-device-edit').action = `/dispositivos/${btn.dataset.id}`;
         document.getElementById('edit-nombre').value        = btn.dataset.nombre;
-        document.getElementById('edit-influx-tag').value   = btn.dataset.influxTag;
+        select.value                                        = tag;
     });
 
     document.getElementById('modal-device-delete').addEventListener('show.bs.modal', e => {

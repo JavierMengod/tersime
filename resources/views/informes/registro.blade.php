@@ -36,8 +36,8 @@
         <thead class="table-light">
           <tr>
             <th>{{ __('Estado') }}</th>
-            <th>{{ __('Tipo') }}</th>
-            <th>{{ __('Dispositivos') }}</th>
+            <th class="d-none d-md-table-cell">{{ __('Tipo') }}</th>
+            <th class="d-none d-md-table-cell">{{ __('Dispositivos') }}</th>
             <th>{{ __('Período') }}</th>
             <th class="d-none d-lg-table-cell">{{ __('Canales') }}</th>
             <th class="d-none d-xl-table-cell">{{ __('Tamaño') }}</th>
@@ -72,7 +72,7 @@
               </td>
 
               {{-- Tipo --}}
-              <td class="text-nowrap">
+              <td class="text-nowrap d-none d-md-table-cell">
                 @if($registro->tipo === 'Programado')
                   <span class="badge bg-info text-dark">{{ __('Prog.') }}</span>
                 @else
@@ -81,7 +81,7 @@
               </td>
 
               {{-- Dispositivos --}}
-              <td style="max-width:130px;">
+              <td style="max-width:130px;" class="d-none d-md-table-cell">
                 @php $devs = $registro->dispositivos; @endphp
                 @if($devs && $devs->count() > 0)
                   <span class="text-truncate d-block" title="{{ $devs->pluck('nombre')->implode(', ') }}">
@@ -169,8 +169,8 @@
 
             </tr>
 
-            {{-- Mensaje de error expandido para informes fallidos --}}
-            @if($registro->status === 'failed' && $registro->error_message)
+            {{-- Mensaje de error expandido — solo para admins --}}
+            @if($registro->status === 'failed' && $registro->error_message && auth()->user()->admin)
               <tr class="table-danger">
                 <td colspan="8" class="py-1 px-3">
                   <small class="text-danger"><i class="fas fa-info-circle me-1"></i>{{ $registro->error_message }}</small>

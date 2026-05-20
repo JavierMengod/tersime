@@ -20,6 +20,7 @@ class ProgramacionInformeRequest extends FormRequest
             'valor_periodo'  => 'required|integer|min:1|max:8760',
             'dispositivos'   => 'required|array|min:1',
             'dispositivos.*' => ['integer', Rule::exists('user_dispositivo', 'dispositivo_id')->where('user_id', auth()->id())],
+            'hora_inicio'    => 'nullable|date_format:H:i',
             'correo'         => 'sometimes|boolean',
             'correo_destino' => 'nullable|email|required_if:correo,1',
             'telegram'       => 'sometimes|boolean',

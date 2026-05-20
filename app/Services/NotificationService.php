@@ -99,7 +99,7 @@ class NotificationService
         }
 
         $response = Http::attach('file', file_get_contents($filePath), basename($filePath))
-            ->post($cred->webhook_url, ['content' => $message]);
+            ->post($cred->webhook_url, ['payload_json' => json_encode(['content' => $message])]);
 
         if ($response->failed()) {
             throw new \RuntimeException("Error enviando archivo a Discord: HTTP " . $response->status());

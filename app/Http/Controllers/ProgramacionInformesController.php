@@ -63,6 +63,7 @@ class ProgramacionInformesController extends Controller
             'nombre'         => $data['nombre'],
             'tipo_periodo'   => $data['tipo_periodo'],
             'valor_periodo'  => $data['valor_periodo'],
+            'hora_inicio'    => $data['hora_inicio'] ?? null,
             'telegram'       => $data['telegram'] ?? false,
             'discord'        => $data['discord'] ?? false,
             'correo'         => $data['correo'] ?? false,
