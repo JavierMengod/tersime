@@ -31,7 +31,7 @@ fi
 if [ ! -f "$INSTALLED_FLAG" ]; then
     echo "[entrypoint] Primera ejecución — instalando..."
 
-    php artisan migrate --force --no-interaction
+    php artisan migrate:fresh --force --no-interaction
 
     ADMIN_USER="${TERSIME_ADMIN_USER:-admin}"
     ADMIN_PASS="${TERSIME_ADMIN_PASSWORD:-admin}"
