@@ -55,7 +55,6 @@ class InformeService
         return array_merge($data, compact('informe', 'urlDescarga'));
     }
 
-    // ── Núcleo compartido ──────────────────────────────────────────────────────
 
     private function compilarGeneracion(
         User $user,
@@ -66,8 +65,6 @@ class InformeService
         bool $correo,
         bool $discord
     ): array {
-        // Si fechaDesde/fechaHasta incluyen hora (datetime), se respeta tal cual.
-        // Si son solo fecha (Y-m-d), se aplica startOfDay/endOfDay para cubrir el día completo.
         $tieneTiempo  = fn(string $d) => strlen($d) > 10;
         $inicioMillis = ($tieneTiempo($fechaDesde) ? Carbon::parse($fechaDesde) : Carbon::parse($fechaDesde)->startOfDay())->timestamp * 1000;
         $finMillis    = ($tieneTiempo($fechaHasta)  ? Carbon::parse($fechaHasta)  : Carbon::parse($fechaHasta)->endOfDay())->timestamp  * 1000;
@@ -170,16 +167,13 @@ class InformeService
         }
         unset($fila);
 
-        // ── 1b. Métricas avanzadas (franjas, tendencia, picos) ─────────────
         $metricasAvanzadas = $this->computarMetricasAvanzadas($resumenPorDispositivo);
 
-        // Liberar horas/dias — ya procesados, no se necesitan en la vista PDF
         foreach ($resumenPorDispositivo as &$fila) {
             unset($fila['horas'], $fila['dias']);
         }
         unset($fila);
 
-        // ── 2. Gráficas + datos horarios ──────────────────────────────────
         $baseGrafana       = rtrim(config('tersime.grafana.renderer_base_url') ?: Ajuste::get('grafana_base_url') ?: 'http://grafana:3000', '/');
         $consultaDispositivos = $this->construirQueryDispositivos($dispositivos);
 
@@ -200,8 +194,6 @@ class InformeService
             ],
         ];
 
-        // Panel-5 muestra la media horaria con un eje X fijo de 0-23h.
-        // La fecha concreta no importa; solo necesita ser un día completo válido.
         $panel5DiaRef = Carbon::create(2025, 1, 1, 0, 0, 0, 'Europe/Madrid');
         $panel5Inicio = $panel5DiaRef->getTimestamp() * 1000;
         $panel5Fin    = $panel5DiaRef->copy()->endOfDay()->getTimestamp() * 1000;
@@ -232,7 +224,6 @@ class InformeService
                 'nombre-dispositivo'      => $dispositivo->nombre,
             ];
 
-            // Reutiliza los horarios ya descargados en loop 1
             $horariosPrefetchados[$etiqueta]   = $horariosCache[$etiqueta] ?? [];
             $mediasHorariaHistorico[$etiqueta] = $mediaHistorica;
         }
@@ -248,18 +239,13 @@ class InformeService
         }
         $graficas['tiempo-real']    = $archivosGraficas['tiempo-real']    ?? null;
         $graficas['consumo-diario'] = $archivosGraficas['consumo-diario'] ?? null;
-        // Convertir rutas absolutas a file:// para que mPDF las lea del disco
-        // directamente, evitando incrustar base64 en el HTML (causa pcre overflow).
-        // Los ficheros se borran DESPUÉS de que mPDF haya escrito el PDF.
+
         $graficas = $this->resolverRutasParaMpdf($graficas);
 
-        // ── 3. Anomalías (reutiliza datos ya descargados) ─────────────────
         $anomalias = $this->obtenerAnomalias($dispositivos, $fechaDesde, $fechaHasta, $horariosPrefetchados, $mediasHorariaHistorico);
 
-        // ── 4. Costes (usa total_kwh ya calculado, sin llamada extra a InfluxDB) ──
         $costeEstimado = $this->obtenerCosteEstimado($resumenPorDispositivo);
 
-        // ── 5. LLM ────────────────────────────────────────────────────────
         $diasPeriodo  = max(1, (int) round(Carbon::parse($fechaInicio)->floatDiffInDays(Carbon::parse($fechaFin))) + 1);
         $costeTotal   = array_sum(array_column($costeEstimado, 'coste_estimado'));
         $totalAnomalias = array_sum(array_map('count', $anomalias));
@@ -294,7 +280,6 @@ class InformeService
             Log::error('[InformeService] LLM falló, informe sin textos automáticos', ['error' => $e->getMessage()]);
         }
 
-        // ── 6. PDF ────────────────────────────────────────────────────────
         $logoPath = public_path('assets/img/TERSIME.png');
         $logo     = file_exists($logoPath) ? 'file://' . $logoPath : null;
 
@@ -333,7 +318,6 @@ class InformeService
             'margin_left'   => 0,
             'margin_right'  => 0,
             'tempDir'       => $dirTemporal,
-            // Allow mPDF to load images from these filesystem roots
             'basepath'      => storage_path('app/'),
         ]);
         $mpdf->SetFooter('© ' . date('Y') . ' TERSIME — Informe generado automáticamente||Pág. {PAGENO}/{nbpg}');
@@ -356,7 +340,6 @@ class InformeService
         return compact('nombreArchivo', 'rutaAlmacenamiento', 'rutaAbsoluta', 'tamanoBytes');
     }
 
-    // ── Helpers privados ───────────────────────────────────────────────────────
 
     private function limpiarGraficasTemporales(array $archivosGraficas): void
     {
@@ -506,12 +489,8 @@ class InformeService
 
         $resultado = [];
         foreach ($urlsPaneles as $clave => [$urlPanel, $nombreArchivo, $timeoutRenderer]) {
-            // PHP must wait longer than the renderer's own timeout plus Chrome overhead
             $timeoutPhp = $timeoutRenderer + 120;
 
-            // Call Grafana's own render endpoint instead of the renderer directly.
-            // Grafana authenticates via auth proxy header, then calls the renderer
-            // internally with a renderKey so Chrome can authenticate.
             $urlRender = preg_replace('#/d-solo/#', '/render/d-solo/', $urlPanel, 1);
             $urlRender .= (str_contains($urlRender, '?') ? '&' : '?')
                 . "width={$ancho}&height={$alto}&timeout={$timeoutRenderer}";
@@ -557,22 +536,16 @@ class InformeService
                 }
 
                 if ($intento < 2) {
-                    // Give renderer/Chrome time to fully exit before retrying
                     sleep(30);
                 }
             }
 
-            // Let Chrome fully release resources before next render
             sleep(15);
         }
 
         return $resultado;
     }
 
-    /**
-     * Calcula métricas avanzadas a partir de los datos horarios/diarios ya descargados:
-     * franjas tarifarias (2.0TD España), tendencia lineal, picos y patrón semanal.
-     */
     private function computarMetricasAvanzadas(array $resumenPorDispositivo): array
     {
         $tz       = config('app.timezone', 'Europe/Madrid');
@@ -592,7 +565,7 @@ class InformeService
             $totalLaborable   = 0.0; $conteoLaborable = 0;
             $totalFestivo     = 0.0; $conteoFestivo   = 0;
             $listaPicos       = [];
-            // Día de semana: sumas acumuladas y conteos por día ISO (1=Lun … 7=Dom)
+
             $sumasDiaSemana   = array_fill_keys(range(1, 7), 0.0);
             $conteosDiaSemana = array_fill_keys(range(1, 7), 0);
 
@@ -657,7 +630,6 @@ class InformeService
             arsort($valoresDias);
             $topDias = array_slice($valoresDias, 0, 5, true);
 
-            // Regresión lineal simple para tendencia diaria (kWh/día)
             $tendencia = null;
             $diasLista = array_values($dias);
             $n         = count($diasLista);

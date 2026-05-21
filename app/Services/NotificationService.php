@@ -143,8 +143,7 @@ class NotificationService
             'mail.from.address'            => $remitente,
             'mail.from.name'               => 'Tersime',
         ]);
-        // Force Laravel to rebuild the SMTP mailer with the new config.
-        // Without this, a cached mailer from a previous user's config would be reused.
+        
         app('mail.manager')->purge('smtp');
     }
 }

@@ -189,9 +189,8 @@ class ConfigController extends Controller
             'openrouter_model'        => 'nullable|string|max:255',
         ]);
 
-        // Block SSRF: only validate URLs that are new or changed.
-        // Already-stored URLs were checked when first saved; re-checking them would
-        // block legitimate saves when the admin just wants to update an unrelated field.
+        // Validación SSRF solo sobre URLs nuevas o modificadas: las ya guardadas
+        // se validaron en su momento y re-validarlas bloquearía guardados legítimos.
         $camposUrl = ['influxdb_url', 'grafana_base_url', 'grafana_renderer_url', 'predictor_url'];
         foreach ($camposUrl as $campo) {
             if (empty($datos[$campo])) continue;

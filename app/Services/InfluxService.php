@@ -28,10 +28,6 @@ class InfluxService
         }
     }
 
-    // ---------------------------------------------------------
-    //  PUBLIC API
-    // ---------------------------------------------------------
-
     public function consumoTotal(string $etiqueta, string $inicio, string $fin): float
     {
         $etiqueta   = $this->limpiarEtiqueta($etiqueta);
@@ -152,8 +148,6 @@ FLUX;
 
             $total = array_sum($horas);
 
-            // Aggregate hourly into daily using local timezone so 23:00 UTC = 00:00 Madrid
-            // falls in the correct calendar day.
             $tz   = config('app.timezone', 'Europe/Madrid');
             $dias = [];
             foreach ($horas as $ts => $kwh) {
@@ -380,10 +374,6 @@ FLUX;
         return $dispositivos;
     }
 
-    // ---------------------------------------------------------
-    //  PRIVATE HELPERS
-    // ---------------------------------------------------------
-
     private function consultar(string $flux, int $timeout = 30, int $maxReintentos = 2): array
     {
         $encabezados = [
@@ -483,7 +473,7 @@ FLUX;
             try {
                 return Carbon::parse($fecha)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
             } catch (\Throwable $e) {
-                // falls through to date-only parsing
+                // continúa con el parsing solo de fecha
             }
         }
 

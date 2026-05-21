@@ -32,7 +32,6 @@ class GrafanaProxyController extends Controller
             $cabeceras['Content-Type'] = $tipoContenido;
         }
 
-        // Forward Grafana session cookies so token rotation works correctly.
         $cookiesGrafana = collect($request->cookies->all())
             ->filter(fn($v, $k) => str_starts_with($k, 'grafana_'))
             ->map(fn($v, $k) => $k . '=' . $v)
@@ -41,23 +40,20 @@ class GrafanaProxyController extends Controller
             $cabeceras['Cookie'] = $cookiesGrafana;
         }
 
-        // Intercept token rotation — with ENABLE_LOGIN_TOKEN=false there are no
-        // session tokens to rotate, but Grafana's JS still calls this endpoint
-        // periodically; a 401 triggers a page reload loop.
+        // Con ENABLE_LOGIN_TOKEN=false Grafana no rota tokens, pero su JS llama
+        // este endpoint igualmente; responder 401 provoca un bucle de recargas.
         if ($ruta === 'api/user/auth-tokens/rotate') {
             return response()->json(['message' => 'Token rotated']);
         }
 
-        // Datasource proxy requests for the prediction endpoint create a deadlock:
-        // GrafanaProxy holds the single PHP worker while waiting for Grafana, and
-        // Grafana calls back to the same PHP server for /prediccion/obtener.
-        // Serve these in-process to break the loop entirely.
+        // Evita un deadlock: si Grafana proxiara /prediccion/obtener, el worker PHP
+        // quedaría bloqueado esperando a Grafana, que a su vez espera a PHP.
+        // Servir la petición en el mismo proceso corta el ciclo.
         if (str_contains($ruta, 'datasources/proxy') && str_contains($ruta, 'prediccion/obtener')) {
             return app(PrediccionController::class)
                 ->obtenerDatos($request, app(InfluxService::class));
         }
 
-        // Prediction requests drive a slow Python Prophet service; grant extra time.
         $esPrediccion = str_contains($ruta, 'prediccion/obtener') || str_contains($ruta, 'prediction');
         $timeout = $esPrediccion
             ? ((int) (Ajuste::get('predictor_timeout') ?: 120)) + 60
@@ -89,8 +85,7 @@ class GrafanaProxyController extends Controller
 
             $respuestaLaravel = response($respuesta->body(), $estado)->withHeaders($cabOut);
 
-            // Pass Grafana session cookies to the browser so token rotation works.
-            // Use raw Set-Cookie headers to avoid Guzzle↔Symfony type mismatch.
+            // Headers Set-Cookie en crudo para evitar incompatibilidad Guzzle↔Symfony.
             foreach ($respuesta->toPsrResponse()->getHeader('Set-Cookie') as $raw) {
                 $respuestaLaravel->headers->set('Set-Cookie', $raw, false);
             }
