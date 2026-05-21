@@ -11,7 +11,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="mb-0">{{ __('Gestión de Usuarios') }}</h2>
-        <p class="text-muted mb-0 small">{{ $users->total() }} {{ __('usuarios registrados') }}</p>
+        <p class="text-muted mb-0 small">{{ $usuarios->total() }} {{ __('usuarios registrados') }}</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-crear">
         <i class="bi bi-person-plus me-1"></i>{{ __('Nuevo usuario') }}
@@ -48,16 +48,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($users as $user)
-                    <tr class="{{ !$user->enabled ? 'text-muted' : '' }}">
-                        <td class="fw-semibold">{{ $user->name }}</td>
+                    @forelse($usuarios as $usuario)
+                    <tr class="{{ !$usuario->enabled ? 'text-muted' : '' }}">
+                        <td class="fw-semibold">{{ $usuario->name }}</td>
 
-                        <td>{{ strtoupper($user->language ?? 'es') }}</td>
+                        <td>{{ strtoupper($usuario->language ?? 'es') }}</td>
 
-                        <td class="text-nowrap">{{ $user->timezone ?? 'Europe/Madrid' }}</td>
+                        <td class="text-nowrap">{{ $usuario->timezone ?? 'Europe/Madrid' }}</td>
 
                         <td>
-                            @if($user->theme === 'dark')
+                            @if($usuario->theme === 'dark')
                                 <span class="badge bg-dark"><i class="bi bi-moon-fill me-1"></i>{{ __('Oscuro') }}</span>
                             @else
                                 <span class="badge bg-secondary"><i class="bi bi-sun-fill me-1"></i>{{ __('Claro') }}</span>
@@ -65,7 +65,7 @@
                         </td>
 
                         <td>
-                            @if($user->admin)
+                            @if($usuario->admin)
                                 <span class="badge bg-warning text-dark">{{ __('Admin') }}</span>
                             @else
                                 <span class="badge bg-light text-secondary border">{{ __('Usuario') }}</span>
@@ -73,7 +73,7 @@
                         </td>
 
                         <td>
-                            @if($user->enabled)
+                            @if($usuario->enabled)
                                 <span class="badge bg-success">{{ __('Activo') }}</span>
                             @else
                                 <span class="badge bg-danger">{{ __('Deshabilitado') }}</span>
@@ -81,19 +81,19 @@
                         </td>
 
                         <td class="text-muted text-nowrap">
-                            {{ $user->created_at ? $user->created_at->format('d/m/y') : '—' }}
+                            {{ $usuario->created_at ? $usuario->created_at->format('d/m/y') : '—' }}
                         </td>
 
                         <td>
                             <div class="d-flex gap-1">
                                 {{-- Habilitar / Deshabilitar --}}
-                                @if($user->id !== auth()->id())
-                                    <form action="{{ route('usuarios.toggle', $user) }}" method="POST" class="d-inline">
+                                @if($usuario->id !== auth()->id())
+                                    <form action="{{ route('usuarios.toggle', $usuario) }}" method="POST" class="d-inline">
                                         @csrf @method('PATCH')
                                         <button type="submit"
-                                                class="btn btn-sm py-0 px-2 {{ $user->enabled ? 'btn-outline-secondary' : 'btn-outline-success' }}"
-                                                title="{{ $user->enabled ? __('Deshabilitar') : __('Habilitar') }}">
-                                            {{ $user->enabled ? __('Deshabilitar') : __('Habilitar') }}
+                                                class="btn btn-sm py-0 px-2 {{ $usuario->enabled ? 'btn-outline-secondary' : 'btn-outline-success' }}"
+                                                title="{{ $usuario->enabled ? __('Deshabilitar') : __('Habilitar') }}">
+                                            {{ $usuario->enabled ? __('Deshabilitar') : __('Habilitar') }}
                                         </button>
                                     </form>
                                 @endif
@@ -103,24 +103,24 @@
                                         data-bs-toggle="modal"
                                         data-bs-target="#modal-editar"
                                         data-user="{{ json_encode([
-                                            'id'       => $user->id,
-                                            'name'     => $user->name,
-                                            'language' => $user->language ?? 'es',
-                                            'timezone' => $user->timezone ?? 'Europe/Madrid',
-                                            'theme'    => $user->theme ?? 'light',
-                                            'admin'    => (bool)$user->admin,
-                                            'url'      => route('usuarios.update', $user),
+                                            'id'       => $usuario->id,
+                                            'name'     => $usuario->name,
+                                            'language' => $usuario->language ?? 'es',
+                                            'timezone' => $usuario->timezone ?? 'Europe/Madrid',
+                                            'theme'    => $usuario->theme ?? 'light',
+                                            'admin'    => (bool)$usuario->admin,
+                                            'url'      => route('usuarios.update', $usuario),
                                         ]) }}"
                                         title="{{ __('Editar') }}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
 
                                 {{-- Eliminar --}}
-                                @if($user->id !== auth()->id())
+                                @if($usuario->id !== auth()->id())
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger py-0 px-2 btn-eliminar-usuario"
-                                            data-user-name="{{ $user->name }}"
-                                            data-url="{{ route('usuarios.destroy', $user) }}"
+                                            data-user-name="{{ $usuario->name }}"
+                                            data-url="{{ route('usuarios.destroy', $usuario) }}"
                                             title="{{ __('Eliminar') }}">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -141,12 +141,12 @@
     </div>
 </div>
 
-@if($users->hasPages())
+@if($usuarios->hasPages())
     <div class="mt-3 d-flex justify-content-between align-items-center">
         <small class="text-muted">
-            {{ __('Mostrando') }} {{ $users->firstItem() }}–{{ $users->lastItem() }} {{ __('de') }} {{ $users->total() }}
+            {{ __('Mostrando') }} {{ $usuarios->firstItem() }}–{{ $usuarios->lastItem() }} {{ __('de') }} {{ $usuarios->total() }}
         </small>
-        {{ $users->links() }}
+        {{ $usuarios->links() }}
     </div>
 @endif
 
@@ -207,7 +207,7 @@
                     <div class="mb-3">
                         <label class="form-label">{{ __('Zona horaria') }}</label>
                         <select name="timezone" class="form-select">
-                            @foreach($timezones as $value => $label)
+                            @foreach($zonaHoraria as $value => $label)
                                 <option value="{{ $value }}" {{ old('timezone','Europe/Madrid') === $value ? 'selected' : '' }}>
                                     {{ $label }}
                                 </option>
@@ -276,7 +276,7 @@
                     <div class="mb-3">
                         <label class="form-label">{{ __('Zona horaria') }}</label>
                         <select name="timezone" id="edit-timezone" class="form-select">
-                            @foreach($timezones as $value => $label)
+                            @foreach($zonaHoraria as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>

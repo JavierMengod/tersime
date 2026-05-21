@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Setting;
+use App\Models\Ajuste;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -15,10 +15,10 @@ class InfluxService
 
     public function __construct()
     {
-        $this->bucket      = Setting::get('influxdb_bucket') ?: config('tersime.influxdb.bucket', 'PINZAS');
-        $this->influxUrl   = rtrim(Setting::get('influxdb_url') ?: config('tersime.influxdb.url', 'http://localhost:8086'), '/')
-            . '/api/v2/query?org=' . (Setting::get('influxdb_org') ?: config('tersime.influxdb.org', 'tersime'));
-        $this->influxToken = Setting::get('influxdb_token') ?: config('tersime.influxdb.token', '');
+        $this->bucket      = Ajuste::get('influxdb_bucket') ?: config('tersime.influxdb.bucket', 'PINZAS');
+        $this->influxUrl   = rtrim(Ajuste::get('influxdb_url') ?: config('tersime.influxdb.url', 'http://localhost:8086'), '/')
+            . '/api/v2/query?org=' . (Ajuste::get('influxdb_org') ?: config('tersime.influxdb.org', 'tersime'));
+        $this->influxToken = Ajuste::get('influxdb_token') ?: config('tersime.influxdb.token', '');
 
         if (empty($this->influxToken)) {
             Log::warning('[InfluxService] influxdb_token no configurado — las queries fallarán con HTTP 401');

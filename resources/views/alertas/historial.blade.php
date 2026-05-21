@@ -9,8 +9,8 @@
         <h2 class="mb-0">{{ __('Historial de alertas') }}</h2>
         <p class="text-muted mb-0 small">{{ __('Registro de todos los disparos y resoluciones') }}</p>
     </div>
-    @if($logs->total() > 0)
-        <span class="badge bg-secondary fs-6">{{ $logs->total() }} {{ __('registros') }}</span>
+    @if($registros->total() > 0)
+        <span class="badge bg-secondary fs-6">{{ $registros->total() }} {{ __('registros') }}</span>
     @endif
 </div>
 
@@ -18,8 +18,8 @@
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
         <form method="GET" action="{{ route('alertas.historial') }}" class="row g-2 align-items-end">
-            <input type="hidden" name="sort" value="{{ $sort }}">
-            <input type="hidden" name="dir"  value="{{ $dir }}">
+            <input type="hidden" name="sort" value="{{ $ordenar }}">
+            <input type="hidden" name="dir"  value="{{ $direccion }}">
 
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.65rem;letter-spacing:.05em;">
@@ -27,7 +27,7 @@
                 </label>
                 <select name="device" class="form-select form-select-sm">
                     <option value="">{{ __('Todos los dispositivos') }}</option>
-                    @foreach($devices as $d)
+                    @foreach($dispositivos as $d)
                         <option value="{{ $d }}" {{ request('device') === $d ? 'selected' : '' }}>{{ $d }}</option>
                     @endforeach
                 </select>
@@ -39,7 +39,7 @@
                 </label>
                 <select name="rule" class="form-select form-select-sm">
                     <option value="">{{ __('Todas las reglas') }}</option>
-                    @foreach($rules as $r)
+                    @foreach($nombresReglas as $r)
                         <option value="{{ $r }}" {{ request('rule') === $r ? 'selected' : '' }}>{{ $r }}</option>
                     @endforeach
                 </select>
@@ -77,7 +77,7 @@
                     <i class="fas fa-filter me-1"></i>{{ __('Filtrar') }}
                 </button>
                 @if(request()->hasAny(['device','rule','type','from','to']))
-                    <a href="{{ route('alertas.historial', ['sort' => $sort, 'dir' => $dir]) }}"
+                    <a href="{{ route('alertas.historial', ['sort' => $ordenar, 'dir' => $direccion]) }}"
                        class="btn btn-sm btn-outline-secondary">
                         <i class="fas fa-times"></i>
                     </a>
@@ -95,31 +95,31 @@
                 <thead class="table-light">
                     <tr>
                         <th style="min-width:140px;">
-                            <a href="{{ sortUrl('created_at', $sort, $dir) }}"
+                            <a href="{{ sortUrl('created_at', $ordenar, $direccion) }}"
                                class="text-decoration-none text-dark d-flex align-items-center gap-1">
                                 {{ __('Fecha') }}
-                                <i class="fas {{ sortIcon('created_at', $sort, $dir) }} small"></i>
+                                <i class="fas {{ sortIcon('created_at', $ordenar, $direccion) }} small"></i>
                             </a>
                         </th>
                         <th>
-                            <a href="{{ sortUrl('type', $sort, $dir) }}"
+                            <a href="{{ sortUrl('type', $ordenar, $direccion) }}"
                                class="text-decoration-none text-dark d-flex align-items-center gap-1">
                                 {{ __('Tipo') }}
-                                <i class="fas {{ sortIcon('type', $sort, $dir) }} small"></i>
+                                <i class="fas {{ sortIcon('type', $ordenar, $direccion) }} small"></i>
                             </a>
                         </th>
                         <th>
-                            <a href="{{ sortUrl('rule_name', $sort, $dir) }}"
+                            <a href="{{ sortUrl('rule_name', $ordenar, $direccion) }}"
                                class="text-decoration-none text-dark d-flex align-items-center gap-1">
                                 {{ __('Regla') }}
-                                <i class="fas {{ sortIcon('rule_name', $sort, $dir) }} small"></i>
+                                <i class="fas {{ sortIcon('rule_name', $ordenar, $direccion) }} small"></i>
                             </a>
                         </th>
                         <th>
-                            <a href="{{ sortUrl('device_name', $sort, $dir) }}"
+                            <a href="{{ sortUrl('device_name', $ordenar, $direccion) }}"
                                class="text-decoration-none text-dark d-flex align-items-center gap-1">
                                 {{ __('Dispositivo') }}
-                                <i class="fas {{ sortIcon('device_name', $sort, $dir) }} small"></i>
+                                <i class="fas {{ sortIcon('device_name', $ordenar, $direccion) }} small"></i>
                             </a>
                         </th>
                         <th class="d-none d-md-table-cell">{{ __('Canales') }}</th>
@@ -128,7 +128,7 @@
                 </thead>
                 <tbody>
                     @php $queryParams = request()->query(); @endphp
-                    @forelse($logs as $log)
+                    @forelse($registros as $log)
                     <tr>
                         {{-- Fecha --}}
                         <td class="text-nowrap">
@@ -169,7 +169,7 @@
 
                         {{-- Canales --}}
                         <td class="d-none d-md-table-cell">
-                            @php $chList = $log->channels; @endphp
+                            @php $chList = $log->channels ?? []; @endphp
                             @if(in_array('telegram', $chList))
                                 <i class="fab fa-telegram text-info fs-5" title="Telegram"></i>
                             @endif
@@ -211,12 +211,12 @@
     </div>
 </div>
 
-@if($logs->hasPages())
+@if($registros->hasPages())
     <div class="mt-3 d-flex justify-content-between align-items-center">
         <small class="text-muted">
-            {{ __('Mostrando') }} {{ $logs->firstItem() }}–{{ $logs->lastItem() }} {{ __('de') }} {{ $logs->total() }}
+            {{ __('Mostrando') }} {{ $registros->firstItem() }}–{{ $registros->lastItem() }} {{ __('de') }} {{ $registros->total() }}
         </small>
-        {{ $logs->links() }}
+        {{ $registros->links() }}
     </div>
 @endif
 

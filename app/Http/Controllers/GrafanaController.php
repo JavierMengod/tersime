@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Setting;
+use App\Models\Ajuste;
 use App\Services\InfluxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,61 +17,61 @@ class GrafanaController extends Controller
      */
     public function series(Request $request, InfluxService $influx): JsonResponse
     {
-        $urls = array_filter((array) $request->input('devices', []));
-        $from = $request->input('from', '');
-        $to   = $request->input('to', '');
+        $urls  = array_filter((array) $request->input('devices', []));
+        $desde = $request->input('from', '');
+        $hasta = $request->input('to', '');
 
-        if (empty($urls) || !$from || !$to) {
+        if (empty($urls) || !$desde || !$hasta) {
             return response()->json([]);
         }
 
-        $nameMap = auth()->user()->dispositivos
+        $mapaDeNombres = auth()->user()->dispositivos
             ->whereIn('influx_tag', $urls)
             ->mapWithKeys(fn($d) => [$d->influx_tag => $d->pivot->nombre])
             ->toArray();
 
-        $datasets = [];
+        $conjuntoDatos = [];
         foreach ($urls as $url) {
-            $datos = $influx->datosHorarios($url, $from, $to);
+            $datos = $influx->datosHorarios($url, $desde, $hasta);
 
-            $points = [];
+            $puntos = [];
             foreach ($datos as $ts => $val) {
-                $points[] = ['x' => $ts, 'y' => round((float) $val, 4)];
+                $puntos[] = ['x' => $ts, 'y' => round((float) $val, 4)];
             }
 
-            $datasets[] = [
-                'label' => $nameMap[$url] ?? $url,
-                'data'  => $points,
+            $conjuntoDatos[] = [
+                'label' => $mapaDeNombres[$url] ?? $url,
+                'data'  => $puntos,
             ];
         }
 
-        return response()->json($datasets);
+        return response()->json($conjuntoDatos);
     }
 
     public function checkDevices(): array
     {
         try {
             $grafanaBase = rtrim(
-                Setting::get('grafana_base_url') ?: config('app.grafana_base_url', 'http://localhost:3000'),
+                Ajuste::get('grafana_base_url') ?: config('app.grafana_base_url', 'http://localhost:3000'),
                 '/'
             );
-            $apiKey = Setting::get('grafana_api_key') ?: env('GRAFANA_API_KEY');
-            $bucket = Setting::get('influxdb_bucket') ?: env('INFLUX_BUCKET', 'PINZAS');
+            $apiKey = Ajuste::get('grafana_api_key') ?: env('GRAFANA_API_KEY');
+            $bucket = Ajuste::get('influxdb_bucket') ?: env('INFLUX_BUCKET', 'PINZAS');
 
-            $client = Http::withHeaders([
+            $cliente = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type'  => 'application/json',
             ]);
 
-            $dsResponse = $client->get($grafanaBase . '/api/datasources');
-            if ($dsResponse->failed()) {
+            $respuestaDs = $cliente->get($grafanaBase . '/api/datasources');
+            if ($respuestaDs->failed()) {
                 Log::error('[GrafanaController] No se pudo obtener datasources de Grafana.', [
-                    'status' => $dsResponse->status(),
+                    'status' => $respuestaDs->status(),
                 ]);
                 return [];
             }
 
-            $influx = collect($dsResponse->json())->firstWhere('type', 'influxdb');
+            $influx = collect($respuestaDs->json())->firstWhere('type', 'influxdb');
             if (!$influx) {
                 Log::error('[GrafanaController] Datasource InfluxDB no encontrado en Grafana.');
                 return [];
@@ -86,7 +86,7 @@ class GrafanaController extends Controller
               |> last()
             FLUX;
 
-            $queryResponse = $client->post($grafanaBase . '/api/ds/query', [
+            $respuestaQuery = $cliente->post($grafanaBase . '/api/ds/query', [
                 'queries' => [[
                     'datasourceId' => $influx['id'],
                     'refId'        => 'A',
@@ -97,36 +97,36 @@ class GrafanaController extends Controller
                 'to'   => 'now',
             ]);
 
-            if ($queryResponse->failed()) {
+            if ($respuestaQuery->failed()) {
                 Log::error('[GrafanaController] Error ejecutando query.', [
-                    'status' => $queryResponse->status(),
+                    'status' => $respuestaQuery->status(),
                 ]);
                 return [];
             }
 
-            $data    = $queryResponse->json();
-            $devices = [];
+            $datos       = $respuestaQuery->json();
+            $dispositivos = [];
 
-            foreach ($data['results']['A']['frames'] ?? [] as $frame) {
-                $fields     = $frame['schema']['fields'] ?? [];
-                $values     = $frame['data']['values']   ?? [];
-                $labels     = $fields[1]['labels']        ?? [];
-                $deviceName = $labels['name']             ?? null;
-                $devEui     = $labels['dev_eui']          ?? null;
+            foreach ($datos['results']['A']['frames'] ?? [] as $frame) {
+                $campos      = $frame['schema']['fields'] ?? [];
+                $valores     = $frame['data']['values']   ?? [];
+                $etiquetas   = $campos[1]['labels']        ?? [];
+                $nombreDispositivo = $etiquetas['name']    ?? null;
+                $devEui      = $etiquetas['dev_eui']       ?? null;
 
-                if ($deviceName && $devEui) {
-                    $devices[] = [
-                        'name'    => $deviceName,
+                if ($nombreDispositivo && $devEui) {
+                    $dispositivos[] = [
+                        'name'    => $nombreDispositivo,
                         'dev_eui' => $devEui,
-                        'value'   => $values[1][0] ?? null,
-                        'unit'    => $values[2][0] ?? null,
-                        'time'    => $values[0][0] ?? null,
+                        'value'   => $valores[1][0] ?? null,
+                        'unit'    => $valores[2][0] ?? null,
+                        'time'    => $valores[0][0] ?? null,
                     ];
                 }
             }
 
-            Log::info('[GrafanaController] Resumen de dispositivos:', ['devices' => $devices]);
-            return $devices;
+            Log::info('[GrafanaController] Resumen de dispositivos:', ['devices' => $dispositivos]);
+            return $dispositivos;
 
         } catch (\Throwable $e) {
             Log::error('[GrafanaController] Error consultando dispositivos: ' . $e->getMessage());

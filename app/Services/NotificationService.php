@@ -10,137 +10,137 @@ use TelegramBot\Api\BotApi;
 
 class NotificationService
 {
-    public function sendEmail(string $text, User $user, string $recipientEmail, ?string $fromAddress = null): void
+    public function sendEmail(string $texto, User $usuario, string $correoDestinatario, ?string $direccionRemitente = null): void
     {
-        $from = $this->prepareSmtp($user, $fromAddress);
+        $remitente = $this->prepararSmtp($usuario, $direccionRemitente);
 
-        Mail::raw($text, function ($message) use ($recipientEmail, $from) {
-            $message->to($recipientEmail)
-                    ->from($from, 'Tersime')
+        Mail::raw($texto, function ($message) use ($correoDestinatario, $remitente) {
+            $message->to($correoDestinatario)
+                    ->from($remitente, 'Tersime')
                     ->subject('📩 Notificación del sistema');
         });
 
-        Log::info("Correo enviado a {$recipientEmail} para usuario {$user->id}");
+        Log::info("Correo enviado a {$correoDestinatario} para usuario {$usuario->id}");
     }
 
-    public function sendTelegram(string $text, User $user): void
+    public function sendTelegram(string $texto, User $usuario): void
     {
-        $cred = $this->requireActiveCredential($user->telegramCredential, 'Telegram');
+        $credencial = $this->requerirCredencialActiva($usuario->telegramCredential, 'Telegram');
 
-        $telegram = new BotApi(decrypt($cred->bot_token));
-        $telegram->sendMessage($cred->chat_id, $text);
+        $bot = new BotApi(decrypt($credencial->bot_token));
+        $bot->sendMessage($credencial->chat_id, $texto);
 
-        Log::info("Telegram enviado para usuario {$user->id}");
+        Log::info("Telegram enviado para usuario {$usuario->id}");
     }
 
-    public function sendDiscord(string $text, User $user): void
+    public function sendDiscord(string $texto, User $usuario): void
     {
-        $cred = $this->requireActiveCredential($user->discordCredential, 'Discord');
+        $credencial = $this->requerirCredencialActiva($usuario->discordCredential, 'Discord');
 
-        $response = Http::post($cred->webhook_url, ['content' => $text]);
+        $respuesta = Http::post($credencial->webhook_url, ['content' => $texto]);
 
-        if ($response->failed()) {
-            throw new \RuntimeException("Discord rechazó el mensaje: HTTP " . $response->status());
+        if ($respuesta->failed()) {
+            throw new \RuntimeException("Discord rechazó el mensaje: HTTP " . $respuesta->status());
         }
 
-        Log::info("Discord enviado para usuario {$user->id}");
+        Log::info("Discord enviado para usuario {$usuario->id}");
     }
 
-    public function sendEmailWithAttachment(string $text, User $user, string $recipientEmail, ?string $pdfPath = null, ?string $fromAddress = null): void
+    public function sendEmailWithAttachment(string $texto, User $usuario, string $correoDestinatario, ?string $rutaPdf = null, ?string $direccionRemitente = null): void
     {
-        $from = $this->prepareSmtp($user, $fromAddress);
+        $remitente = $this->prepararSmtp($usuario, $direccionRemitente);
 
-        Mail::send([], [], function ($message) use ($recipientEmail, $from, $text, $pdfPath) {
-            $message->to($recipientEmail)
-                    ->from($from, 'Tersime')
+        Mail::send([], [], function ($message) use ($correoDestinatario, $remitente, $texto, $rutaPdf) {
+            $message->to($correoDestinatario)
+                    ->from($remitente, 'Tersime')
                     ->subject('📩 Notificación del sistema')
-                    ->setBody($text, 'text/plain');
+                    ->setBody($texto, 'text/plain');
 
-            if ($pdfPath && file_exists($pdfPath)) {
-                $message->attach($pdfPath, ['mime' => 'application/pdf']);
+            if ($rutaPdf && file_exists($rutaPdf)) {
+                $message->attach($rutaPdf, ['mime' => 'application/pdf']);
             }
         });
 
-        Log::info("Correo con adjunto enviado a {$recipientEmail} para usuario {$user->id}");
+        Log::info("Correo con adjunto enviado a {$correoDestinatario} para usuario {$usuario->id}");
     }
 
-    public function sendTelegramWithAttachment(string $text, User $user, ?string $pdfPath = null): void
+    public function sendTelegramWithAttachment(string $texto, User $usuario, ?string $rutaPdf = null): void
     {
-        $cred = $this->requireActiveCredential($user->telegramCredential, 'Telegram');
+        $credencial = $this->requerirCredencialActiva($usuario->telegramCredential, 'Telegram');
 
-        $telegram = new BotApi(decrypt($cred->bot_token));
+        $bot = new BotApi(decrypt($credencial->bot_token));
 
-        if ($pdfPath) {
-            $real = realpath($pdfPath);
-            if ($real === false || !is_file($real) || !is_readable($real)) {
-                throw new \InvalidArgumentException("La ruta del PDF no existe o no es legible: {$pdfPath}");
+        if ($rutaPdf) {
+            $rutaReal = realpath($rutaPdf);
+            if ($rutaReal === false || !is_file($rutaReal) || !is_readable($rutaReal)) {
+                throw new \InvalidArgumentException("La ruta del PDF no existe o no es legible: {$rutaPdf}");
             }
 
-            $caption = mb_substr($text, 0, 1024);
-            $file    = new \CURLFile($real, 'application/pdf', basename($real));
-            $telegram->sendDocument($cred->chat_id, $file, $caption);
+            $leyenda = mb_substr($texto, 0, 1024);
+            $archivo = new \CURLFile($rutaReal, 'application/pdf', basename($rutaReal));
+            $bot->sendDocument($credencial->chat_id, $archivo, $leyenda);
 
-            if (mb_strlen($text) > 1024) {
-                $telegram->sendMessage($cred->chat_id, $text);
+            if (mb_strlen($texto) > 1024) {
+                $bot->sendMessage($credencial->chat_id, $texto);
             }
         } else {
-            $telegram->sendMessage($cred->chat_id, $text);
+            $bot->sendMessage($credencial->chat_id, $texto);
         }
 
-        Log::info("Telegram con adjunto enviado para usuario {$user->id}");
+        Log::info("Telegram con adjunto enviado para usuario {$usuario->id}");
     }
 
-    public function sendDiscordWithFile(string $message, string $filePath, User $user): void
+    public function sendDiscordWithFile(string $texto, string $rutaArchivo, User $usuario): void
     {
-        $cred = $this->requireActiveCredential($user->discordCredential, 'Discord');
+        $credencial = $this->requerirCredencialActiva($usuario->discordCredential, 'Discord');
 
-        if (!file_exists($filePath)) {
-            throw new \RuntimeException("El archivo no existe: {$filePath}");
+        if (!file_exists($rutaArchivo)) {
+            throw new \RuntimeException("El archivo no existe: {$rutaArchivo}");
         }
 
-        $response = Http::attach('file', file_get_contents($filePath), basename($filePath))
-            ->post($cred->webhook_url, ['payload_json' => json_encode(['content' => $message])]);
+        $respuesta = Http::attach('file', file_get_contents($rutaArchivo), basename($rutaArchivo))
+            ->post($credencial->webhook_url, ['payload_json' => json_encode(['content' => $texto])]);
 
-        if ($response->failed()) {
-            throw new \RuntimeException("Error enviando archivo a Discord: HTTP " . $response->status());
+        if ($respuesta->failed()) {
+            throw new \RuntimeException("Error enviando archivo a Discord: HTTP " . $respuesta->status());
         }
 
-        Log::info("Discord con archivo enviado para usuario {$user->id}");
+        Log::info("Discord con archivo enviado para usuario {$usuario->id}");
     }
 
-    private function requireActiveCredential($cred, string $channel): object
+    private function requerirCredencialActiva($credencial, string $canal): object
     {
-        if (!$cred || !$cred->active) {
-            throw new \RuntimeException("El usuario no tiene {$channel} configurado o activo.");
+        if (!$credencial || !$credencial->active) {
+            throw new \RuntimeException("El usuario no tiene {$canal} configurado o activo.");
         }
-        return $cred;
+        return $credencial;
     }
 
-    private function prepareSmtp(User $user, ?string $fromAddress): string
+    private function prepararSmtp(User $usuario, ?string $direccionRemitente): string
     {
-        $cred = $this->requireActiveCredential($user->smtpCredential, 'SMTP');
+        $credencial = $this->requerirCredencialActiva($usuario->smtpCredential, 'SMTP');
 
-        $from = $fromAddress ?? $cred->from_address ?? $cred->username;
+        $remitente = $direccionRemitente ?? $credencial->from_address ?? $credencial->username;
 
-        if (empty($from)) {
+        if (empty($remitente)) {
             throw new \RuntimeException("No hay dirección de remitente válida.");
         }
 
-        $this->configureSMTP($cred, decrypt($cred->password), $from);
+        $this->configurarSmtp($credencial, decrypt($credencial->password), $remitente);
 
-        return $from;
+        return $remitente;
     }
 
-    private function configureSMTP($cred, string $rawPassword, string $from): void
+    private function configurarSmtp($credencial, string $contrasena, string $remitente): void
     {
         config([
             'mail.default'                 => 'smtp',
-            'mail.mailers.smtp.host'       => $cred->host,
-            'mail.mailers.smtp.port'       => $cred->port,
-            'mail.mailers.smtp.encryption' => $cred->encryption,
-            'mail.mailers.smtp.username'   => $cred->username,
-            'mail.mailers.smtp.password'   => $rawPassword,
-            'mail.from.address'            => $from,
+            'mail.mailers.smtp.host'       => $credencial->host,
+            'mail.mailers.smtp.port'       => $credencial->port,
+            'mail.mailers.smtp.encryption' => $credencial->encryption,
+            'mail.mailers.smtp.username'   => $credencial->username,
+            'mail.mailers.smtp.password'   => $contrasena,
+            'mail.from.address'            => $remitente,
             'mail.from.name'               => 'Tersime',
         ]);
         // Force Laravel to rebuild the SMTP mailer with the new config.

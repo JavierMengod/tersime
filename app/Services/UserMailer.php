@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\SmtpCredential;
+use App\Models\CredencialSmtp;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Mail\Mailable;
 
@@ -10,7 +10,7 @@ class UserMailer
 {
     public function sendUsingUser(int $userId, string $to, Mailable $mailable): void
     {
-        $cred = SmtpCredential::where('user_id', $userId)
+        $cred = CredencialSmtp::where('user_id', $userId)
                               ->where('active', true)
                               ->first();
 

@@ -2,11 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\Regla;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class RuleFactory extends Factory
+class ReglaFactory extends Factory
 {
+    protected $model = Regla::class;
+
     public function definition()
     {
         return [

@@ -189,11 +189,11 @@
                 </button>
 
                 <div class="dropdown-menu shadow dropdown-menu-end animated--grow-in topbar__dropdown topbar__dropdown--user">
-                    <a class="dropdown-item" href="{{ route('configuracion.cuenta') }}#perfil">
+                    <a class="dropdown-item" href="{{ route('configuracion.perfil') }}">
                         <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
                         {{ __('Perfil') }}
                     </a>
-                    <a class="dropdown-item" href="{{ route('configuracion.cuenta') }}#ajustes">
+                    <a class="dropdown-item" href="{{ route('configuracion.ajustes') }}">
                         <i class="fas fa-cogs fa-sm fa-fw me-2 text-gray-400"></i>
                         {{ __('Ajustes') }}
                     </a>

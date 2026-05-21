@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AlertLog;
+use App\Models\RegistroAlerta;
 use App\Models\Informe;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -14,7 +14,7 @@ class NotificacionesController extends Controller
         $user = auth()->user();
         $tipo = $request->get('tipo', 'todas');
 
-        $alertas  = AlertLog::where('user_id', $user->id)->latest()->get();
+        $alertas  = RegistroAlerta::where('user_id', $user->id)->latest()->get();
         $informes = Informe::where('user_id', $user->id)->latest('generated_at')->get();
 
         $feed = collect();

@@ -319,9 +319,12 @@ body.sidebar-toggled {
 
         width: min(90vw, 380px);
 
-        /* Override height fijo del desktop */
-        height: auto;
-        max-height: calc(100vh - var(--topbar-height) - 1.5rem);
+        /* Altura fija necesaria para que el flex-chain de scroll funcione */
+        height: calc(100vh - var(--topbar-height) - 1.5rem);
+        overflow: hidden;
+
+        display: flex;
+        flex-direction: column;
 
         /* Oculto: fade + desliza 10px hacia arriba */
         transform: translateX(-50%) translateY(-10px);
@@ -333,33 +336,28 @@ body.sidebar-toggled {
             0 8px 32px rgba(0, 0, 0, 0.35),
             0 2px 8px rgba(0, 0, 0, 0.2);
 
-        /* El propio sidebar NO hace scroll; scroll sólo en #sidebarMenu */
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-
         transition:
             transform .22s cubic-bezier(.4, 0, .2, 1),
             opacity .18s ease;
     }
 
-    /* El contenedor flex debe encogerse para que el menú pueda desbordarse */
+    /* El contenedor rellena el espacio disponible del sidebar */
     .sidebar .sidebar__container {
         flex: 1 1 auto;
         min-height: 0;
-        overflow: hidden;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
 
-    /* Sólo el listado de ítems hace scroll */
+    /* Solo el listado de items hace scroll */
     .sidebar #sidebarMenu {
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        flex: 1 1 auto;
-        min-height: 0;
     }
 
     /* Visible */
@@ -371,16 +369,12 @@ body.sidebar-toggled {
     }
 
     /* Overlay — z-index entre topbar (1040) y sidebar (1050) */
+    /* touch-action:none bloquea scroll del fondo sin necesitar overflow:hidden en body */
 
     body.sidebar-toggled .sidebar-overlay {
         display: block;
         z-index: 1045;
-    }
-
-    /* Bloquear scroll del fondo */
-
-    body.sidebar-toggled {
-        overflow: hidden;
+        touch-action: none;
     }
 
     /* Contenido ocupa toda la pantalla */

@@ -4,7 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Services\InfluxService;
 use App\Models\Dispositivo;
-use App\Models\Setting;
+use App\Models\Ajuste;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,9 +20,9 @@ class PrediccionApiTest extends TestCase
     {
         parent::setUp();
 
-        Setting::set('predictor_url', 'http://predictor:5000/predict');
-        Setting::set('predictor_timeout', '30');
-        Setting::set('predictor_default_hours', '24');
+        Ajuste::set('predictor_url', 'http://predictor:5000/predict');
+        Ajuste::set('predictor_timeout', '30');
+        Ajuste::set('predictor_default_hours', '24');
     }
 
     // ── Acceso público ─────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ class PrediccionApiTest extends TestCase
     #[Test]
     public function returns_503_when_predictor_url_not_configured(): void
     {
-        Setting::set('predictor_url', '');
+        Ajuste::set('predictor_url', '');
 
         $this->mock(InfluxService::class, function ($m) {
             $m->shouldReceive('datosParaPrediccion')

@@ -259,10 +259,15 @@ $isConfig     = request()->routeIs('configuracion.*');
                     <span class="sidebar__text">{{ __('Configuración') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isConfig ? 'show' : '' }}" id="sidebarConfiguracion">
-                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.cuenta') ? 'active' : '' }}"
-                       href="{{ route('configuracion.cuenta') }}">
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.perfil', 'configuracion.cuenta') ? 'active' : '' }}"
+                       href="{{ route('configuracion.perfil') }}">
                         <i class="sidebar__dropdown-icon bi bi-person-gear"></i>
-                        <span class="sidebar__dropdown-text">{{ __('Mi cuenta') }}</span>
+                        <span class="sidebar__dropdown-text">{{ __('Perfil') }}</span>
+                    </a>
+                    <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.ajustes') ? 'active' : '' }}"
+                       href="{{ route('configuracion.ajustes') }}">
+                        <i class="sidebar__dropdown-icon bi bi-sliders2 me-1"></i>
+                        <span class="sidebar__dropdown-text">{{ __('Ajustes') }}</span>
                     </a>
                     @if(auth()->user()->admin)
                     <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.sistema') ? 'active' : '' }}"

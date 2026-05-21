@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RuleRequest;
-use App\Models\Rule;
+use App\Models\Regla;
 use App\Traits\BuildsRuleAttributes;
 use Illuminate\Support\Facades\Log;
 
@@ -14,59 +14,59 @@ class ReglaController extends Controller
     public function index()
     {
         $dispositivos = auth()->user()->dispositivos()->wherePivot('habilitado', 1)->get();
-        $reglas       = auth()->user()->rules()->with('dispositivos')->paginate(10);
+        $reglas       = auth()->user()->reglas()->with('dispositivos')->paginate(10);
 
         return view('alertas.acciones', compact('dispositivos', 'reglas'));
     }
 
     public function store(RuleRequest $request)
     {
-        if (Rule::userHasReachedLimit(auth()->id())) {
+        if (Regla::userHasReachedLimit(auth()->id())) {
             return back()->withErrors(['name' => 'Has alcanzado el límite de 50 reglas.']);
         }
 
-        $validated = $request->validated();
+        $validado = $request->validated();
 
-        $rule = Rule::create(array_merge($this->ruleFieldsFrom($validated), [
+        $regla = Regla::create(array_merge($this->ruleFieldsFrom($validado), [
             'user_id'   => auth()->id(),
             'is_active' => true,
         ]));
 
-        $rule->dispositivos()->sync($validated['devices']);
+        $regla->dispositivos()->sync($validado['devices']);
 
-        Log::info("Regla creada correctamente con ID {$rule->id}.");
+        Log::info("Regla creada correctamente con ID {$regla->id}.");
 
         return redirect()->back()->with('success', 'Regla guardada correctamente.');
     }
 
-    public function update(RuleRequest $request, Rule $regla)
+    public function update(RuleRequest $request, Regla $regla)
     {
         abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 
-        $validated = $request->validated();
+        $validado = $request->validated();
 
-        $regla->fill($this->ruleFieldsFrom($validated))->save();
-        $regla->dispositivos()->sync($validated['devices']);
+        $regla->fill($this->ruleFieldsFrom($validado))->save();
+        $regla->dispositivos()->sync($validado['devices']);
 
         Log::info("Regla ID {$regla->id} actualizada correctamente.");
 
         return redirect()->back()->with('success', 'Regla actualizada correctamente.');
     }
 
-    public function toggle(Rule $regla)
+    public function toggle(Regla $regla)
     {
         abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 
-        $newState = !$regla->is_active;
-        $regla->update(['is_active' => $newState]);
+        $nuevoEstado = !$regla->is_active;
+        $regla->update(['is_active' => $nuevoEstado]);
 
-        $action = $newState ? 'activada' : 'desactivada';
-        Log::info("Regla ID {$regla->id} {$action}.");
+        $accion = $nuevoEstado ? 'activada' : 'desactivada';
+        Log::info("Regla ID {$regla->id} {$accion}.");
 
-        return back()->with('success', "Regla {$action}.");
+        return back()->with('success', "Regla {$accion}.");
     }
 
-    public function destroy(Rule $regla)
+    public function destroy(Regla $regla)
     {
         abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 

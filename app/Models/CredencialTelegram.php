@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class TelegramCredential extends Model
+class CredencialTelegram extends Model
 {
     use HasFactory;
+
+    protected $table = 'credenciales_telegram';
 
     protected $fillable = [
         'chat_id',
@@ -21,5 +23,4 @@ class TelegramCredential extends Model
     {
         return $this->belongsTo(User::class);
     }
-
 }

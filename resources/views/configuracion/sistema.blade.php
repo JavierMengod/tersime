@@ -33,44 +33,22 @@
                     <span class="text-muted fw-normal small">({{ __('días') }})</span>
                 </label>
                 <input type="number" name="alert_log_retention_days" class="form-control"
-                       min="1" max="3650" value="{{ $settings['alert_log_retention_days'] }}" required>
-                <div class="form-text">{{ $stats['alert_logs_total'] }} {{ __('registros actualmente en base de datos') }}</div>
+                       min="1" max="3650" value="{{ $configuracion['alert_log_retention_days'] }}" required>
+                <div class="form-text">{{ $estadisticas['alert_logs_total'] }} {{ __('registros actualmente en base de datos') }}</div>
             </div>
             <div class="col-12 col-md-6">
                 <label class="form-label">{{ __('Informes generados') }}
                     <span class="text-muted fw-normal small">({{ __('días') }})</span>
                 </label>
                 <input type="number" name="report_retention_days" class="form-control"
-                       min="1" max="3650" value="{{ $settings['report_retention_days'] }}" required>
-                <div class="form-text">{{ $stats['reports_total'] }} {{ __('informes actualmente almacenados') }}</div>
+                       min="1" max="3650" value="{{ $configuracion['report_retention_days'] }}" required>
+                <div class="form-text">{{ $estadisticas['reports_total'] }} {{ __('informes actualmente almacenados') }}</div>
             </div>
         </div>
     </div>
 </div>
 
 
-{{-- Energía ─────────────────────────────────────────────────────────────── --}}
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-lightning-charge me-1"></i>{{ __('Energía') }}
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-12 col-md-4">
-                <label class="form-label">{{ __('Precio del kWh') }}
-                    <span class="text-muted fw-normal small">(€)</span>
-                </label>
-                <div class="input-group">
-                    <input type="number" name="coste_kwh" class="form-control"
-                           min="0" max="99" step="0.001"
-                           value="{{ $settings['coste_kwh'] }}" required>
-                    <span class="input-group-text">€/kWh</span>
-                </div>
-                <div class="form-text">{{ __('Se usa para calcular el coste estimado en el dashboard.') }}</div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <div class="mb-5">
     <button type="submit" class="btn btn-primary">{{ __('Guardar configuración') }}</button>
@@ -91,8 +69,8 @@
                         <div class="fw-semibold small">{{ __('Purgar historial de alertas') }}</div>
                         <div class="text-muted small">
                             {{ __('Elimina registros con más de') }}
-                            <strong>{{ $settings['alert_log_retention_days'] }}</strong>
-                            {{ __('días') }} · {{ $stats['alert_logs_total'] }} {{ __('registros') }}
+                            <strong>{{ $configuracion['alert_log_retention_days'] }}</strong>
+                            {{ __('días') }} · {{ $estadisticas['alert_logs_total'] }} {{ __('registros') }}
                         </div>
                     </div>
                     <button type="button" class="btn btn-outline-danger btn-sm ms-3 flex-shrink-0"
@@ -107,8 +85,8 @@
                         <div class="fw-semibold small">{{ __('Purgar informes antiguos') }}</div>
                         <div class="text-muted small">
                             {{ __('Elimina PDFs con más de') }}
-                            <strong>{{ $settings['report_retention_days'] }}</strong>
-                            {{ __('días') }} · {{ $stats['reports_total'] }} {{ __('informes') }}
+                            <strong>{{ $configuracion['report_retention_days'] }}</strong>
+                            {{ __('días') }} · {{ $estadisticas['reports_total'] }} {{ __('informes') }}
                         </div>
                     </div>
                     <button type="button" class="btn btn-outline-danger btn-sm ms-3 flex-shrink-0"
@@ -131,8 +109,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">{{ __('Se eliminarán') }} <strong>{{ $stats['alert_logs_total'] }}</strong> {{ __('registros de alerta con más de') }}
-                <strong>{{ $settings['alert_log_retention_days'] }} {{ __('días') }}</strong>.
+                <p class="mb-0">{{ __('Se eliminarán') }} <strong>{{ $estadisticas['alert_logs_total'] }}</strong> {{ __('registros de alerta con más de') }}
+                <strong>{{ $configuracion['alert_log_retention_days'] }} {{ __('días') }}</strong>.
                 {{ __('Esta acción no se puede deshacer.') }}</p>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -155,8 +133,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">{{ __('Se eliminarán') }} <strong>{{ $stats['reports_total'] }}</strong> {{ __('informes con más de') }}
-                <strong>{{ $settings['report_retention_days'] }} {{ __('días') }}</strong>,
+                <p class="mb-0">{{ __('Se eliminarán') }} <strong>{{ $estadisticas['reports_total'] }}</strong> {{ __('informes con más de') }}
+                <strong>{{ $configuracion['report_retention_days'] }} {{ __('días') }}</strong>,
                 {{ __('incluyendo sus archivos PDF.') }}
                 {{ __('Esta acción no se puede deshacer.') }}</p>
             </div>

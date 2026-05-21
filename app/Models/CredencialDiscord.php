@@ -3,8 +3,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class DiscordCredential extends Model
+class CredencialDiscord extends Model
 {
+    protected $table = 'credenciales_discord';
+
     protected $fillable = ['user_id','webhook_url','active'];
     protected $casts = ['active'=>'boolean'];
 

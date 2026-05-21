@@ -45,7 +45,15 @@ Route::middleware('auth')->group(function () {
     // ── Configuración ──────────────────────────────────────────────────────────
     Route::prefix('configuracion')->name('configuracion.')->group(function () {
 
-        Route::get('cuenta',              [ConfigController::class, 'cuenta'])->name('cuenta');
+        Route::get('perfil',              [ConfigController::class, 'perfil'])->name('perfil');
+        Route::post('perfil',             [ConfigController::class, 'updatePreferencias'])->name('perfil.update');
+        Route::post('perfil/password',    [ConfigController::class, 'updatePassword'])->name('perfil.password');
+
+        Route::get('ajustes',             [ConfigController::class, 'ajustes'])->name('ajustes');
+        Route::post('ajustes',            [ConfigController::class, 'updateAjustes'])->name('ajustes.update');
+
+        // Legacy alias — keep old URLs working
+        Route::get('cuenta',              [ConfigController::class, 'perfil'])->name('cuenta');
         Route::post('cuenta/preferencias',[ConfigController::class, 'updatePreferencias'])->name('cuenta.preferencias');
         Route::post('cuenta/password',    [ConfigController::class, 'updatePassword'])->name('cuenta.password');
 
@@ -98,9 +106,9 @@ Route::middleware('auth')->group(function () {
 
         // Métodos de notificación (telegram / email / discord)
         Route::get('medios',            [NotificationMethodController::class, 'index'])->name('medios');
-        Route::put('medios/{type}',     [NotificationMethodController::class, 'update'])
+        Route::put('medios/{tipo}',     [NotificationMethodController::class, 'update'])
             ->where('type', 'telegram|email|discord')->name('medios.update');
-        Route::delete('medios/{type}',  [NotificationMethodController::class, 'destroy'])
+        Route::delete('medios/{tipo}',  [NotificationMethodController::class, 'destroy'])
             ->where('type', 'telegram|email|discord')->name('medios.destroy');
 
         Route::get('historial', [AlertLogController::class, 'index'])->name('historial');
@@ -121,7 +129,7 @@ Route::middleware('auth')->group(function () {
         Route::get('registro',                   [InformeController::class, 'registro'])->name('registro');
         Route::get('demanda',                    [InformeController::class, 'demanda'])->name('demanda');
         Route::post('demanda',                   [InformeController::class, 'generarInformeDemanda'])->name('demanda.store');
-        Route::get('demanda/{filename}/download',[InformeController::class, 'descargarBajoDemanda'])->name('demanda.download');
+        Route::get('demanda/{nombreArchivo}/download',[InformeController::class, 'descargarBajoDemanda'])->name('demanda.download');
         Route::get('{informe}/status',           [InformeController::class, 'status'])->name('status');
         Route::get('{informe}/download',         [InformeController::class, 'download'])->name('download');
         Route::delete('{informe}',               [InformeController::class, 'destroy'])->name('destroy');
@@ -152,9 +160,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/',               [UserController::class, 'index'])->name('index');
         Route::post('/',              [UserController::class, 'store'])->name('store');
-        Route::put('{user}',          [UserController::class, 'update'])->name('update');
-        Route::delete('{user}',       [UserController::class, 'destroy'])->name('destroy');
-        Route::patch('{user}/toggle', [UserController::class, 'toggle'])->name('toggle');
+        Route::put('{usuario}',          [UserController::class, 'update'])->name('update');
+        Route::delete('{usuario}',       [UserController::class, 'destroy'])->name('destroy');
+        Route::patch('{usuario}/toggle', [UserController::class, 'toggle'])->name('toggle');
     });
 
     // ── Proxy autenticado hacia Grafana (Auth Proxy) ───────────────────────────
@@ -162,8 +170,8 @@ Route::middleware('auth')->group(function () {
     // sin token de formulario Laravel. El usuario ya está autenticado vía sesión.
     Route::any('/grafana',        [GrafanaProxyController::class, 'proxy'])
         ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
-        ->defaults('path', '');
-    Route::any('/grafana/{path}', [GrafanaProxyController::class, 'proxy'])
+        ->defaults('ruta', '');
+    Route::any('/grafana/{ruta}', [GrafanaProxyController::class, 'proxy'])
         ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
-        ->where('path', '.*');
+        ->where('ruta', '.*');
 });

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Web;
 
-use App\Models\AlertLog;
-use App\Models\Setting;
+use App\Models\RegistroAlerta;
+use App\Models\Ajuste;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -43,8 +43,8 @@ class ConfigControllerTest extends TestCase
     #[Test]
     public function admin_can_access_sistema(): void
     {
-        Setting::set('alert_log_retention_days', '90');
-        Setting::set('report_retention_days', '180');
+        Ajuste::set('alert_log_retention_days', '90');
+        Ajuste::set('report_retention_days', '180');
 
         $this->actingAs(User::factory()->admin()->create())
              ->get(route('configuracion.sistema'))
@@ -59,44 +59,63 @@ class ConfigControllerTest extends TestCase
              ->assertStatus(200);
     }
 
-    // ── Cuenta: preferencias ───────────────────────────────────────────────────
+    // ── Perfil: datos personales ───────────────────────────────────────────────
 
     #[Test]
-    public function update_cuenta_saves_language_theme_and_timezone(): void
+    public function update_perfil_saves_name_email_and_language(): void
     {
-        $user = User::factory()->create(['language' => 'es', 'theme' => 'light']);
+        $user = User::factory()->create(['name' => 'Antiguo', 'language' => 'es']);
 
-        $this->actingAs($user)->post(route('configuracion.cuenta.preferencias'), [
+        $this->actingAs($user)->post(route('configuracion.perfil.update'), [
+            'name'     => 'Nuevo Nombre',
+            'email'    => $user->email,
             'language' => 'en',
-            'theme'    => 'dark',
-            'timezone' => 'UTC',
         ])->assertRedirect();
 
         $user->refresh();
+        $this->assertSame('Nuevo Nombre', $user->name);
         $this->assertSame('en', $user->language);
+    }
+
+    #[Test]
+    public function update_perfil_validates_language_must_be_valid(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('configuracion.perfil.update'), [
+            'name'     => $user->name,
+            'email'    => $user->email,
+            'language' => 'klingon',
+        ])->assertSessionHasErrors('language');
+    }
+
+    // ── Ajustes: apariencia ────────────────────────────────────────────────────
+
+    #[Test]
+    public function update_ajustes_saves_theme_timezone_and_coste_kwh(): void
+    {
+        $user = User::factory()->create(['theme' => 'light']);
+
+        $this->actingAs($user)->post(route('configuracion.ajustes.update'), [
+            'theme'     => 'dark',
+            'timezone'  => 'UTC',
+            'coste_kwh' => 0.25,
+        ])->assertRedirect();
+
+        $user->refresh();
         $this->assertSame('dark', $user->theme);
         $this->assertSame('UTC', $user->timezone);
+        $this->assertEquals(0.25, (float) $user->coste_kwh);
     }
 
     #[Test]
-    public function update_cuenta_validates_language_must_be_valid(): void
+    public function update_ajustes_validates_theme_must_be_light_or_dark(): void
     {
         $this->actingAs(User::factory()->create())
-             ->post(route('configuracion.cuenta.preferencias'), [
-                 'language' => 'klingon',
-                 'theme'    => 'light',
-                 'timezone' => 'UTC',
-             ])->assertSessionHasErrors('language');
-    }
-
-    #[Test]
-    public function update_cuenta_validates_theme_must_be_light_or_dark(): void
-    {
-        $this->actingAs(User::factory()->create())
-             ->post(route('configuracion.cuenta.preferencias'), [
-                 'language' => 'es',
-                 'theme'    => 'solarized',
-                 'timezone' => 'UTC',
+             ->post(route('configuracion.ajustes.update'), [
+                 'theme'     => 'solarized',
+                 'timezone'  => 'UTC',
+                 'coste_kwh' => 0.15,
              ])->assertSessionHasErrors('theme');
     }
 
@@ -145,8 +164,8 @@ class ConfigControllerTest extends TestCase
     #[Test]
     public function admin_can_update_retention_settings(): void
     {
-        Setting::set('alert_log_retention_days', '90');
-        Setting::set('report_retention_days', '180');
+        Ajuste::set('alert_log_retention_days', '90');
+        Ajuste::set('report_retention_days', '180');
 
         $admin = User::factory()->admin()->create();
 
@@ -155,8 +174,8 @@ class ConfigControllerTest extends TestCase
             'report_retention_days'    => 60,
         ])->assertRedirect();
 
-        $this->assertSame('30', Setting::get('alert_log_retention_days'));
-        $this->assertSame('60', Setting::get('report_retention_days'));
+        $this->assertSame('30', Ajuste::get('alert_log_retention_days'));
+        $this->assertSame('60', Ajuste::get('report_retention_days'));
     }
 
     #[Test]
@@ -174,19 +193,19 @@ class ConfigControllerTest extends TestCase
     #[Test]
     public function purgar_alertas_deletes_logs_older_than_retention_days(): void
     {
-        Setting::set('alert_log_retention_days', '30');
+        Ajuste::set('alert_log_retention_days', '30');
 
         $user  = User::factory()->admin()->create();
 
         // Log antiguo (fuera de retención)
-        AlertLog::factory()->create([
+        RegistroAlerta::factory()->create([
             'user_id'    => $user->id,
             'created_at' => now()->subDays(60),
             'updated_at' => now()->subDays(60),
         ]);
 
         // Log reciente (dentro de retención)
-        $recent = AlertLog::factory()->create([
+        $recent = RegistroAlerta::factory()->create([
             'user_id'    => $user->id,
             'created_at' => now()->subDays(10),
             'updated_at' => now()->subDays(10),
@@ -196,17 +215,17 @@ class ConfigControllerTest extends TestCase
              ->post(route('configuracion.sistema.purgar_alertas'))
              ->assertRedirect();
 
-        $this->assertDatabaseHas('alert_logs', ['id' => $recent->id]);
-        $this->assertDatabaseCount('alert_logs', 1);
+        $this->assertDatabaseHas('registros_alerta', ['id' => $recent->id]);
+        $this->assertDatabaseCount('registros_alerta', 1);
     }
 
     #[Test]
     public function purgar_alertas_deletes_all_when_retention_is_zero(): void
     {
-        Setting::set('alert_log_retention_days', '0');
+        Ajuste::set('alert_log_retention_days', '0');
         $user = User::factory()->admin()->create();
 
-        AlertLog::factory()->count(5)->create([
+        RegistroAlerta::factory()->count(5)->create([
             'user_id'    => $user->id,
             'created_at' => now()->subMinutes(1),
             'updated_at' => now()->subMinutes(1),
@@ -216,7 +235,7 @@ class ConfigControllerTest extends TestCase
              ->post(route('configuracion.sistema.purgar_alertas'))
              ->assertRedirect();
 
-        $this->assertDatabaseCount('alert_logs', 0);
+        $this->assertDatabaseCount('registros_alerta', 0);
     }
 
     // ── Conexiones: tokens sensibles ───────────────────────────────────────────
@@ -224,13 +243,13 @@ class ConfigControllerTest extends TestCase
     #[Test]
     public function update_conexiones_does_not_overwrite_influx_token_when_empty(): void
     {
-        Setting::set('influxdb_url', 'http://influx:8086');
-        Setting::set('influxdb_org', 'myorg');
-        Setting::set('influxdb_bucket', 'mybucket');
-        Setting::set('influxdb_token', 'secret-token-original');
-        Setting::set('grafana_base_url', 'http://grafana:3000');
-        Setting::set('grafana_datasource_id', '1');
-        Setting::set('grafana_api_key', 'gf-key');
+        Ajuste::set('influxdb_url', 'http://influx:8086');
+        Ajuste::set('influxdb_org', 'myorg');
+        Ajuste::set('influxdb_bucket', 'mybucket');
+        Ajuste::set('influxdb_token', 'secret-token-original');
+        Ajuste::set('grafana_base_url', 'http://grafana:3000');
+        Ajuste::set('grafana_datasource_id', '1');
+        Ajuste::set('grafana_api_key', 'gf-key');
 
         $admin = User::factory()->admin()->create();
 
@@ -250,19 +269,19 @@ class ConfigControllerTest extends TestCase
             'openrouter_api_key'      => '',
         ])->assertRedirect();
 
-        $this->assertSame('secret-token-original', Setting::get('influxdb_token'));
-        $this->assertSame('gf-key', Setting::get('grafana_api_key'));
+        $this->assertSame('secret-token-original', Ajuste::get('influxdb_token'));
+        $this->assertSame('gf-key', Ajuste::get('grafana_api_key'));
     }
 
     #[Test]
     public function update_conexiones_overwrites_token_when_new_value_provided(): void
     {
-        Setting::set('influxdb_url', 'http://influx:8086');
-        Setting::set('influxdb_org', 'myorg');
-        Setting::set('influxdb_bucket', 'mybucket');
-        Setting::set('influxdb_token', 'old-token');
-        Setting::set('grafana_base_url', 'http://grafana:3000');
-        Setting::set('grafana_datasource_id', '1');
+        Ajuste::set('influxdb_url', 'http://influx:8086');
+        Ajuste::set('influxdb_org', 'myorg');
+        Ajuste::set('influxdb_bucket', 'mybucket');
+        Ajuste::set('influxdb_token', 'old-token');
+        Ajuste::set('grafana_base_url', 'http://grafana:3000');
+        Ajuste::set('grafana_datasource_id', '1');
 
         $admin = User::factory()->admin()->create();
 
@@ -282,6 +301,6 @@ class ConfigControllerTest extends TestCase
             'openrouter_api_key'      => '',
         ])->assertRedirect();
 
-        $this->assertSame('new-secret-token', Setting::get('influxdb_token'));
+        $this->assertSame('new-secret-token', Ajuste::get('influxdb_token'));
     }
 }

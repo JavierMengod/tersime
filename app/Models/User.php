@@ -19,6 +19,7 @@ class User extends Authenticatable
         'language',
         'timezone',
         'theme',
+        'coste_kwh',
         'admin',
         'enabled',
     ];
@@ -42,22 +43,22 @@ class User extends Authenticatable
 
     public function smtpCredential()
     {
-        return $this->hasOne(SmtpCredential::class);
+        return $this->hasOne(CredencialSmtp::class);
     }
 
     public function telegramCredential()
     {
-        return $this->hasOne(TelegramCredential::class);
+        return $this->hasOne(CredencialTelegram::class);
     }
 
-    public function rules()
+    public function reglas()
     {
-        return $this->hasMany(Rule::class);
+        return $this->hasMany(Regla::class);
     }
 
     public function discordCredential()
     {
-        return $this->hasOne(DiscordCredential::class);
+        return $this->hasOne(CredencialDiscord::class);
     }
 
     public function informes()

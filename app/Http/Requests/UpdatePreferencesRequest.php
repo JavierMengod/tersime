@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdatePreferencesRequest extends FormRequest
 {
@@ -13,12 +14,10 @@ class UpdatePreferencesRequest extends FormRequest
 
     public function rules(): array
     {
-        $tzValues = implode(',', array_keys(UserRequest::timezones()));
-
         return [
+            'name'     => 'required|string|max:255',
+            'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore(auth()->id())],
             'language' => 'required|in:es,en,fr',
-            'theme'    => 'required|in:light,dark',
-            'timezone' => "required|string|in:{$tzValues}",
         ];
     }
 }

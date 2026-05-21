@@ -17,14 +17,14 @@ class InformeController extends Controller
 
     public function programados()
     {
-        $user   = auth()->user();
-        $informes = $user->programacionInformes()
+        $usuario  = auth()->user();
+        $informes = $usuario->programacionInformes()
             ->with('dispositivos')
             ->paginate(15);
 
-        $tg   = $user->telegramCredential;
-        $smtp = $user->smtpCredential;
-        $dc   = $user->discordCredential;
+        $tg   = $usuario->telegramCredential;
+        $smtp = $usuario->smtpCredential;
+        $dc   = $usuario->discordCredential;
 
         $canalesSinConfig = [];
         if (!$tg || empty($tg->chat_id)) {
@@ -60,7 +60,7 @@ class InformeController extends Controller
 
     public function generarInformeDemanda(Request $request)
     {
-        $validated = $request->validate([
+        $validado = $request->validate([
             'fromDate'       => 'required|date_format:Y-m-d',
             'toDate'         => 'required|date_format:Y-m-d|after_or_equal:fromDate',
             'email'          => 'nullable|email',
@@ -68,43 +68,42 @@ class InformeController extends Controller
             'notificaciones' => 'nullable|string',
         ]);
 
-        if (Carbon::parse($validated['fromDate'])->diffInDays(Carbon::parse($validated['toDate'])) > 366) {
+        if (Carbon::parse($validado['fromDate'])->diffInDays(Carbon::parse($validado['toDate'])) > 366) {
             return response()->json(['error' => 'El período máximo permitido es 366 días.'], 422);
         }
 
-        $user = auth()->user();
+        $usuario = auth()->user();
 
-        $pendientes = $user->informes()->whereIn('status', ['pending', 'processing'])->count();
+        $pendientes = $usuario->informes()->whereIn('status', ['pending', 'processing'])->count();
         if ($pendientes >= 3) {
             return response()->json(['error' => 'Tienes informes en proceso. Espera a que finalicen antes de solicitar uno nuevo.'], 429);
         }
 
-        $decoded = json_decode($validated['dispositivos'], true);
-        if (!is_array($decoded) || empty($decoded)) {
+        $decodificado = json_decode($validado['dispositivos'], true);
+        if (!is_array($decodificado) || empty($decodificado)) {
             return response()->json(['error' => 'Debes seleccionar al menos un dispositivo.'], 422);
         }
-        $dispositivosIds = array_column($decoded, 'id');
+        $idsDispositivos = array_column($decodificado, 'id');
 
         $notificaciones = [];
-        if (!empty($validated['notificaciones'])) {
-            $tmp = json_decode($validated['notificaciones'], true);
+        if (!empty($validado['notificaciones'])) {
+            $tmp = json_decode($validado['notificaciones'], true);
             if (is_array($tmp)) {
                 $notificaciones = $tmp;
             }
         }
 
-        $fromDate = Carbon::parse($validated['fromDate'])->format('Y-m-d');
-        $toDate   = Carbon::parse($validated['toDate'])->format('Y-m-d');
-        $email    = $validated['email'] ?? null;
+        $fechaDesde = Carbon::parse($validado['fromDate'])->format('Y-m-d');
+        $fechaHasta = Carbon::parse($validado['toDate'])->format('Y-m-d');
+        $correoDestino = $validado['email'] ?? null;
 
-        // Only keep IDs that actually belong to this user
-        $dispositivosIds = $user->dispositivos()
-            ->whereIn('dispositivos.id', $dispositivosIds)
+        $idsDispositivos = $usuario->dispositivos()
+            ->whereIn('dispositivos.id', $idsDispositivos)
             ->pluck('dispositivos.id')
             ->map(fn($id) => (int) $id)
             ->toArray();
 
-        if (empty($dispositivosIds)) {
+        if (empty($idsDispositivos)) {
             return response()->json(['error' => 'Los dispositivos seleccionados no te pertenecen.'], 422);
         }
 
@@ -112,50 +111,50 @@ class InformeController extends Controller
         $correo   = in_array('correo', $notificaciones);
         $discord  = in_array('discord', $notificaciones);
 
-        if ($correo && empty($email)) {
+        if ($correo && empty($correoDestino)) {
             return response()->json(['error' => 'Se requiere un correo destino cuando se activa la notificación por email.'], 422);
         }
 
         $informe = null;
         try {
             DB::transaction(function () use (
-                $user, $fromDate, $toDate, $email, $notificaciones,
-                $dispositivosIds, $telegram, $correo, $discord, &$informe
+                $usuario, $fechaDesde, $fechaHasta, $correoDestino, $notificaciones,
+                $idsDispositivos, $telegram, $correo, $discord, &$informe
             ) {
                 $informe = Informe::create([
-                    'user_id'        => $user->id,
+                    'user_id'        => $usuario->id,
                     'tipo'           => 'Demanda',
-                    'periodo_from'   => $fromDate,
-                    'periodo_to'     => $toDate,
+                    'periodo_from'   => $fechaDesde,
+                    'periodo_to'     => $fechaHasta,
                     'telegram'       => $telegram,
                     'discord'        => $discord,
                     'correo'         => $correo,
-                    'correo_destino' => $email,
+                    'correo_destino' => $correoDestino,
                     'status'         => 'pending',
                 ]);
 
-                if (!empty($dispositivosIds)) {
-                    $informe->dispositivos()->sync($dispositivosIds);
+                if (!empty($idsDispositivos)) {
+                    $informe->dispositivos()->sync($idsDispositivos);
                 }
 
                 GenerarInformeJob::dispatch(
                     $informe->id,
-                    $user->id,
-                    $dispositivosIds,
-                    $fromDate,
-                    $toDate,
+                    $usuario->id,
+                    $idsDispositivos,
+                    $fechaDesde,
+                    $fechaHasta,
                     $telegram,
                     $correo,
                     $discord,
-                    $email,
+                    $correoDestino,
                 );
             });
         } catch (\Throwable $e) {
-            Log::error('[Informe] Error al despachar job', ['error' => $e->getMessage(), 'user_id' => $user->id]);
+            Log::error('[Informe] Error al despachar job', ['error' => $e->getMessage(), 'user_id' => $usuario->id]);
             return response()->json(['error' => 'No se pudo iniciar la generación del informe.'], 500);
         }
 
-        Log::info('[Informe] Job despachado', ['informe_id' => $informe->id, 'user_id' => $user->id]);
+        Log::info('[Informe] Job despachado', ['informe_id' => $informe->id, 'user_id' => $usuario->id]);
 
         return response()->json([
             'queued'     => true,
@@ -170,41 +169,41 @@ class InformeController extends Controller
             abort(404);
         }
 
-        $data = ['status' => $informe->status];
+        $datos = ['status' => $informe->status];
 
         if ($informe->isCompleted()) {
-            $data['download_url'] = route('informes.demanda.download', ['filename' => $informe->nombre_archivo], false);
+            $datos['download_url'] = route('informes.demanda.download', ['nombreArchivo' => $informe->nombre_archivo], false);
         }
 
         if ($informe->isFailed()) {
-            $data['error'] = $informe->error_message;
+            $datos['error'] = $informe->error_message;
         }
 
-        return response()->json($data);
+        return response()->json($datos);
     }
 
     public function download(Informe $informe)
     {
-        $this->authorizeAccess($informe);
-        $absolutePath = $this->resolveInformePath($informe->pdf_path);
+        $this->autorizarAcceso($informe);
+        $rutaAbsoluta = $this->resolveInformePath($informe->pdf_path);
 
-        if (!$absolutePath || !is_file($absolutePath)) {
+        if (!$rutaAbsoluta || !is_file($rutaAbsoluta)) {
             return back()->with('error', 'No se encontró el archivo en el servidor.');
         }
 
-        return response()->download($absolutePath, $informe->nombre_archivo ?: basename($absolutePath), [
+        return response()->download($rutaAbsoluta, $informe->nombre_archivo ?: basename($rutaAbsoluta), [
             'Content-Type' => 'application/pdf',
         ]);
     }
 
     public function destroy(Informe $informe)
     {
-        $this->authorizeAccess($informe);
+        $this->autorizarAcceso($informe);
 
         if (!empty($informe->pdf_path)) {
-            $absolutePath = $this->resolveInformePath($informe->pdf_path);
-            if ($absolutePath && is_file($absolutePath)) {
-                unlink($absolutePath);
+            $rutaAbsoluta = $this->resolveInformePath($informe->pdf_path);
+            if ($rutaAbsoluta && is_file($rutaAbsoluta)) {
+                unlink($rutaAbsoluta);
             }
         }
 
@@ -212,17 +211,16 @@ class InformeController extends Controller
         return back()->with('success', 'Registro eliminado correctamente.');
     }
 
-    public function descargarBajoDemanda(string $filename)
+    public function descargarBajoDemanda(string $nombreArchivo)
     {
-        $informe = \App\Models\Informe::where('nombre_archivo', $filename)->firstOrFail();
+        $informe = \App\Models\Informe::where('nombre_archivo', $nombreArchivo)->firstOrFail();
         return redirect()->route('informes.download', $informe->id);
     }
 
-    private function authorizeAccess(Informe $informe): void
+    private function autorizarAcceso(Informe $informe): void
     {
         if ((int) $informe->user_id !== (int) auth()->id()) {
             abort(403, 'No tienes permiso para acceder a este recurso.');
         }
     }
-
 }

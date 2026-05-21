@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\PrediccionController;
-use App\Models\Setting;
+use App\Models\Ajuste;
 use App\Services\InfluxService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -11,40 +11,40 @@ use Illuminate\Support\Facades\Log;
 
 class GrafanaProxyController extends Controller
 {
-    public function proxy(Request $request, string $path = '')
+    public function proxy(Request $request, string $ruta = '')
     {
-        $base     = Setting::get('grafana_base_url') ?: config('app.grafana_base_url', 'http://localhost:3000');
-        $upstream = rtrim($base, '/') . '/' . ltrim($path, '/');
+        $base     = Ajuste::get('grafana_base_url') ?: config('app.grafana_base_url', 'http://localhost:3000');
+        $destino  = rtrim($base, '/') . '/' . ltrim($ruta, '/');
 
         $qs = $request->getQueryString();
         if ($qs) {
-            $upstream .= '?' . $qs;
+            $destino .= '?' . $qs;
         }
 
-        $method      = strtolower($request->method());
-        $contentType = $request->header('Content-Type');
+        $metodo      = strtolower($request->method());
+        $tipoContenido = $request->header('Content-Type');
 
-        $headers = [
+        $cabeceras = [
             'X-WEBAUTH-USER' => auth()->user()->name,
             'Accept'         => $request->header('Accept', '*/*'),
         ];
-        if ($contentType) {
-            $headers['Content-Type'] = $contentType;
+        if ($tipoContenido) {
+            $cabeceras['Content-Type'] = $tipoContenido;
         }
 
         // Forward Grafana session cookies so token rotation works correctly.
-        $grafanaCookies = collect($request->cookies->all())
+        $cookiesGrafana = collect($request->cookies->all())
             ->filter(fn($v, $k) => str_starts_with($k, 'grafana_'))
             ->map(fn($v, $k) => $k . '=' . $v)
             ->join('; ');
-        if ($grafanaCookies) {
-            $headers['Cookie'] = $grafanaCookies;
+        if ($cookiesGrafana) {
+            $cabeceras['Cookie'] = $cookiesGrafana;
         }
 
         // Intercept token rotation — with ENABLE_LOGIN_TOKEN=false there are no
         // session tokens to rotate, but Grafana's JS still calls this endpoint
         // periodically; a 401 triggers a page reload loop.
-        if ($path === 'api/user/auth-tokens/rotate') {
+        if ($ruta === 'api/user/auth-tokens/rotate') {
             return response()->json(['message' => 'Token rotated']);
         }
 
@@ -52,53 +52,53 @@ class GrafanaProxyController extends Controller
         // GrafanaProxy holds the single PHP worker while waiting for Grafana, and
         // Grafana calls back to the same PHP server for /prediccion/obtener.
         // Serve these in-process to break the loop entirely.
-        if (str_contains($path, 'datasources/proxy') && str_contains($path, 'prediccion/obtener')) {
+        if (str_contains($ruta, 'datasources/proxy') && str_contains($ruta, 'prediccion/obtener')) {
             return app(PrediccionController::class)
                 ->obtenerDatos($request, app(InfluxService::class));
         }
 
         // Prediction requests drive a slow Python Prophet service; grant extra time.
-        $isPrediccion = str_contains($path, 'prediccion/obtener') || str_contains($path, 'prediction');
-        $timeout = $isPrediccion
-            ? ((int) (Setting::get('predictor_timeout') ?: 120)) + 60
+        $esPrediccion = str_contains($ruta, 'prediccion/obtener') || str_contains($ruta, 'prediction');
+        $timeout = $esPrediccion
+            ? ((int) (Ajuste::get('predictor_timeout') ?: 120)) + 60
             : 30;
 
         try {
-            $client = Http::withHeaders($headers)->timeout($timeout);
+            $cliente = Http::withHeaders($cabeceras)->timeout($timeout);
 
-            if (in_array($method, ['post', 'put', 'patch'])) {
-                $response = $client
-                    ->withBody($request->getContent(), $contentType ?: 'application/json')
-                    ->{$method}($upstream);
+            if (in_array($metodo, ['post', 'put', 'patch'])) {
+                $respuesta = $cliente
+                    ->withBody($request->getContent(), $tipoContenido ?: 'application/json')
+                    ->{$metodo}($destino);
             } else {
-                $response = $client->{$method}($upstream);
+                $respuesta = $cliente->{$metodo}($destino);
             }
 
-            $respType = $response->header('Content-Type', 'application/octet-stream');
-            $status   = $response->status();
+            $tipoCont = $respuesta->header('Content-Type', 'application/octet-stream');
+            $estado   = $respuesta->status();
 
-            $out = ['Content-Type' => $respType];
+            $cabOut = ['Content-Type' => $tipoCont];
             foreach (['Cache-Control', 'ETag', 'Last-Modified', 'Expires'] as $h) {
-                $v = $response->header($h);
+                $v = $respuesta->header($h);
                 if ($v) {
-                    $out[$h] = $v;
+                    $cabOut[$h] = $v;
                 }
             }
             // X-Frame-Options y Content-Security-Policy se omiten deliberadamente
             // para que los paneles carguen dentro de iframes en esta aplicación.
 
-            $laravelResponse = response($response->body(), $status)->withHeaders($out);
+            $respuestaLaravel = response($respuesta->body(), $estado)->withHeaders($cabOut);
 
             // Pass Grafana session cookies to the browser so token rotation works.
             // Use raw Set-Cookie headers to avoid Guzzle↔Symfony type mismatch.
-            foreach ($response->toPsrResponse()->getHeader('Set-Cookie') as $raw) {
-                $laravelResponse->headers->set('Set-Cookie', $raw, false);
+            foreach ($respuesta->toPsrResponse()->getHeader('Set-Cookie') as $raw) {
+                $respuestaLaravel->headers->set('Set-Cookie', $raw, false);
             }
 
-            return $laravelResponse;
+            return $respuestaLaravel;
 
         } catch (\Throwable $e) {
-            Log::error('[GrafanaProxy] ' . $e->getMessage(), ['upstream' => $upstream]);
+            Log::error('[GrafanaProxy] ' . $e->getMessage(), ['upstream' => $destino]);
             return response('Proxy error: could not reach Grafana', 502);
         }
     }

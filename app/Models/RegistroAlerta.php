@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
-use App\Casts\CsvArray;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class AlertLog extends Model
+class RegistroAlerta extends Model
 {
     use HasFactory;
+
+    protected $table = 'registros_alerta';
+
     protected $fillable = [
         'user_id', 'rule_id', 'rule_name',
         'dispositivo_id', 'device_name',
@@ -16,7 +18,7 @@ class AlertLog extends Model
     ];
 
     protected $casts = [
-        'channels' => CsvArray::class,
+        'channels' => 'array',
     ];
 
     public function user()
@@ -24,9 +26,9 @@ class AlertLog extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function rule()
+    public function regla()
     {
-        return $this->belongsTo(Rule::class);
+        return $this->belongsTo(Regla::class, 'rule_id');
     }
 
     public function dispositivo()

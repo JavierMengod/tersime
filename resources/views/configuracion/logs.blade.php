@@ -8,8 +8,8 @@
     <div>
         <h2 class="mb-0">{{ __('Log del sistema') }}</h2>
         <p class="text-muted mb-0 small">
-            storage/logs/laravel.log &middot; {{ $logSize }} KB
-            &middot; {{ count($entries) }} {{ __('entradas') }}
+            storage/logs/laravel.log &middot; {{ $tamanoLog }} KB
+            &middot; {{ count($entradas) }} {{ __('entradas') }}
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -32,19 +32,19 @@
 {{-- Filtros ──────────────────────────────────────────────────────────────── --}}
 <div class="d-flex gap-2 mb-3 flex-wrap" id="log-filters">
     @foreach(['ERROR' => 'danger', 'WARNING' => 'warning', 'INFO' => 'primary', 'DEBUG' => 'secondary'] as $level => $color)
-    @php $count = count(array_filter($entries, fn($e) => $e['level'] === $level)) @endphp
+    @php $count = count(array_filter($entradas, fn($e) => $e['level'] === $level)) @endphp
     <button class="btn btn-sm btn-outline-{{ $color }} filter-btn {{ $count === 0 ? 'disabled' : '' }}"
             data-level="{{ $level }}">
         {{ $level }} <span class="badge bg-{{ $color }} ms-1">{{ $count }}</span>
     </button>
     @endforeach
     <button class="btn btn-sm btn-outline-secondary filter-btn active" data-level="ALL">
-        {{ __('Todos') }} <span class="badge bg-secondary ms-1">{{ count($entries) }}</span>
+        {{ __('Todos') }} <span class="badge bg-secondary ms-1">{{ count($entradas) }}</span>
     </button>
 </div>
 
 {{-- Log ─────────────────────────────────────────────────────────────────── --}}
-@if(count($entries) === 0)
+@if(count($entradas) === 0)
     <div class="card border-0 shadow-sm">
         <div class="card-body text-center py-5 text-muted">
             <i class="bi bi-journal-x fs-2 d-block mb-2"></i>
@@ -57,7 +57,7 @@
         <div style="max-height:72vh;overflow-y:auto;" id="log-container">
             <table class="table table-sm align-middle mb-0" style="font-size:.78rem;font-family:monospace;">
                 <tbody id="log-tbody">
-                @foreach($entries as $entry)
+                @foreach($entradas as $entry)
                 @php
                     $colorMap = ['ERROR' => 'danger', 'WARNING' => 'warning', 'INFO' => 'primary'];
                     $rowBgMap = ['ERROR' => 'table-danger', 'WARNING' => 'table-warning'];

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RuleRequest;
 use App\Http\Resources\RuleResource;
-use App\Models\Rule;
+use App\Models\Regla;
 use App\Traits\BuildsRuleAttributes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +16,7 @@ class RuleController extends Controller
 
     public function index(Request $request)
     {
-        $rules = $request->user()->rules()->with('dispositivos')->get();
+        $rules = $request->user()->reglas()->with('dispositivos')->get();
 
         return response()->json(
             $rules->map(fn($r) => (new RuleResource($r))->toArray($request))
@@ -25,13 +25,13 @@ class RuleController extends Controller
 
     public function store(RuleRequest $request)
     {
-        if (Rule::userHasReachedLimit($request->user()->id)) {
+        if (Regla::userHasReachedLimit($request->user()->id)) {
             return response()->json(['error' => 'Has alcanzado el límite de 50 reglas.'], 422);
         }
 
         $validated = $request->validated();
 
-        $rule = Rule::create(array_merge($this->ruleFieldsFrom($validated), [
+        $rule = Regla::create(array_merge($this->ruleFieldsFrom($validated), [
             'user_id'   => $request->user()->id,
             'is_active' => true,
         ]));
@@ -46,7 +46,7 @@ class RuleController extends Controller
 
     public function update(RuleRequest $request, $id)
     {
-        $rule = $request->resolvedRule() ?? Rule::where('id', $id)
+        $rule = $request->resolvedRule() ?? Regla::where('id', $id)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
@@ -79,9 +79,9 @@ class RuleController extends Controller
         ]);
     }
 
-    private function findOwnedRule(Request $request, $id): Rule
+    private function findOwnedRule(Request $request, $id): Regla
     {
-        return Rule::where('id', $id)
+        return Regla::where('id', $id)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
     }

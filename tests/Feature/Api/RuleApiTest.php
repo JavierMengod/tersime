@@ -3,7 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Dispositivo;
-use App\Models\Rule;
+use App\Models\Regla;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -47,8 +47,8 @@ class RuleApiTest extends TestCase
         $user  = $this->user();
         $other = $this->user();
 
-        Rule::factory()->count(3)->create(['user_id' => $user->id]);
-        Rule::factory()->count(2)->create(['user_id' => $other->id]);
+        Regla::factory()->count(3)->create(['user_id' => $user->id]);
+        Regla::factory()->count(2)->create(['user_id' => $other->id]);
 
         Sanctum::actingAs($user);
 
@@ -62,7 +62,7 @@ class RuleApiTest extends TestCase
     {
         $user   = $this->user();
         $device = $this->deviceFor($user);
-        $rule   = Rule::factory()->create(['user_id' => $user->id]);
+        $rule   = Regla::factory()->create(['user_id' => $user->id]);
         $rule->dispositivos()->attach($device->id, ['alert_state' => 'ok']);
 
         Sanctum::actingAs($user);
@@ -97,13 +97,13 @@ class RuleApiTest extends TestCase
                 'email_enabled' => true,
             ]);
 
-        $this->assertDatabaseHas('rules', [
+        $this->assertDatabaseHas('reglas', [
             'name'    => 'Regla de prueba',
             'user_id' => $user->id,
         ]);
 
         $ruleId = $response->json('id');
-        $this->assertDatabaseHas('dispositivo_rule', [
+        $this->assertDatabaseHas('dispositivo_regla', [
             'rule_id'        => $ruleId,
             'dispositivo_id' => $device->id,
         ]);
@@ -123,7 +123,7 @@ class RuleApiTest extends TestCase
         ));
 
         $response->assertStatus(201);
-        $this->assertDatabaseHas('rules', [
+        $this->assertDatabaseHas('reglas', [
             'telegram_enabled' => 1,
             'discord_enabled'  => 1,
             'email_enabled'    => 0,
@@ -196,7 +196,7 @@ class RuleApiTest extends TestCase
     {
         $user   = $this->user();
         $device = $this->deviceFor($user);
-        $rule   = Rule::factory()->create(['user_id' => $user->id, 'name' => 'Original']);
+        $rule   = Regla::factory()->create(['user_id' => $user->id, 'name' => 'Original']);
         $rule->dispositivos()->attach($device->id, ['alert_state' => 'ok']);
 
         Sanctum::actingAs($user);
@@ -207,7 +207,7 @@ class RuleApiTest extends TestCase
             'value'    => 50,
         ]))->assertStatus(200)->assertJsonFragment(['name' => 'Actualizada', 'operator' => '<']);
 
-        $this->assertDatabaseHas('rules', ['id' => $rule->id, 'name' => 'Actualizada']);
+        $this->assertDatabaseHas('reglas', ['id' => $rule->id, 'name' => 'Actualizada']);
     }
 
     #[Test]
@@ -215,7 +215,7 @@ class RuleApiTest extends TestCase
     {
         $owner = $this->user();
         $other = $this->user();
-        $rule  = Rule::factory()->create(['user_id' => $owner->id]);
+        $rule  = Regla::factory()->create(['user_id' => $owner->id]);
 
         Sanctum::actingAs($other);
 
@@ -229,21 +229,21 @@ class RuleApiTest extends TestCase
     public function toggle_deactivates_active_rule(): void
     {
         $user = $this->user();
-        $rule = Rule::factory()->create(['user_id' => $user->id, 'is_active' => true]);
+        $rule = Regla::factory()->create(['user_id' => $user->id, 'is_active' => true]);
 
         Sanctum::actingAs($user);
 
         $response = $this->patchJson("/api/rules/{$rule->id}/toggle");
         $response->assertStatus(200)->assertJsonFragment(['is_active' => false]);
 
-        $this->assertDatabaseHas('rules', ['id' => $rule->id, 'is_active' => 0]);
+        $this->assertDatabaseHas('reglas', ['id' => $rule->id, 'is_active' => 0]);
     }
 
     #[Test]
     public function toggle_activates_inactive_rule(): void
     {
         $user = $this->user();
-        $rule = Rule::factory()->inactive()->create(['user_id' => $user->id]);
+        $rule = Regla::factory()->inactive()->create(['user_id' => $user->id]);
 
         Sanctum::actingAs($user);
 
@@ -254,7 +254,7 @@ class RuleApiTest extends TestCase
     #[Test]
     public function toggle_returns_404_for_another_users_rule(): void
     {
-        $rule = Rule::factory()->create(['user_id' => $this->user()->id]);
+        $rule = Regla::factory()->create(['user_id' => $this->user()->id]);
 
         Sanctum::actingAs($this->user());
         $this->patchJson("/api/rules/{$rule->id}/toggle")->assertStatus(404);
@@ -266,18 +266,18 @@ class RuleApiTest extends TestCase
     public function destroy_deletes_own_rule(): void
     {
         $user = $this->user();
-        $rule = Rule::factory()->create(['user_id' => $user->id]);
+        $rule = Regla::factory()->create(['user_id' => $user->id]);
 
         Sanctum::actingAs($user);
 
         $this->deleteJson("/api/rules/{$rule->id}")->assertStatus(200);
-        $this->assertDatabaseMissing('rules', ['id' => $rule->id]);
+        $this->assertDatabaseMissing('reglas', ['id' => $rule->id]);
     }
 
     #[Test]
     public function destroy_returns_404_for_another_users_rule(): void
     {
-        $rule = Rule::factory()->create(['user_id' => $this->user()->id]);
+        $rule = Regla::factory()->create(['user_id' => $this->user()->id]);
 
         Sanctum::actingAs($this->user());
         $this->deleteJson("/api/rules/{$rule->id}")->assertStatus(404);
@@ -288,12 +288,12 @@ class RuleApiTest extends TestCase
     {
         $user   = $this->user();
         $device = $this->deviceFor($user);
-        $rule   = Rule::factory()->create(['user_id' => $user->id]);
+        $rule   = Regla::factory()->create(['user_id' => $user->id]);
         $rule->dispositivos()->attach($device->id, ['alert_state' => 'ok']);
 
         Sanctum::actingAs($user);
         $this->deleteJson("/api/rules/{$rule->id}")->assertStatus(200);
 
-        $this->assertDatabaseMissing('dispositivo_rule', ['rule_id' => $rule->id]);
+        $this->assertDatabaseMissing('dispositivo_regla', ['rule_id' => $rule->id]);
     }
 }

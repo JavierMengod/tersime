@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Setting;
+use App\Models\Ajuste;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -64,8 +64,8 @@ class OpenRouterService
 
     private function resolveCredentials(): array
     {
-        $apiKey = Setting::get('openrouter_api_key') ?: config('tersime.openrouter.api_key');
-        $model  = Setting::get('openrouter_model')  ?: config('tersime.openrouter.model');
+        $apiKey = Ajuste::get('openrouter_api_key') ?: config('tersime.openrouter.api_key');
+        $model  = Ajuste::get('openrouter_model')  ?: config('tersime.openrouter.model');
 
         if (empty($apiKey) || empty($model)) {
             Log::error('[OpenRouter] Faltan OPENROUTER_API_KEY o OPENROUTER_MODEL en .env');

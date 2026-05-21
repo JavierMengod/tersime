@@ -2,11 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\RegistroAlerta;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class AlertLogFactory extends Factory
+class RegistroAlertaFactory extends Factory
 {
+    protected $model = RegistroAlerta::class;
+
     public function definition()
     {
         return [

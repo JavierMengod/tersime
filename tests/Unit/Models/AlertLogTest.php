@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Models;
 
-use App\Models\AlertLog;
+use App\Models\RegistroAlerta;
 use App\Models\Dispositivo;
-use App\Models\Rule;
+use App\Models\Regla;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -17,36 +17,36 @@ class AlertLogTest extends TestCase
     #[Test]
     public function channels_cast_deserializes_single_channel(): void
     {
-        $log = AlertLog::factory()->create(['channels' => ['email']]);
+        $log = RegistroAlerta::factory()->create(['channels' => ['email']]);
         $this->assertSame(['email'], $log->channels);
     }
 
     #[Test]
     public function channels_cast_deserializes_all_three_channels(): void
     {
-        $log = AlertLog::factory()->create(['channels' => ['email', 'telegram', 'discord']]);
+        $log = RegistroAlerta::factory()->create(['channels' => ['email', 'telegram', 'discord']]);
         $this->assertSame(['email', 'telegram', 'discord'], $log->channels);
     }
 
     #[Test]
     public function channels_cast_deserializes_two_channels(): void
     {
-        $log = AlertLog::factory()->create(['channels' => ['telegram', 'discord']]);
+        $log = RegistroAlerta::factory()->create(['channels' => ['telegram', 'discord']]);
         $this->assertSame(['telegram', 'discord'], $log->channels);
     }
 
     #[Test]
-    public function channels_cast_returns_empty_array_for_null(): void
+    public function channels_cast_returns_null_when_not_set(): void
     {
-        $log = AlertLog::factory()->create(['channels' => null]);
-        $this->assertSame([], $log->channels);
+        $log = RegistroAlerta::factory()->create(['channels' => null]);
+        $this->assertNull($log->channels);
     }
 
     #[Test]
     public function belongs_to_user(): void
     {
         $user = User::factory()->create();
-        $log  = AlertLog::factory()->create(['user_id' => $user->id]);
+        $log  = RegistroAlerta::factory()->create(['user_id' => $user->id]);
 
         $this->assertInstanceOf(User::class, $log->user);
         $this->assertTrue($log->user->is($user));
@@ -55,28 +55,28 @@ class AlertLogTest extends TestCase
     #[Test]
     public function rule_relationship_returns_null_when_rule_id_is_null(): void
     {
-        $log = AlertLog::factory()->create(['rule_id' => null]);
-        $this->assertNull($log->rule);
+        $log = RegistroAlerta::factory()->create(['rule_id' => null]);
+        $this->assertNull($log->regla);
     }
 
     #[Test]
     public function rule_relationship_resolves_associated_rule(): void
     {
         $user = User::factory()->create();
-        $rule = Rule::factory()->create(['user_id' => $user->id]);
-        $log  = AlertLog::factory()->create([
+        $rule = Regla::factory()->create(['user_id' => $user->id]);
+        $log  = RegistroAlerta::factory()->create([
             'user_id' => $user->id,
             'rule_id' => $rule->id,
         ]);
 
-        $this->assertInstanceOf(Rule::class, $log->rule);
-        $this->assertTrue($log->rule->is($rule));
+        $this->assertInstanceOf(Regla::class, $log->regla);
+        $this->assertTrue($log->regla->is($rule));
     }
 
     #[Test]
     public function dispositivo_relationship_returns_null_when_not_set(): void
     {
-        $log = AlertLog::factory()->create(['dispositivo_id' => null]);
+        $log = RegistroAlerta::factory()->create(['dispositivo_id' => null]);
         $this->assertNull($log->dispositivo);
     }
 
@@ -84,7 +84,7 @@ class AlertLogTest extends TestCase
     public function dispositivo_relationship_resolves_associated_device(): void
     {
         $device = Dispositivo::factory()->create();
-        $log    = AlertLog::factory()->create(['dispositivo_id' => $device->id]);
+        $log    = RegistroAlerta::factory()->create(['dispositivo_id' => $device->id]);
 
         $this->assertInstanceOf(Dispositivo::class, $log->dispositivo);
         $this->assertTrue($log->dispositivo->is($device));
@@ -93,21 +93,21 @@ class AlertLogTest extends TestCase
     #[Test]
     public function type_firing_is_stored_correctly(): void
     {
-        $log = AlertLog::factory()->firing()->create();
+        $log = RegistroAlerta::factory()->firing()->create();
         $this->assertSame('firing', $log->type);
     }
 
     #[Test]
     public function type_resolution_is_stored_correctly(): void
     {
-        $log = AlertLog::factory()->resolution()->create();
+        $log = RegistroAlerta::factory()->resolution()->create();
         $this->assertSame('resolution', $log->type);
     }
 
     #[Test]
     public function rule_name_and_device_name_are_stored_as_snapshots(): void
     {
-        $log = AlertLog::factory()->create([
+        $log = RegistroAlerta::factory()->create([
             'rule_name'   => 'Consumo excesivo planta 1',
             'device_name' => 'Medidor Principal',
         ]);

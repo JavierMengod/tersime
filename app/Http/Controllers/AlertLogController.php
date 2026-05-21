@@ -3,45 +3,45 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AlertIndexRequest;
-use App\Models\AlertLog;
+use App\Models\RegistroAlerta;
 
 class AlertLogController extends Controller
 {
     public function index(AlertIndexRequest $request)
     {
-        $user = $request->user();
-        $sort = $request->input('sort', 'created_at');
-        $dir  = $request->input('dir',  'desc');
+        $usuario  = $request->user();
+        $ordenar  = $request->input('sort', 'created_at');
+        $direccion = $request->input('dir',  'desc');
 
-        $query = AlertLog::forUser($user->id);
+        $consulta = RegistroAlerta::forUser($usuario->id);
 
         if ($request->filled('device')) {
-            $query->where('device_name', $request->input('device'));
+            $consulta->where('device_name', $request->input('device'));
         }
         if ($request->filled('rule')) {
-            $query->where('rule_name', $request->input('rule'));
+            $consulta->where('rule_name', $request->input('rule'));
         }
         if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
+            $consulta->where('type', $request->input('type'));
         }
         if ($request->filled('from')) {
-            $query->whereDate('created_at', '>=', $request->input('from'));
+            $consulta->whereDate('created_at', '>=', $request->input('from'));
         }
         if ($request->filled('to')) {
-            $query->whereDate('created_at', '<=', $request->input('to'));
+            $consulta->whereDate('created_at', '<=', $request->input('to'));
         }
 
-        $perPage = (int) $request->input('per_page', 20);
-        $logs    = $query->orderBy($sort, $dir)->paginate($perPage)->withQueryString();
+        $porPagina = (int) $request->input('per_page', 20);
+        $registros = $consulta->orderBy($ordenar, $direccion)->paginate($porPagina)->withQueryString();
 
-        $devices = AlertLog::forUser($user->id)
+        $dispositivos = RegistroAlerta::forUser($usuario->id)
             ->select('device_name')->distinct()->orderBy('device_name')
             ->pluck('device_name');
 
-        $rules = AlertLog::forUser($user->id)
+        $nombresReglas = RegistroAlerta::forUser($usuario->id)
             ->select('rule_name')->distinct()->orderBy('rule_name')
             ->pluck('rule_name');
 
-        return view('alertas.historial', compact('logs', 'devices', 'rules', 'sort', 'dir'));
+        return view('alertas.historial', compact('registros', 'dispositivos', 'nombresReglas', 'ordenar', 'direccion'));
     }
 }

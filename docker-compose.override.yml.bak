@@ -1,0 +1,12 @@
+# Override local para desarrollo/pruebas en puerto 8088
+# Fichero generado — no commitear
+services:
+  nginx:
+    ports:
+      - "8088:80"
+  app:
+    env_file:
+      - .env.docker.local
+  worker:
+    env_file:
+      - .env.docker.local

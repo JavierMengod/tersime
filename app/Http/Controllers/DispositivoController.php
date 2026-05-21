@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Dispositivo;
 use App\Services\InfluxService;
-use App\Models\DispositivoEstadoLog;
+use App\Models\RegistroEstadoDispositivo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,12 +29,12 @@ class DispositivoController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $validado = $request->validate([
             'nombre'     => 'required|string|max:255',
             'influx_tag' => 'required|string|max:255',
         ]);
 
-        $dispositivo = Dispositivo::firstOrCreate(['influx_tag' => $data['influx_tag']]);
+        $dispositivo = Dispositivo::firstOrCreate(['influx_tag' => $validado['influx_tag']]);
 
         if (Auth::user()->dispositivos()->where('dispositivos.id', $dispositivo->id)->exists()) {
             return redirect()
@@ -42,19 +42,19 @@ class DispositivoController extends Controller
                 ->with('error', 'Ya tienes este dispositivo asignado.');
         }
 
-        $now = now();
+        $ahora = now();
 
-        DB::transaction(function () use ($dispositivo, $data, $now) {
+        DB::transaction(function () use ($dispositivo, $validado, $ahora) {
             Auth::user()->dispositivos()->attach($dispositivo->id, [
-                'nombre'     => $data['nombre'],
+                'nombre'     => $validado['nombre'],
                 'habilitado' => 1,
             ]);
 
-            DispositivoEstadoLog::create([
+            RegistroEstadoDispositivo::create([
                 'user_id'        => Auth::id(),
                 'dispositivo_id' => $dispositivo->id,
                 'habilitado'     => true,
-                'changed_at'     => $now,
+                'changed_at'     => $ahora,
             ]);
         });
 
@@ -65,24 +65,24 @@ class DispositivoController extends Controller
 
     public function update(Request $request, Dispositivo $dispositivo)
     {
-        $data = $request->validate([
+        $validado = $request->validate([
             'nombre'     => 'required|string|max:255',
             'influx_tag' => 'required|string|max:255',
         ]);
 
-        $user = Auth::user();
+        $usuario = Auth::user();
 
-        if ($data['influx_tag'] === $dispositivo->influx_tag) {
-            $user->dispositivos()->updateExistingPivot($dispositivo->id, ['nombre' => $data['nombre']]);
+        if ($validado['influx_tag'] === $dispositivo->influx_tag) {
+            $usuario->dispositivos()->updateExistingPivot($dispositivo->id, ['nombre' => $validado['nombre']]);
         } else {
-            $user->dispositivos()->detach($dispositivo->id);
+            $usuario->dispositivos()->detach($dispositivo->id);
 
             if ($dispositivo->usuarios()->count() === 0) {
                 $dispositivo->delete();
             }
 
-            $nuevo = Dispositivo::firstOrCreate(['influx_tag' => $data['influx_tag']]);
-            $user->dispositivos()->attach($nuevo->id, ['nombre' => $data['nombre'], 'habilitado' => 1]);
+            $nuevo = Dispositivo::firstOrCreate(['influx_tag' => $validado['influx_tag']]);
+            $usuario->dispositivos()->attach($nuevo->id, ['nombre' => $validado['nombre'], 'habilitado' => 1]);
         }
 
         return redirect()
@@ -92,40 +92,40 @@ class DispositivoController extends Controller
 
     public function toggle(Dispositivo $dispositivo)
     {
-        $user  = Auth::user();
-        $pivot = $user->dispositivos()->where('dispositivos.id', $dispositivo->id)->first();
+        $usuario = Auth::user();
+        $pivot   = $usuario->dispositivos()->where('dispositivos.id', $dispositivo->id)->first();
 
         if (!$pivot) {
             abort(404);
         }
 
-        $habilitado    = (bool) $pivot->pivot->habilitado;
-        $nuevoEstado   = !$habilitado;
-        $now           = now();
+        $habilitado  = (bool) $pivot->pivot->habilitado;
+        $nuevoEstado = !$habilitado;
+        $ahora       = now();
 
-        DB::transaction(function () use ($user, $dispositivo, $nuevoEstado, $now) {
-            $user->dispositivos()->updateExistingPivot($dispositivo->id, ['habilitado' => $nuevoEstado]);
+        DB::transaction(function () use ($usuario, $dispositivo, $nuevoEstado, $ahora) {
+            $usuario->dispositivos()->updateExistingPivot($dispositivo->id, ['habilitado' => $nuevoEstado]);
 
-            DispositivoEstadoLog::create([
-                'user_id'        => $user->id,
+            RegistroEstadoDispositivo::create([
+                'user_id'        => $usuario->id,
                 'dispositivo_id' => $dispositivo->id,
                 'habilitado'     => $nuevoEstado,
-                'changed_at'     => $now,
+                'changed_at'     => $ahora,
             ]);
         });
 
-        $msg = $habilitado ? 'Dispositivo deshabilitado.' : 'Dispositivo habilitado.';
+        $mensaje = $habilitado ? 'Dispositivo deshabilitado.' : 'Dispositivo habilitado.';
 
-        return redirect()->route('monitorizacion.dispositivos')->with('success', $msg);
+        return redirect()->route('monitorizacion.dispositivos')->with('success', $mensaje);
     }
 
     public function destroy(Dispositivo $dispositivo)
     {
-        $user   = Auth::user();
-        $pivot  = $user->dispositivos()->where('dispositivos.id', $dispositivo->id)->first();
-        $nombre = $pivot ? $pivot->pivot->nombre : $dispositivo->influx_tag;
+        $usuario = Auth::user();
+        $pivot   = $usuario->dispositivos()->where('dispositivos.id', $dispositivo->id)->first();
+        $nombre  = $pivot ? $pivot->pivot->nombre : $dispositivo->influx_tag;
 
-        $user->dispositivos()->detach($dispositivo->id);
+        $usuario->dispositivos()->detach($dispositivo->id);
 
         if ($dispositivo->usuarios()->count() === 0) {
             $dispositivo->delete();

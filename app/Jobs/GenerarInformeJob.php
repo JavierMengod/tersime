@@ -24,32 +24,32 @@ class GenerarInformeJob implements ShouldQueue
     public $tries   = 2;
     public $backoff = [30, 120];
 
-    public int    $informeId;
-    public int    $userId;
-    public array  $dispositivosIds;
-    public string $fromDate;
-    public string $toDate;
+    public int    $idInforme;
+    public int    $idUsuario;
+    public array  $idsDispositivos;
+    public string $fechaDesde;
+    public string $fechaHasta;
     public bool   $telegram;
     public bool   $correo;
     public bool   $discord;
     public ?string $correoDestino;
 
     public function __construct(
-        int    $informeId,
-        int    $userId,
-        array  $dispositivosIds,
-        string $fromDate,
-        string $toDate,
+        int    $idInforme,
+        int    $idUsuario,
+        array  $idsDispositivos,
+        string $fechaDesde,
+        string $fechaHasta,
         bool   $telegram,
         bool   $correo,
         bool   $discord,
         ?string $correoDestino
     ) {
-        $this->informeId       = $informeId;
-        $this->userId          = $userId;
-        $this->dispositivosIds = $dispositivosIds;
-        $this->fromDate        = $fromDate;
-        $this->toDate          = $toDate;
+        $this->idInforme       = $idInforme;
+        $this->idUsuario       = $idUsuario;
+        $this->idsDispositivos = $idsDispositivos;
+        $this->fechaDesde      = $fechaDesde;
+        $this->fechaHasta      = $fechaHasta;
         $this->telegram        = $telegram;
         $this->correo          = $correo;
         $this->discord         = $discord;
@@ -57,36 +57,36 @@ class GenerarInformeJob implements ShouldQueue
         $this->afterCommit();
     }
 
-    public function handle(InformeService $service, NotificationService $notifier): void
+    public function handle(InformeService $servicio, NotificationService $notificador): void
     {
-        $informe = Informe::findOrFail($this->informeId);
+        $informe = Informe::findOrFail($this->idInforme);
 
         try {
             $informe->update(['status' => 'processing']);
 
-            $user         = User::findOrFail($this->userId);
-            $dispositivos = Dispositivo::whereIn('id', $this->dispositivosIds)->get();
+            $usuario      = User::findOrFail($this->idUsuario);
+            $dispositivos = Dispositivo::whereIn('id', $this->idsDispositivos)->get();
 
-            $result = $service->generarPdfParaInformeExistente(
+            $resultado = $servicio->generarPdfParaInformeExistente(
                 $informe,
-                $user,
+                $usuario,
                 $dispositivos,
-                $this->fromDate,
-                $this->toDate,
+                $this->fechaDesde,
+                $this->fechaHasta,
                 $this->telegram,
                 $this->correo,
                 $this->discord,
                 $this->correoDestino,
             );
 
-            $absolutePath = $result['absolutePath'];
-            $desde  = Carbon::parse($this->fromDate)->format('d/m/Y');
-            $hasta  = Carbon::parse($this->toDate)->format('d/m/Y');
+            $rutaAbsoluta = $resultado['absolutePath'];
+            $desde  = Carbon::parse($this->fechaDesde)->format('d/m/Y');
+            $hasta  = Carbon::parse($this->fechaHasta)->format('d/m/Y');
             $texto  = "📊 Tu informe del período {$desde} al {$hasta} está listo.";
 
             if ($this->telegram) {
                 try {
-                    $notifier->sendTelegramWithAttachment($texto, $user, $absolutePath);
+                    $notificador->sendTelegramWithAttachment($texto, $usuario, $rutaAbsoluta);
                 } catch (\Throwable $e) {
                     Log::warning('[GenerarInformeJob] Error Telegram', ['error' => $e->getMessage()]);
                 }
@@ -94,7 +94,7 @@ class GenerarInformeJob implements ShouldQueue
 
             if ($this->correo && $this->correoDestino) {
                 try {
-                    $notifier->sendEmailWithAttachment($texto, $user, $this->correoDestino, $absolutePath);
+                    $notificador->sendEmailWithAttachment($texto, $usuario, $this->correoDestino, $rutaAbsoluta);
                 } catch (\Throwable $e) {
                     Log::warning('[GenerarInformeJob] Error Email', ['error' => $e->getMessage()]);
                 }
@@ -102,23 +102,23 @@ class GenerarInformeJob implements ShouldQueue
 
             if ($this->discord) {
                 try {
-                    $notifier->sendDiscordWithFile($texto, $absolutePath, $user);
+                    $notificador->sendDiscordWithFile($texto, $rutaAbsoluta, $usuario);
                 } catch (\Throwable $e) {
                     Log::warning('[GenerarInformeJob] Error Discord', ['error' => $e->getMessage()]);
                 }
             }
 
             try {
-                $user->notify(new NotificacionInforme($informe->id, $this->fromDate, $this->toDate));
+                $usuario->notify(new NotificacionInforme($informe->id, $this->fechaDesde, $this->fechaHasta));
             } catch (\Throwable $e) {
                 Log::warning('[GenerarInformeJob] Notificación DB fallida', ['error' => $e->getMessage()]);
             }
 
             $informe->update(['status' => 'completed']);
-            Log::info('[GenerarInformeJob] Completado', ['informe_id' => $this->informeId]);
+            Log::info('[GenerarInformeJob] Completado', ['informe_id' => $this->idInforme]);
         } catch (\Throwable $e) {
             Log::error('[GenerarInformeJob] Falló', [
-                'informe_id' => $this->informeId,
+                'informe_id' => $this->idInforme,
                 'error'      => $e->getMessage(),
                 'trace'      => $e->getTraceAsString(),
             ]);
@@ -132,7 +132,7 @@ class GenerarInformeJob implements ShouldQueue
 
     public function failed(\Throwable $e): void
     {
-        $informe = Informe::find($this->informeId);
+        $informe = Informe::find($this->idInforme);
         if ($informe && $informe->status !== 'failed') {
             $informe->update([
                 'status'        => 'failed',
@@ -140,7 +140,7 @@ class GenerarInformeJob implements ShouldQueue
             ]);
         }
         Log::error('[GenerarInformeJob] Job eliminado por el worker', [
-            'informe_id' => $this->informeId,
+            'informe_id' => $this->idInforme,
             'error'      => $e->getMessage(),
         ]);
     }

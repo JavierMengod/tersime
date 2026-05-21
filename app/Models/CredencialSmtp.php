@@ -5,8 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SmtpCredential extends Model
+class CredencialSmtp extends Model
 {
+    protected $table = 'credenciales_smtp';
+
     protected $fillable = [
         'user_id', 'host', 'port', 'username', 'from_address', 'password', 'encryption', 'active',
     ];

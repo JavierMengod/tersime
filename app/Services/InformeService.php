@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Services\InfluxService;
 use App\Services\OpenRouterService;
 use App\Models\Informe;
-use App\Models\Setting;
+use App\Models\Ajuste;
 use App\Models\User;
 use Mpdf\Mpdf;
 use Carbon\Carbon;
@@ -180,7 +180,7 @@ class InformeService
         unset($row);
 
         // ── 2. Gráficas + datos horarios ──────────────────────────────────
-        $grafanaBase       = rtrim(config('tersime.grafana.renderer_base_url') ?: Setting::get('grafana_base_url') ?: 'http://grafana:3000', '/');
+        $grafanaBase       = rtrim(config('tersime.grafana.renderer_base_url') ?: Ajuste::get('grafana_base_url') ?: 'http://grafana:3000', '/');
         $dispositivosQuery = $this->buildDispositivosQuery($dispositivos);
 
         $panelUrlTendencia =
@@ -237,7 +237,7 @@ class InformeService
             $mediasHorariaHistorico[$tag] = $mediaHistorica;
         }
 
-        $archivosGraficas = $this->renderizarGraficas($panelUrls, $user->name);
+        $archivosGraficas = $this->renderizarGraficas($panelUrls, $user->name ?? 'admin');
 
         foreach ($dispositivos as $dispositivo) {
             $tag = $this->resolveTag($dispositivo);

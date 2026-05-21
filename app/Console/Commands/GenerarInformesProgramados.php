@@ -23,7 +23,7 @@ class GenerarInformesProgramados extends Command
         $programaciones = ProgramacionInformes::with(['user', 'dispositivos'])
             ->where('activo', true)
             ->get()
-            ->filter(fn($p) => !$p->last_run_at || $p->proximaEjecucion()->lte($ahora));
+            ->filter(fn($p) => $p->proximaEjecucion($ahora)->lte($ahora));
 
         if ($programaciones->isEmpty()) {
             $this->info('No hay informes programados vencidos.');
@@ -33,9 +33,9 @@ class GenerarInformesProgramados extends Command
         $this->info("Encolando {$programaciones->count()} programación(es)...");
 
         foreach ($programaciones as $programacion) {
-            $user = $programacion->user;
+            $usuario = $programacion->user;
 
-            if (!$user) {
+            if (!$usuario) {
                 Log::warning("[InformesProgramados] Programación {$programacion->id} sin usuario.");
                 continue;
             }
@@ -49,7 +49,7 @@ class GenerarInformesProgramados extends Command
 
             // Atomic compare-and-swap: solo procede si last_run_at no cambió desde que lo leímos.
             // Evita doble despacho si dos instancias del cron se solapan.
-            $updated = ProgramacionInformes::where('id', $programacion->id)
+            $actualizado = ProgramacionInformes::where('id', $programacion->id)
                 ->where(function ($q) use ($programacion) {
                     if ($programacion->last_run_at) {
                         $q->where('last_run_at', $programacion->last_run_at);
@@ -59,20 +59,20 @@ class GenerarInformesProgramados extends Command
                 })
                 ->update(['last_run_at' => $ahora]);
 
-            if (!$updated) {
+            if (!$actualizado) {
                 $this->line("  ↷ '{$programacion->nombre}' ya fue reclamada por otro proceso.");
                 continue;
             }
 
-            [$fromDate, $toDate] = $this->calcularRango($ahora, $programacion);
-            $dispositivosIds     = $dispositivos->pluck('id')->toArray();
+            [$fechaDesde, $fechaHasta] = $this->calcularRango($ahora, $programacion);
+            $idsDispositivos           = $dispositivos->pluck('id')->toArray();
 
             try {
                 $informe = Informe::create([
-                    'user_id'        => $user->id,
+                    'user_id'        => $usuario->id,
                     'tipo'           => 'Programado',
-                    'periodo_from'   => Carbon::parse($fromDate)->toDateString(),
-                    'periodo_to'     => $toDate->toDateString(),
+                    'periodo_from'   => Carbon::parse($fechaDesde)->toDateString(),
+                    'periodo_to'     => $fechaHasta->toDateString(),
                     'telegram'       => $programacion->telegram,
                     'discord'        => $programacion->discord,
                     'correo'         => $programacion->correo,
@@ -80,14 +80,14 @@ class GenerarInformesProgramados extends Command
                     'status'         => 'pending',
                 ]);
 
-                $informe->dispositivos()->sync($dispositivosIds);
+                $informe->dispositivos()->sync($idsDispositivos);
 
                 GenerarInformeJob::dispatch(
                     $informe->id,
-                    $user->id,
-                    $dispositivosIds,
-                    $fromDate,
-                    $toDate->toDateString(),
+                    $usuario->id,
+                    $idsDispositivos,
+                    $fechaDesde,
+                    $fechaHasta->toDateString(),
                     $programacion->telegram,
                     $programacion->correo,
                     $programacion->discord,
@@ -98,8 +98,8 @@ class GenerarInformesProgramados extends Command
                 Log::info("[InformesProgramados] Job despachado", [
                     'programacion_id' => $programacion->id,
                     'informe_id'      => $informe->id,
-                    'from'            => $fromDate,
-                    'to'              => $toDate->toDateString(),
+                    'desde'           => $fechaDesde,
+                    'hasta'           => $fechaHasta->toDateString(),
                 ]);
             } catch (\Throwable $e) {
                 $this->error("  ✘ Error en '{$programacion->nombre}': " . $e->getMessage());
@@ -112,11 +112,6 @@ class GenerarInformesProgramados extends Command
         $this->info('Proceso completado.');
     }
 
-    /**
-     * Devuelve [fromDate string, toDate Carbon].
-     * Para periodos en horas, fromDate incluye hora exacta (datetime string).
-     * Para días/meses, fromDate es fecha pura (Y-m-d) para cubrir el día completo.
-     */
     private function calcularRango(Carbon $ahora, ProgramacionInformes $p): array
     {
         $valor = (int) ($p->valor_periodo ?? 1);
@@ -128,29 +123,24 @@ class GenerarInformesProgramados extends Command
             case 'dias':
                 return [$ahora->copy()->subDays($valor)->toDateString(), $ahora->copy()];
             default:
-                // Devuelve datetime completo para que el servicio respete la hora exacta
                 return [$ahora->copy()->subHours($valor)->format('Y-m-d H:i:s'), $ahora->copy()];
         }
     }
 
-    /**
-     * Marca como 'failed' los informes que llevan más de 30 minutos en 'processing'.
-     * Protege contra workers muertos (SIGKILL, OOM) que dejan informes bloqueados.
-     */
     private function limpiarInformesAtascados(Carbon $ahora): void
     {
         $limite = $ahora->copy()->subMinutes(22);
 
-        $count = Informe::where('status', 'processing')
+        $conteo = Informe::where('status', 'processing')
             ->where('updated_at', '<', $limite)
             ->update([
                 'status'        => 'failed',
                 'error_message' => 'El proceso de generación se interrumpió inesperadamente.',
             ]);
 
-        if ($count > 0) {
-            $this->warn("  ⚠ {$count} informe(s) atascado(s) marcado(s) como fallido(s).");
-            Log::warning("[InformesProgramados] Informes atascados limpiados", ['count' => $count]);
+        if ($conteo > 0) {
+            $this->warn("  ⚠ {$conteo} informe(s) atascado(s) marcado(s) como fallido(s).");
+            Log::warning("[InformesProgramados] Informes atascados limpiados", ['count' => $conteo]);
         }
     }
 }

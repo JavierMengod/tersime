@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AlertIndexRequest;
-use App\Models\AlertLog;
+use App\Models\RegistroAlerta;
 
 class AlertController extends Controller
 {
     public function index(AlertIndexRequest $request)
     {
-        $query = AlertLog::forUser($request->user()->id);
+        $query = RegistroAlerta::forUser($request->user()->id);
 
         if ($request->filled('device')) {
             $query->where('device_name', $request->input('device'));

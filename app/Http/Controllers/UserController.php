@@ -11,72 +11,72 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users     = User::orderBy('name')->paginate(20);
-        $timezones = UserRequest::timezones();
-        return view('usuarios.index', compact('users', 'timezones'));
+        $usuarios  = User::orderBy('name')->paginate(20);
+        $zonaHoraria = UserRequest::timezones();
+        return view('usuarios.index', compact('usuarios', 'zonaHoraria'));
     }
 
     public function store(UserRequest $request)
     {
-        $data = $request->validated();
+        $validado = $request->validated();
 
         User::create([
-            'name'     => $data['name'],
-            'password' => Hash::make($data['password']),
-            'language' => $data['language'],
-            'timezone' => $data['timezone'],
-            'theme'    => $data['theme'],
+            'name'     => $validado['name'],
+            'password' => Hash::make($validado['password']),
+            'language' => $validado['language'],
+            'timezone' => $validado['timezone'],
+            'theme'    => $validado['theme'],
             'admin'    => $request->boolean('admin'),
             'enabled'  => true,
         ]);
 
-        Log::info('[UserController] Usuario creado: ' . $data['name']);
+        Log::info('[UserController] Usuario creado: ' . $validado['name']);
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
     }
 
-    public function update(UserRequest $request, User $user)
+    public function update(UserRequest $request, User $usuario)
     {
-        $data = $request->validated();
+        $validado = $request->validated();
 
-        $user->fill([
-            'name'     => $data['name'],
-            'language' => $data['language'],
-            'timezone' => $data['timezone'],
-            'theme'    => $data['theme'],
+        $usuario->fill([
+            'name'     => $validado['name'],
+            'language' => $validado['language'],
+            'timezone' => $validado['timezone'],
+            'theme'    => $validado['theme'],
             'admin'    => $request->boolean('admin'),
         ]);
 
-        if (!empty($data['password'])) {
-            $user->password = Hash::make($data['password']);
+        if (!empty($validado['password'])) {
+            $usuario->password = Hash::make($validado['password']);
         }
 
-        $user->save();
+        $usuario->save();
 
-        Log::info('[UserController] Usuario actualizado: ' . $user->name);
+        Log::info('[UserController] Usuario actualizado: ' . $usuario->name);
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente.');
     }
 
-    public function destroy(User $user)
+    public function destroy(User $usuario)
     {
-        if ($user->id === auth()->id()) {
+        if ($usuario->id === auth()->id()) {
             return redirect()->route('usuarios.index')->with('error', 'No puedes eliminar tu propia cuenta.');
         }
 
-        $nombre = $user->name;
-        $user->delete();
+        $nombre = $usuario->name;
+        $usuario->delete();
         Log::info('[UserController] Usuario eliminado: ' . $nombre);
         return redirect()->route('usuarios.index')->with('success', "Usuario '{$nombre}' eliminado.");
     }
 
-    public function toggle(User $user)
+    public function toggle(User $usuario)
     {
-        if ($user->id === auth()->id()) {
+        if ($usuario->id === auth()->id()) {
             return redirect()->route('usuarios.index')->with('error', 'No puedes deshabilitarte a ti mismo.');
         }
 
-        $newState = !$user->enabled;
-        $user->update(['enabled' => $newState]);
-        $estado = $newState ? 'habilitado' : 'deshabilitado';
-        return redirect()->route('usuarios.index')->with('success', "Usuario '{$user->name}' {$estado}.");
+        $nuevoEstado = !$usuario->enabled;
+        $usuario->update(['enabled' => $nuevoEstado]);
+        $estado = $nuevoEstado ? 'habilitado' : 'deshabilitado';
+        return redirect()->route('usuarios.index')->with('success', "Usuario '{$usuario->name}' {$estado}.");
     }
 }

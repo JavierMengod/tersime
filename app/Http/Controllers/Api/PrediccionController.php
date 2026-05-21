@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\InfluxService;
-use App\Models\Setting;
+use App\Models\Ajuste;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -38,7 +38,7 @@ class PrediccionController extends Controller
         $start       = $request->query('start');
         $stop        = $request->query('stop');
         $device      = $request->query('device');
-        $predicHours = (int) $request->query('predic_hours', Setting::get('predictor_default_hours', '24'));
+        $predicHours = (int) $request->query('predic_hours', Ajuste::get('predictor_default_hours', '24'));
 
         try {
             $startDate = Carbon::parse($start)->startOfDay();
@@ -47,7 +47,7 @@ class PrediccionController extends Controller
             return response()->json(['message' => 'Formato de fecha inválido.'], 422);
         }
 
-        $urlPredictor = Setting::get('predictor_url');
+        $urlPredictor = Ajuste::get('predictor_url');
         if (!$urlPredictor) {
             return response()->json(['message' => 'Servicio de predicción no configurado.'], 503);
         }
@@ -65,7 +65,7 @@ class PrediccionController extends Controller
             $predRaw = Cache::remember($predKey, 1200, function () use (
                 $urlPredictor, $data, $predicHours
             ) {
-                $timeout = (int) (Setting::get('predictor_timeout') ?: 120);
+                $timeout = (int) (Ajuste::get('predictor_timeout') ?: 120);
                 $resp    = Http::timeout($timeout)->asJson()->post($urlPredictor, [
                     'timestamps'   => $data['timestamps'],
                     'values'       => $data['values'],

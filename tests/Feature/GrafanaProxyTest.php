@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Setting;
+use App\Models\Ajuste;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -19,7 +19,7 @@ class GrafanaProxyTest extends TestCase
     {
         parent::setUp();
 
-        Setting::set('grafana_base_url', 'http://grafana-test:3000');
+        Ajuste::set('grafana_base_url', 'http://grafana-test:3000');
 
         $this->user = User::factory()->create([
             'email' => 'test@tersime.com',
@@ -43,7 +43,7 @@ class GrafanaProxyTest extends TestCase
     // ── Cabecera X-WEBAUTH-USER ────────────────────────────────────────────────
 
     #[Test]
-    public function proxy_injects_x_webauth_user_header_with_user_email(): void
+    public function proxy_injects_x_webauth_user_header_with_user_name(): void
     {
         Http::fake([
             'http://grafana-test:3000/*' => Http::response('<html>ok</html>', 200, ['Content-Type' => 'text/html']),
@@ -52,14 +52,14 @@ class GrafanaProxyTest extends TestCase
         $this->actingAs($this->user)->get('/grafana/d/panel');
 
         Http::assertSent(function ($request) {
-            return $request->hasHeader('X-WEBAUTH-USER', $this->user->email);
+            return $request->hasHeader('X-WEBAUTH-USER', $this->user->name);
         });
     }
 
     #[Test]
-    public function proxy_uses_authenticated_users_email_not_a_generic_value(): void
+    public function proxy_uses_authenticated_users_name_not_a_generic_value(): void
     {
-        $other = User::factory()->create(['email' => 'other@tersime.com']);
+        $other = User::factory()->create(['name' => 'otroUsuario']);
 
         Http::fake([
             'http://grafana-test:3000/*' => Http::response('ok', 200),
@@ -68,7 +68,7 @@ class GrafanaProxyTest extends TestCase
         $this->actingAs($other)->get('/grafana/public/fonts/roboto.woff');
 
         Http::assertSent(function ($request) use ($other) {
-            return $request->hasHeader('X-WEBAUTH-USER', $other->email);
+            return $request->hasHeader('X-WEBAUTH-USER', $other->name);
         });
     }
 
@@ -183,7 +183,7 @@ class GrafanaProxyTest extends TestCase
     #[Test]
     public function proxy_constructs_upstream_url_from_setting(): void
     {
-        Setting::set('grafana_base_url', 'http://custom-grafana:4000/grafana');
+        Ajuste::set('grafana_base_url', 'http://custom-grafana:4000/grafana');
 
         Http::fake([
             'http://custom-grafana:4000/*' => Http::response('ok', 200),
@@ -226,7 +226,7 @@ class GrafanaProxyTest extends TestCase
             ->postJson('/grafana/api/ds/query', []);
 
         Http::assertSent(function ($request) {
-            return $request->hasHeader('X-WEBAUTH-USER', $this->user->email);
+            return $request->hasHeader('X-WEBAUTH-USER', $this->user->name);
         });
     }
 

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Rule extends Model
+class Regla extends Model
 {
     use HasFactory;
     protected $fillable = [
@@ -37,7 +37,7 @@ class Rule extends Model
 
     public function dispositivos()
     {
-        return $this->belongsToMany(Dispositivo::class, 'dispositivo_rule', 'rule_id', 'dispositivo_id')
+        return $this->belongsToMany(Dispositivo::class, 'dispositivo_regla', 'rule_id', 'dispositivo_id')
                     ->withPivot('last_triggered_at', 'alert_state', 'pending_since')
                     ->withTimestamps();
     }

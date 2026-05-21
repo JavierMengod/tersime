@@ -18,12 +18,12 @@
 
             @php
                 use Carbon\Carbon;
-                use App\Models\Setting;
+                use App\Models\Ajuste;
 
                 $dispositivos   = $dispositivos ?? collect([]);
                 $deviceParams   = $dispositivos->map(fn($d) => 'var-dispositivos=' . rawurlencode($d->influx_tag))->implode('&');
                 $deviceQuery    = $deviceParams ? '&' . $deviceParams : '';
-                $costeKwh       = \App\Models\Setting::get('coste_kwh', '0.15');
+                $costeKwh       = auth()->user()->coste_kwh ?? '0.15';
                 $deviceQuery   .= '&var-coste_kwh=' . $costeKwh;
 
                 $grafanaTheme   = Auth::user()->theme ?? 'light';
@@ -112,11 +112,6 @@
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
                                     class="grafana-range"></iframe>
                         </div>
-                        <div class="card-footer bg-white border-0 py-1 px-3">
-                            <span class="text-muted" style="font-size:.72rem;">
-                                <i class="bi bi-info-circle me-1"></i>{{ __('Muestra horas con consumo significativamente superior a la media histórica. Sin datos suficientes, el panel aparece vacío.') }}
-                            </span>
-                        </div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6">
@@ -126,11 +121,6 @@
                             @php $src = $grafanaBase . '?' . $commonParams(6, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
                                     class="grafana-range"></iframe>
-                        </div>
-                        <div class="card-footer bg-white border-0 py-1 px-3">
-                            <span class="text-muted" style="font-size:.72rem;">
-                                <i class="bi bi-info-circle me-1"></i>{{ __('Muestra horas con consumo significativamente inferior a la media histórica. Sin datos suficientes, el panel aparece vacío.') }}
-                            </span>
                         </div>
                     </div>
                 </div>

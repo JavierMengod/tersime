@@ -15,7 +15,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('rules:check')->hourly();
+        $schedule->command('reglas:verificar')->hourly();
         $schedule->command('informes:programados')->everyMinute();
     }
 

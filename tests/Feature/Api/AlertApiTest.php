@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\AlertLog;
+use App\Models\RegistroAlerta;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -34,8 +34,8 @@ class AlertApiTest extends TestCase
         $user  = $this->authAs();
         $other = User::factory()->create();
 
-        AlertLog::factory()->count(4)->create(['user_id' => $user->id]);
-        AlertLog::factory()->count(3)->create(['user_id' => $other->id]);
+        RegistroAlerta::factory()->count(4)->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(3)->create(['user_id' => $other->id]);
 
         $response = $this->getJson('/api/alerts');
         $response->assertStatus(200);
@@ -48,7 +48,7 @@ class AlertApiTest extends TestCase
     public function index_returns_paginated_results_with_default_20_per_page(): void
     {
         $user = $this->authAs();
-        AlertLog::factory()->count(25)->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(25)->create(['user_id' => $user->id]);
 
         $response = $this->getJson('/api/alerts');
         $response->assertStatus(200);
@@ -62,7 +62,7 @@ class AlertApiTest extends TestCase
     public function index_respects_per_page_param(): void
     {
         $user = $this->authAs();
-        AlertLog::factory()->count(10)->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(10)->create(['user_id' => $user->id]);
 
         $response = $this->getJson('/api/alerts?per_page=5');
         $response->assertStatus(200);
@@ -83,11 +83,11 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        AlertLog::factory()->count(3)->create([
+        RegistroAlerta::factory()->count(3)->create([
             'user_id'     => $user->id,
             'device_name' => 'Medidor A',
         ]);
-        AlertLog::factory()->count(2)->create([
+        RegistroAlerta::factory()->count(2)->create([
             'user_id'     => $user->id,
             'device_name' => 'Medidor B',
         ]);
@@ -107,11 +107,11 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        AlertLog::factory()->count(2)->create([
+        RegistroAlerta::factory()->count(2)->create([
             'user_id'   => $user->id,
             'rule_name' => 'Consumo alto',
         ]);
-        AlertLog::factory()->create([
+        RegistroAlerta::factory()->create([
             'user_id'   => $user->id,
             'rule_name' => 'Voltaje bajo',
         ]);
@@ -127,8 +127,8 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        AlertLog::factory()->count(3)->firing()->create(['user_id' => $user->id]);
-        AlertLog::factory()->count(2)->resolution()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(3)->firing()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(2)->resolution()->create(['user_id' => $user->id]);
 
         $response = $this->getJson('/api/alerts?type=firing');
         $this->assertSame(3, $response->json('total'));
@@ -142,8 +142,8 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        AlertLog::factory()->count(2)->firing()->create(['user_id' => $user->id]);
-        AlertLog::factory()->count(4)->resolution()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(2)->firing()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(4)->resolution()->create(['user_id' => $user->id]);
 
         $response = $this->getJson('/api/alerts?type=resolution');
         $this->assertSame(4, $response->json('total'));
@@ -156,15 +156,15 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        AlertLog::factory()->create([
+        RegistroAlerta::factory()->create([
             'user_id'    => $user->id,
             'created_at' => now()->subDays(10),
         ]);
-        AlertLog::factory()->create([
+        RegistroAlerta::factory()->create([
             'user_id'    => $user->id,
             'created_at' => now()->subDays(2),
         ]);
-        AlertLog::factory()->create([
+        RegistroAlerta::factory()->create([
             'user_id'    => $user->id,
             'created_at' => now(),
         ]);
@@ -179,11 +179,11 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        AlertLog::factory()->create([
+        RegistroAlerta::factory()->create([
             'user_id'    => $user->id,
             'created_at' => now()->subDays(5),
         ]);
-        AlertLog::factory()->create([
+        RegistroAlerta::factory()->create([
             'user_id'    => $user->id,
             'created_at' => now(),
         ]);
@@ -198,10 +198,10 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        AlertLog::factory()->create(['user_id' => $user->id, 'created_at' => now()->subDays(20)]);
-        AlertLog::factory()->create(['user_id' => $user->id, 'created_at' => now()->subDays(7)]);
-        AlertLog::factory()->create(['user_id' => $user->id, 'created_at' => now()->subDays(3)]);
-        AlertLog::factory()->create(['user_id' => $user->id, 'created_at' => now()]);
+        RegistroAlerta::factory()->create(['user_id' => $user->id, 'created_at' => now()->subDays(20)]);
+        RegistroAlerta::factory()->create(['user_id' => $user->id, 'created_at' => now()->subDays(7)]);
+        RegistroAlerta::factory()->create(['user_id' => $user->id, 'created_at' => now()->subDays(3)]);
+        RegistroAlerta::factory()->create(['user_id' => $user->id, 'created_at' => now()]);
 
         $from = now()->subDays(8)->format('Y-m-d');
         $to   = now()->subDays(2)->format('Y-m-d');
@@ -224,8 +224,8 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        $old  = AlertLog::factory()->create(['user_id' => $user->id, 'created_at' => now()->subHours(5)]);
-        $new  = AlertLog::factory()->create(['user_id' => $user->id, 'created_at' => now()]);
+        $old  = RegistroAlerta::factory()->create(['user_id' => $user->id, 'created_at' => now()->subHours(5)]);
+        $new  = RegistroAlerta::factory()->create(['user_id' => $user->id, 'created_at' => now()]);
 
         $response = $this->getJson('/api/alerts');
         $data     = $response->json('data');

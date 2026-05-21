@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Setting;
+use App\Models\Ajuste;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -10,7 +10,7 @@ class VerifyDatasourceToken
 {
     public function handle(Request $request, Closure $next)
     {
-        $expected = Setting::get('grafana_renderer_token')
+        $expected = Ajuste::get('grafana_renderer_token')
             ?: config('tersime.grafana.renderer_token', env('GRAFANA_RENDERER_TOKEN', ''));
 
         if (empty($expected)) {

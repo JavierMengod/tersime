@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class DispositivoEstadoLog extends Model
+class RegistroEstadoDispositivo extends Model
 {
     public $timestamps = false;
 
-    protected $table = 'dispositivo_estado_log';
+    protected $table = 'registros_estado_dispositivo';
 
     protected $fillable = ['user_id', 'dispositivo_id', 'habilitado', 'changed_at'];
 

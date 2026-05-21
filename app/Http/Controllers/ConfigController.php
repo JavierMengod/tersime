@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateAjustesRequest;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdatePreferencesRequest;
 use App\Http\Requests\UserRequest;
-use App\Models\AlertLog;
+use App\Models\RegistroAlerta;
 use App\Models\Informe;
-use App\Models\Setting;
+use App\Models\Ajuste;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,48 +19,61 @@ class ConfigController extends Controller
 {
     private const DEFAULT_ALERT_RETENTION_DAYS  = '90';
     private const DEFAULT_REPORT_RETENTION_DAYS = '180';
-    private const DEFAULT_COSTE_KWH             = '0.15';
 
     public function __construct()
     {
-        $adminOnly = ['sistema', 'updateSistema', 'purgarAlertas', 'purgarInformes',
+        $soloAdmin = ['sistema', 'updateSistema', 'purgarAlertas', 'purgarInformes',
                       'conexiones', 'updateConexiones', 'logs', 'clearLogs', 'downloadLog'];
 
         $this->middleware(function ($request, $next) {
             abort_unless(auth()->user() && auth()->user()->admin, 403);
             return $next($request);
-        })->only($adminOnly);
+        })->only($soloAdmin);
     }
 
-    // ── Cuenta ─────────────────────────────────────────────────────────────────
+    // ── Perfil ─────────────────────────────────────────────────────────────────
 
-    public function cuenta()
+    public function perfil()
     {
-        return view('configuracion.cuenta', [
-            'timezones' => UserRequest::timezones(),
-        ]);
+        return view('configuracion.perfil');
     }
 
     public function updatePreferencias(UpdatePreferencesRequest $request)
     {
         auth()->user()->fill($request->validated())->save();
 
-        return back()->with('success_prefs', 'Preferencias guardadas.');
+        return back()->with('success_perfil', 'Perfil actualizado.');
+    }
+
+    // ── Ajustes ────────────────────────────────────────────────────────────────
+
+    public function ajustes()
+    {
+        return view('configuracion.ajustes', [
+            'zonaHoraria' => UserRequest::timezones(),
+        ]);
+    }
+
+    public function updateAjustes(UpdateAjustesRequest $request)
+    {
+        auth()->user()->fill($request->validated())->save();
+
+        return back()->with('success_ajustes', 'Ajustes guardados.');
     }
 
     public function updatePassword(UpdatePasswordRequest $request)
     {
-        $user = auth()->user();
+        $usuario = auth()->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (!Hash::check($request->current_password, $usuario->password)) {
             return back()->withErrors(['current_password' => 'La contraseña actual no es correcta.'])
                          ->with('open_password', true);
         }
 
-        $user->password = Hash::make($request->new_password);
-        $user->save();
+        $usuario->password = Hash::make($request->new_password);
+        $usuario->save();
 
-        Log::info('[Config] Contraseña cambiada: ' . $user->name);
+        Log::info('[Config] Contraseña cambiada: ' . $usuario->name);
         return back()->with('success_password', 'Contraseña actualizada.');
     }
 
@@ -67,33 +81,31 @@ class ConfigController extends Controller
 
     public function sistema()
     {
-        $settingKeys = ['alert_log_retention_days', 'report_retention_days', 'coste_kwh'];
-        $saved       = Setting::whereIn('key', $settingKeys)->get()->keyBy('key');
+        $claves    = ['alert_log_retention_days', 'report_retention_days'];
+        $guardados = Ajuste::whereIn('key', $claves)->get()->keyBy('key');
 
-        $settings = [
-            'alert_log_retention_days' => optional($saved->get('alert_log_retention_days'))->value ?? self::DEFAULT_ALERT_RETENTION_DAYS,
-            'report_retention_days'    => optional($saved->get('report_retention_days'))->value    ?? self::DEFAULT_REPORT_RETENTION_DAYS,
-            'coste_kwh'                => optional($saved->get('coste_kwh'))->value                ?? self::DEFAULT_COSTE_KWH,
+        $configuracion = [
+            'alert_log_retention_days' => optional($guardados->get('alert_log_retention_days'))->value ?? self::DEFAULT_ALERT_RETENTION_DAYS,
+            'report_retention_days'    => optional($guardados->get('report_retention_days'))->value    ?? self::DEFAULT_REPORT_RETENTION_DAYS,
         ];
 
-        $stats = [
-            'alert_logs_total' => AlertLog::count(),
+        $estadisticas = [
+            'alert_logs_total' => RegistroAlerta::count(),
             'reports_total'    => Informe::count(),
         ];
 
-        return view('configuracion.sistema', compact('settings', 'stats'));
+        return view('configuracion.sistema', compact('configuracion', 'estadisticas'));
     }
 
     public function updateSistema(Request $request)
     {
-        $data = $request->validate([
+        $datos = $request->validate([
             'alert_log_retention_days' => 'required|integer|min:1|max:3650',
             'report_retention_days'    => 'required|integer|min:1|max:3650',
-            'coste_kwh'                => 'required|numeric|min:0|max:99',
         ]);
 
-        foreach ($data as $key => $value) {
-            Setting::set($key, $value ?? '');
+        foreach ($datos as $clave => $valor) {
+            Ajuste::set($clave, $valor ?? '');
         }
 
         Log::info('[Config] Configuración del sistema actualizada por: ' . auth()->user()->name);
@@ -102,44 +114,44 @@ class ConfigController extends Controller
 
     public function purgarAlertas()
     {
-        $days    = (int) Setting::get('alert_log_retention_days', self::DEFAULT_ALERT_RETENTION_DAYS);
-        $cutoff  = Carbon::now()->subDays($days);
-        $deleted = AlertLog::where('created_at', '<', $cutoff)->delete();
+        $dias        = (int) Ajuste::get('alert_log_retention_days', self::DEFAULT_ALERT_RETENTION_DAYS);
+        $fechaCorte  = Carbon::now()->subDays($dias);
+        $eliminados  = RegistroAlerta::where('created_at', '<', $fechaCorte)->delete();
 
-        Log::info("[Config] Purgadas {$deleted} alertas anteriores a {$cutoff->toDateString()}");
-        return back()->with('success', "Purgados {$deleted} registros de alerta anteriores a {$days} días.");
+        Log::info("[Config] Purgadas {$eliminados} alertas anteriores a {$fechaCorte->toDateString()}");
+        return back()->with('success', "Purgados {$eliminados} registros de alerta anteriores a {$dias} días.");
     }
 
     public function purgarInformes()
     {
-        $days    = (int) Setting::get('report_retention_days', self::DEFAULT_REPORT_RETENTION_DAYS);
-        $cutoff  = Carbon::now()->subDays($days);
-        $deleted = 0;
+        $dias       = (int) Ajuste::get('report_retention_days', self::DEFAULT_REPORT_RETENTION_DAYS);
+        $fechaCorte = Carbon::now()->subDays($dias);
+        $eliminados = 0;
 
-        Informe::where('generated_at', '<', $cutoff)->chunk(100, function ($informes) use (&$deleted) {
+        Informe::where('generated_at', '<', $fechaCorte)->chunk(100, function ($informes) use (&$eliminados) {
             foreach ($informes as $informe) {
-                $this->deleteInformePdf($informe->pdf_path);
+                $this->eliminarPdfInforme($informe->pdf_path);
                 $informe->delete();
-                $deleted++;
+                $eliminados++;
             }
         });
 
-        Log::info("[Config] Purgados {$deleted} informes anteriores a {$cutoff->toDateString()}");
-        return back()->with('success', "Purgados {$deleted} informes anteriores a {$days} días.");
+        Log::info("[Config] Purgados {$eliminados} informes anteriores a {$fechaCorte->toDateString()}");
+        return back()->with('success', "Purgados {$eliminados} informes anteriores a {$dias} días.");
     }
 
     // ── Conexiones (admin) ─────────────────────────────────────────────────────
 
     public function conexiones()
     {
-        $keys  = ['influxdb_url', 'influxdb_org', 'influxdb_bucket', 'influxdb_token',
-                  'grafana_base_url', 'grafana_datasource_id', 'grafana_renderer_url', 'grafana_api_key',
-                  'predictor_url', 'predictor_timeout', 'predictor_default_hours',
-                  'openrouter_model', 'openrouter_api_key'];
-        $saved = Setting::whereIn('key', $keys)->get()->keyBy('key');
-        $s     = fn(string $key, $default = '') => optional($saved->get($key))->value ?? $default;
+        $claves    = ['influxdb_url', 'influxdb_org', 'influxdb_bucket', 'influxdb_token',
+                      'grafana_base_url', 'grafana_datasource_id', 'grafana_renderer_url', 'grafana_api_key',
+                      'predictor_url', 'predictor_timeout', 'predictor_default_hours',
+                      'openrouter_model', 'openrouter_api_key'];
+        $guardados = Ajuste::whereIn('key', $claves)->get()->keyBy('key');
+        $s         = fn(string $clave, $defecto = '') => optional($guardados->get($clave))->value ?? $defecto;
 
-        $settings = [
+        $configuracion = [
             'influxdb_url'            => $s('influxdb_url',            env('INFLUXDB_URL', '')),
             'influxdb_org'            => $s('influxdb_org',            env('INFLUXDB_ORG', '')),
             'influxdb_bucket'         => $s('influxdb_bucket',         env('INFLUX_BUCKET', 'PINZAS')),
@@ -152,16 +164,16 @@ class ConfigController extends Controller
             'openrouter_model'        => $s('openrouter_model',        env('OPENROUTER_MODEL', '')),
         ];
 
-        $hasInfluxToken   = !empty($s('influxdb_token',      env('INFLUXDB_TOKEN', '')));
-        $hasGrafanaKey    = !empty($s('grafana_api_key',      env('GRAFANA_API_KEY', '')));
-        $hasOpenRouterKey = !empty($s('openrouter_api_key',   env('OPENROUTER_API_KEY', '')));
+        $tieneInfluxToken   = !empty($s('influxdb_token',      env('INFLUXDB_TOKEN', '')));
+        $tieneGrafanaKey    = !empty($s('grafana_api_key',      env('GRAFANA_API_KEY', '')));
+        $tieneOpenRouterKey = !empty($s('openrouter_api_key',   env('OPENROUTER_API_KEY', '')));
 
-        return view('configuracion.conexiones', compact('settings', 'hasInfluxToken', 'hasGrafanaKey', 'hasOpenRouterKey'));
+        return view('configuracion.conexiones', compact('configuracion', 'tieneInfluxToken', 'tieneGrafanaKey', 'tieneOpenRouterKey'));
     }
 
     public function updateConexiones(Request $request)
     {
-        $data = $request->validate([
+        $datos = $request->validate([
             'influxdb_url'            => 'required|url|max:500',
             'influxdb_org'            => 'required|string|max:255',
             'influxdb_bucket'         => 'required|string|max:255',
@@ -177,29 +189,31 @@ class ConfigController extends Controller
             'openrouter_model'        => 'nullable|string|max:255',
         ]);
 
-        // Block SSRF: service URLs must not resolve to private/reserved IP ranges.
-        // Even for admin users, pointing these at internal metadata services is dangerous.
-        $urlFields = ['influxdb_url', 'grafana_base_url', 'grafana_renderer_url', 'predictor_url'];
-        foreach ($urlFields as $field) {
-            if (empty($data[$field])) continue;
-            $host = parse_url($data[$field], PHP_URL_HOST);
+        // Block SSRF: only validate URLs that are new or changed.
+        // Already-stored URLs were checked when first saved; re-checking them would
+        // block legitimate saves when the admin just wants to update an unrelated field.
+        $camposUrl = ['influxdb_url', 'grafana_base_url', 'grafana_renderer_url', 'predictor_url'];
+        foreach ($camposUrl as $campo) {
+            if (empty($datos[$campo])) continue;
+            if ($datos[$campo] === Ajuste::get($campo)) continue;
+            $host = parse_url($datos[$campo], PHP_URL_HOST);
             if (!$host) continue;
             $ip = gethostbyname($host);
             if (filter_var($ip, FILTER_VALIDATE_IP) &&
                 !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                return back()->withErrors([$field => "La URL apunta a una dirección de red privada o reservada."]);
+                return back()->withErrors([$campo => "La URL apunta a una dirección de red privada o reservada."]);
             }
         }
 
-        $sensitive = ['influxdb_token', 'grafana_api_key', 'openrouter_api_key'];
+        $sensibles = ['influxdb_token', 'grafana_api_key', 'openrouter_api_key'];
 
-        foreach ($data as $key => $value) {
-            if (in_array($key, $sensitive, true)) {
-                if (!empty($value)) {
-                    Setting::set($key, $value);
+        foreach ($datos as $clave => $valor) {
+            if (in_array($clave, $sensibles, true)) {
+                if (!empty($valor)) {
+                    Ajuste::set($clave, $valor);
                 }
             } else {
-                Setting::set($key, $value ?? '');
+                Ajuste::set($clave, $valor ?? '');
             }
         }
 
@@ -211,24 +225,24 @@ class ConfigController extends Controller
 
     public function logs()
     {
-        $logPath = storage_path('logs/laravel.log');
-        $entries = [];
+        $rutaLog  = storage_path('logs/laravel.log');
+        $entradas = [];
 
-        if (is_file($logPath)) {
-            $lines   = $this->tailFile($logPath, 2000);
-            $entries = $this->parseLogLines($lines);
+        if (is_file($rutaLog)) {
+            $lineas   = $this->leerUltimasLineas($rutaLog, 2000);
+            $entradas = $this->parsearLineasLog($lineas);
         }
 
-        $logSize = is_file($logPath) ? round(filesize($logPath) / 1024, 1) : 0;
+        $tamanoLog = is_file($rutaLog) ? round(filesize($rutaLog) / 1024, 1) : 0;
 
-        return view('configuracion.logs', compact('entries', 'logSize'));
+        return view('configuracion.logs', compact('entradas', 'tamanoLog'));
     }
 
     public function clearLogs()
     {
-        $logPath = storage_path('logs/laravel.log');
-        if (is_file($logPath)) {
-            file_put_contents($logPath, '');
+        $rutaLog = storage_path('logs/laravel.log');
+        if (is_file($rutaLog)) {
+            file_put_contents($rutaLog, '');
         }
 
         Log::info('[Config] Log vaciado por: ' . auth()->user()->name);
@@ -237,85 +251,85 @@ class ConfigController extends Controller
 
     public function downloadLog()
     {
-        $logPath = storage_path('logs/laravel.log');
-        abort_unless(is_file($logPath), 404);
+        $rutaLog = storage_path('logs/laravel.log');
+        abort_unless(is_file($rutaLog), 404);
 
-        return response()->download($logPath, 'laravel-' . now()->format('Ymd') . '.log');
+        return response()->download($rutaLog, 'laravel-' . now()->format('Ymd') . '.log');
     }
 
     // ── Privados ───────────────────────────────────────────────────────────────
 
-    private function deleteInformePdf(?string $pdfPath): void
+    private function eliminarPdfInforme(?string $rutaPdf): void
     {
-        if (empty($pdfPath)) {
+        if (empty($rutaPdf)) {
             return;
         }
 
-        $relative = ltrim(preg_replace('#^public/#', '', ltrim($pdfPath, '/')), '/');
-        if (Storage::disk('public')->exists($relative)) {
-            Storage::disk('public')->delete($relative);
+        $relativa = ltrim(preg_replace('#^public/#', '', ltrim($rutaPdf, '/')), '/');
+        if (Storage::disk('public')->exists($relativa)) {
+            Storage::disk('public')->delete($relativa);
             return;
         }
 
-        $abs = $this->resolveAbsPath($pdfPath);
-        if ($abs && is_file($abs)) {
-            unlink($abs);
+        $absoluta = $this->resolverRutaAbsoluta($rutaPdf);
+        if ($absoluta && is_file($absoluta)) {
+            unlink($absoluta);
         }
     }
 
-    private function tailFile(string $path, int $maxLines): array
+    private function leerUltimasLineas(string $ruta, int $maxLineas): array
     {
-        $file  = new \SplFileObject($path, 'r');
-        $file->seek(PHP_INT_MAX);
-        $total = $file->key();
+        $archivo = new \SplFileObject($ruta, 'r');
+        $archivo->seek(PHP_INT_MAX);
+        $total = $archivo->key();
 
-        $start = max(0, $total - $maxLines);
-        $lines = [];
+        $inicio = max(0, $total - $maxLineas);
+        $lineas = [];
 
-        $file->seek($start);
-        while (!$file->eof()) {
-            $line = $file->fgets();
-            if ($line !== false && $line !== '') {
-                $lines[] = rtrim($line);
+        $archivo->seek($inicio);
+        while (!$archivo->eof()) {
+            $linea = $archivo->fgets();
+            if ($linea !== false && $linea !== '') {
+                $lineas[] = rtrim($linea);
             }
         }
 
-        return array_reverse($lines);
+        return array_reverse($lineas);
     }
 
-    private function parseLogLines(array $lines): array
+    private function parsearLineasLog(array $lineas): array
     {
-        $entries = [];
-        $current = null;
+        $entradas = [];
+        $actual   = null;
 
-        foreach ($lines as $line) {
-            if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \w+\.(\w+): (.+)$/', $line, $m)) {
-                if ($current) {
-                    $entries[] = $current;
+        foreach ($lineas as $linea) {
+            if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \w+\.(\w+): (.+)$/', $linea, $m)) {
+                if ($actual) {
+                    $entradas[] = $actual;
                 }
-                $current = [
+                $actual = [
                     'datetime' => $m[1],
                     'level'    => strtoupper($m[2]),
                     'message'  => $m[3],
                     'extra'    => [],
                 ];
-            } elseif ($current && trim($line) !== '') {
-                $current['extra'][] = $line;
+            } elseif ($actual && trim($linea) !== '') {
+                $actual['extra'][] = $linea;
             }
         }
 
-        if ($current) {
-            $entries[] = $current;
+        if ($actual) {
+            $entradas[] = $actual;
         }
 
-        return $entries;
+        return $entradas;
     }
 
-    private function resolveAbsPath(?string $path): ?string
+    private function resolverRutaAbsoluta(?string $ruta): ?string
     {
-        if (empty($path)) return null;
-        if (preg_match('/^(\/|[A-Za-z]:\\\\)/', $path)) return $path;
-        $rel = preg_replace('#^(storage/app/public/|public/|storage/)#', '', ltrim($path, '/'));
-        return storage_path('app/public/' . $rel);
+        if (empty($ruta)) return null;
+        if (preg_match('/^(\/|[A-Za-z]:\\\\)/', $ruta)) return $ruta;
+        $relativa = preg_replace('#^(storage/app/public/|public/|storage/)#', '', ltrim($ruta, '/'));
+        return storage_path('app/public/' . $relativa);
     }
 }

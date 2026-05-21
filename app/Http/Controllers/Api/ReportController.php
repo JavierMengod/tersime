@@ -15,30 +15,30 @@ class ReportController extends Controller
 
     public function index(Request $request)
     {
-        $reports = $request->user()
+        $informes = $request->user()
             ->informes()
             ->with('dispositivos')
             ->latest('generated_at')
             ->paginate((int) $request->input('per_page', 20));
 
-        $reports->getCollection()->transform(fn($r) => (new ReportResource($r))->toArray($request));
+        $informes->getCollection()->transform(fn($informe) => (new ReportResource($informe))->toArray($request));
 
-        return response()->json($reports);
+        return response()->json($informes);
     }
 
     public function download(Request $request, Informe $informe)
     {
         abort_unless((int) $informe->user_id === (int) $request->user()->id, 403);
 
-        $absolutePath = $this->resolveInformePath($informe->pdf_path);
+        $rutaAbsoluta = $this->resolveInformePath($informe->pdf_path);
 
-        if (!$absolutePath || !is_file($absolutePath)) {
+        if (!$rutaAbsoluta || !is_file($rutaAbsoluta)) {
             return response()->json(['message' => 'Archivo no encontrado.'], 404);
         }
 
         return response()->download(
-            $absolutePath,
-            $informe->nombre_archivo ?: basename($absolutePath),
+            $rutaAbsoluta,
+            $informe->nombre_archivo ?: basename($rutaAbsoluta),
             ['Content-Type' => 'application/pdf']
         );
     }
@@ -47,27 +47,27 @@ class ReportController extends Controller
     {
         abort_unless((int) $informe->user_id === (int) $request->user()->id, 403);
 
-        $this->deleteInformePdf($informe->pdf_path);
+        $this->eliminarPdfInforme($informe->pdf_path);
         $informe->delete();
 
         return response()->json(['message' => 'Informe eliminado.']);
     }
 
-    private function deleteInformePdf(?string $pdfPath): void
+    private function eliminarPdfInforme(?string $rutaPdf): void
     {
-        if (empty($pdfPath)) {
+        if (empty($rutaPdf)) {
             return;
         }
 
-        $relative = ltrim(preg_replace('#^public/#', '', ltrim($pdfPath, '/')), '/');
-        if (Storage::disk('public')->exists($relative)) {
-            Storage::disk('public')->delete($relative);
+        $relativa = ltrim(preg_replace('#^public/#', '', ltrim($rutaPdf, '/')), '/');
+        if (Storage::disk('public')->exists($relativa)) {
+            Storage::disk('public')->delete($relativa);
             return;
         }
 
-        $abs = $this->resolveInformePath($pdfPath);
-        if ($abs && is_file($abs)) {
-            unlink($abs);
+        $absoluta = $this->resolveInformePath($rutaPdf);
+        if ($absoluta && is_file($absoluta)) {
+            unlink($absoluta);
         }
     }
 }

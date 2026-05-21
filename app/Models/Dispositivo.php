@@ -46,9 +46,9 @@ class Dispositivo extends Model
                     ->withTimestamps();
     }
 
-    public function rules()
+    public function reglas()
     {
-        return $this->belongsToMany(Rule::class, 'dispositivo_rule', 'dispositivo_id', 'rule_id');
+        return $this->belongsToMany(Regla::class, 'dispositivo_regla', 'dispositivo_id', 'rule_id');
     }
 
     public function informes()

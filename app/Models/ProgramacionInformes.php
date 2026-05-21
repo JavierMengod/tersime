@@ -69,14 +69,23 @@ class ProgramacionInformes extends Model
         return $v . ($v === 1 ? ' hora' : ' horas');
     }
 
-    public function proximaEjecucion(): ?Carbon
+    public function proximaEjecucion(?Carbon $ahora = null): Carbon
     {
-        if (!$this->last_run_at) {
-            return null;
-        }
-
+        $ahora = $ahora ?? Carbon::now();
         $valor = (int) ($this->valor_periodo ?? 1);
         $tipo  = $this->tipo_periodo ?? 'horas';
+
+        if (!$this->last_run_at) {
+            // Primera ejecución: para horas arranca inmediatamente.
+            // Para días/meses con hora_inicio calcula la próxima ventana real.
+            if ($tipo === 'horas') {
+                return $ahora->copy();
+            }
+            if ($this->hora_inicio) {
+                return $this->siguienteVentana($ahora, $tipo, $valor);
+            }
+            return $ahora->copy();
+        }
 
         if ($tipo === 'horas') {
             return $this->last_run_at->copy()->addHours($valor);
@@ -92,5 +101,19 @@ class ProgramacionInformes extends Model
         }
 
         return $next;
+    }
+
+    private function siguienteVentana(Carbon $ahora, string $tipo, int $valor): Carbon
+    {
+        [$h, $m] = array_map('intval', explode(':', $this->hora_inicio));
+        $hoy = $ahora->copy()->setTime($h, $m, 0);
+
+        // Si la hora todavía no ha llegado hoy, la primera ejecución es hoy
+        if ($hoy->greaterThan($ahora)) {
+            return $hoy;
+        }
+
+        // Ya pasó hoy: esperar al siguiente período
+        return $tipo === 'meses' ? $hoy->addMonths($valor) : $hoy->addDays($valor);
     }
 }

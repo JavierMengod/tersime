@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Services\InfluxService;
 use App\Services\NotificationService;
-use App\Models\AlertLog;
+use App\Models\RegistroAlerta;
 use App\Models\Dispositivo;
-use App\Models\Rule;
+use App\Models\Regla;
 use App\Models\User;
 use App\Notifications\NotificacionAlerta;
 use Carbon\Carbon;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class CheckRulesCommandTest extends TestCase
+class VerificarReglasCommandTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -35,7 +35,7 @@ class CheckRulesCommandTest extends TestCase
         ]);
     }
 
-    private function attachDevice(Rule $rule, string $alertState = 'ok', ?string $pendingSince = null): void
+    private function attachDevice(Regla $rule, string $alertState = 'ok', ?string $pendingSince = null): void
     {
         $rule->dispositivos()->attach($this->device->id, [
             'alert_state'   => $alertState,
@@ -64,7 +64,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function ok_transitions_to_firing_immediately_when_condition_met_and_no_duration(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'       => $this->user->id,
             'for_duration'  => 0,
             'email_enabled' => true,
@@ -75,7 +75,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $pivot = $rule->dispositivos()->first()->pivot;
         $this->assertSame('firing', $pivot->alert_state);
@@ -85,16 +85,16 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function ok_stays_ok_when_condition_not_met(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(50.0);
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('ok', $rule->dispositivos()->first()->pivot->alert_state);
-        $this->assertDatabaseCount('alert_logs', 0);
+        $this->assertDatabaseCount('registros_alerta', 0);
     }
 
     // ── ok → pending (for_duration > 0) ───────────────────────────────────────
@@ -102,18 +102,18 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function ok_transitions_to_pending_when_condition_met_and_duration_set(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->withDuration(15)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->withDuration(15)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(200.0);
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $pivot = $rule->dispositivos()->first()->pivot;
         $this->assertSame('pending', $pivot->alert_state);
         $this->assertNotNull($pivot->pending_since);
-        $this->assertDatabaseCount('alert_logs', 0);
+        $this->assertDatabaseCount('registros_alerta', 0);
     }
 
     // ── pending → firing (duration elapsed) ───────────────────────────────────
@@ -121,7 +121,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function pending_transitions_to_firing_after_duration_elapsed(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->withDuration(15)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->withDuration(15)->create([
             'user_id'        => $this->user->id,
             'email_enabled'  => true,
             'recipient_email' => 'alerts@test.com',
@@ -132,7 +132,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $pivot = $rule->dispositivos()->first()->pivot;
         $this->assertSame('firing', $pivot->alert_state);
@@ -141,17 +141,17 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function pending_stays_pending_when_duration_not_yet_elapsed(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->withDuration(60)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->withDuration(60)->create([
             'user_id' => $this->user->id,
         ]);
         $pendingSince = Carbon::now()->subMinutes(10)->toDateTimeString();
         $this->attachDevice($rule, 'pending', $pendingSince);
         $this->fakeInflux(200.0);
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('pending', $rule->dispositivos()->first()->pivot->alert_state);
-        $this->assertDatabaseCount('alert_logs', 0);
+        $this->assertDatabaseCount('registros_alerta', 0);
     }
 
     // ── pending → ok (false alarm) ─────────────────────────────────────────────
@@ -159,19 +159,19 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function pending_resets_to_ok_when_condition_resolves_before_firing(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->withDuration(15)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->withDuration(15)->create([
             'user_id' => $this->user->id,
         ]);
         $pendingSince = Carbon::now()->subMinutes(5)->toDateTimeString();
         $this->attachDevice($rule, 'pending', $pendingSince);
         $this->fakeInflux(50.0); // condition no longer met
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $pivot = $rule->dispositivos()->first()->pivot;
         $this->assertSame('ok', $pivot->alert_state);
         $this->assertNull($pivot->pending_since);
-        $this->assertDatabaseCount('alert_logs', 0);
+        $this->assertDatabaseCount('registros_alerta', 0);
     }
 
     // ── firing → ok (resolution) ──────────────────────────────────────────────
@@ -179,7 +179,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function firing_transitions_to_ok_when_condition_resolves(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'        => $this->user->id,
             'email_enabled'  => true,
             'recipient_email' => 'alerts@test.com',
@@ -189,7 +189,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $pivot = $rule->dispositivos()->first()->pivot;
         $this->assertSame('ok', $pivot->alert_state);
@@ -199,16 +199,16 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function firing_stays_firing_when_condition_still_met(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'firing');
         $this->fakeInflux(200.0); // still above threshold
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
-        $this->assertDatabaseCount('alert_logs', 0); // no new log while already firing
+        $this->assertDatabaseCount('registros_alerta', 0); // no new log while already firing
     }
 
     // ── AlertLog creation ──────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function firing_transition_creates_alert_log_with_type_firing(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'        => $this->user->id,
             'email_enabled'  => true,
             'recipient_email' => 'alerts@test.com',
@@ -226,21 +226,21 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $this->assertDatabaseCount('alert_logs', 1);
-        $this->assertDatabaseHas('alert_logs', [
+        $this->assertDatabaseCount('registros_alerta', 1);
+        $this->assertDatabaseHas('registros_alerta', [
             'user_id'    => $this->user->id,
             'rule_id'    => $rule->id,
             'type'       => 'firing',
-            'channels'   => 'email',
+            'channels'   => '["email"]',
         ]);
     }
 
     #[Test]
     public function resolution_transition_creates_alert_log_with_type_resolution(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'         => $this->user->id,
             'telegram_enabled' => true,
         ]);
@@ -249,20 +249,20 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $this->assertDatabaseHas('alert_logs', [
+        $this->assertDatabaseHas('registros_alerta', [
             'user_id'  => $this->user->id,
             'rule_id'  => $rule->id,
             'type'     => 'resolution',
-            'channels' => 'telegram',
+            'channels' => '["telegram"]',
         ]);
     }
 
     #[Test]
     public function alert_log_records_multiple_enabled_channels(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'          => $this->user->id,
             'email_enabled'    => true,
             'telegram_enabled' => true,
@@ -274,9 +274,9 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $log = AlertLog::first();
+        $log = RegistroAlerta::first();
         $this->assertNotNull($log);
         $this->assertContains('email', $log->channels);
         $this->assertContains('telegram', $log->channels);
@@ -286,7 +286,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function alert_log_records_device_name_and_rule_name(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
             'name'    => 'Consumo Máximo',
         ]);
@@ -295,10 +295,10 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         // In Artisan context there is no authenticated user, so nombre falls back to influx_tag
-        $this->assertDatabaseHas('alert_logs', [
+        $this->assertDatabaseHas('registros_alerta', [
             'rule_name'   => 'Consumo Máximo',
             'device_name' => 'TEST-DEV-001',
         ]);
@@ -309,7 +309,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function null_influx_value_triggers_alert_regardless_of_operator(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -317,7 +317,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
     }
@@ -325,7 +325,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function null_value_alert_log_message_mentions_sin_datos(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -333,9 +333,9 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $log = AlertLog::first();
+        $log = RegistroAlerta::first();
         $this->assertNotNull($log);
         $this->assertStringContainsString('Sin datos', $log->message);
     }
@@ -345,7 +345,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function inactive_rule_is_not_evaluated(): void
     {
-        $rule = Rule::factory()->inactive()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->inactive()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -355,9 +355,9 @@ class CheckRulesCommandTest extends TestCase
         // a DB configuration error — which would itself cause test failure.
         $this->fakeInflux(999.0); // safe: should never be called, but avoid crash if it is
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $this->assertDatabaseCount('alert_logs', 0);
+        $this->assertDatabaseCount('registros_alerta', 0);
         $this->assertSame('ok', $rule->dispositivos()->first()->pivot->alert_state);
     }
 
@@ -366,7 +366,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function operator_less_than_triggers_when_value_below_threshold(): void
     {
-        $rule = Rule::factory()->withOperator('<', 50)->create([
+        $rule = Regla::factory()->withOperator('<', 50)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -374,7 +374,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
     }
@@ -382,13 +382,13 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function operator_less_than_does_not_trigger_when_value_above_threshold(): void
     {
-        $rule = Rule::factory()->withOperator('<', 50)->create([
+        $rule = Regla::factory()->withOperator('<', 50)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(80.0);
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('ok', $rule->dispositivos()->first()->pivot->alert_state);
     }
@@ -396,7 +396,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function operator_equals_triggers_only_on_exact_match(): void
     {
-        $rule = Rule::factory()->withOperator('==', 100.0)->create([
+        $rule = Regla::factory()->withOperator('==', 100.0)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -404,7 +404,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
     }
@@ -412,7 +412,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function operator_not_equals_triggers_when_values_differ(): void
     {
-        $rule = Rule::factory()->withOperator('!=', 100.0)->create([
+        $rule = Regla::factory()->withOperator('!=', 100.0)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -420,7 +420,7 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
     }
@@ -432,14 +432,14 @@ class CheckRulesCommandTest extends TestCase
     {
         Notification::fake();
 
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(200.0);
         $this->fakeNotifier();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         Notification::assertSentTo($this->user, NotificacionAlerta::class, function ($notification) {
             return $notification->getTipo() === 'firing';
@@ -451,14 +451,14 @@ class CheckRulesCommandTest extends TestCase
     {
         Notification::fake();
 
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'firing');
         $this->fakeInflux(50.0);
         $this->fakeNotifier();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         Notification::assertSentTo($this->user, NotificacionAlerta::class, function ($notification) {
             return $notification->getTipo() === 'resolution';
@@ -470,13 +470,13 @@ class CheckRulesCommandTest extends TestCase
     {
         Notification::fake();
 
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'firing');
         $this->fakeInflux(200.0); // still firing
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         Notification::assertNothingSent();
     }
@@ -484,7 +484,7 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function email_notification_sent_when_email_enabled_and_recipient_set(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'         => $this->user->id,
             'email_enabled'   => true,
             'recipient_email' => 'alerts@example.com',
@@ -503,13 +503,13 @@ class CheckRulesCommandTest extends TestCase
             $m->shouldReceive('sendDiscord')->never();
         });
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
     }
 
     #[Test]
     public function email_not_sent_when_recipient_email_is_null(): void
     {
-        $rule = Rule::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'         => $this->user->id,
             'email_enabled'   => true,
             'recipient_email' => null, // enabled but no recipient
@@ -524,7 +524,7 @@ class CheckRulesCommandTest extends TestCase
             $m->shouldReceive('sendDiscord')->never();
         });
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
     }
 
     // ── Múltiples reglas ───────────────────────────────────────────────────────
@@ -532,8 +532,8 @@ class CheckRulesCommandTest extends TestCase
     #[Test]
     public function command_evaluates_multiple_active_rules_independently(): void
     {
-        $rule1 = Rule::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
-        $rule2 = Rule::factory()->withOperator('<', 50)->create(['user_id' => $this->user->id]);
+        $rule1 = Regla::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
+        $rule2 = Regla::factory()->withOperator('<', 50)->create(['user_id' => $this->user->id]);
 
         $device2 = Dispositivo::factory()->create(['influx_tag' => 'TEST-DEV-002']);
         $this->user->dispositivos()->attach($device2->id, ['nombre' => 'Medidor 2', 'habilitado' => 1]);
@@ -554,18 +554,18 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('firing', $rule1->dispositivos()->first()->pivot->alert_state);
         $this->assertSame('firing', $rule2->dispositivos()->first()->pivot->alert_state);
-        $this->assertDatabaseCount('alert_logs', 2);
+        $this->assertDatabaseCount('registros_alerta', 2);
     }
 
     #[Test]
     public function inactive_rules_are_skipped_while_active_rules_are_evaluated(): void
     {
-        $active   = Rule::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
-        $inactive = Rule::factory()->inactive()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
+        $active   = Regla::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
+        $inactive = Regla::factory()->inactive()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
 
         $device2 = Dispositivo::factory()->create(['influx_tag' => 'DEV-002']);
         $this->user->dispositivos()->attach($device2->id, ['nombre' => 'Dev 2', 'habilitado' => 1]);
@@ -577,10 +577,10 @@ class CheckRulesCommandTest extends TestCase
         $this->fakeNotifier();
         Notification::fake();
 
-        $this->artisan('rules:check')->assertExitCode(0);
+        $this->artisan('reglas:verificar')->assertExitCode(0);
 
         $this->assertSame('firing', $active->dispositivos()->first()->pivot->alert_state);
         $this->assertSame('ok', $inactive->dispositivos()->first()->pivot->alert_state);
-        $this->assertDatabaseCount('alert_logs', 1);
+        $this->assertDatabaseCount('registros_alerta', 1);
     }
 }

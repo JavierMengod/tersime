@@ -8,8 +8,8 @@ class TokenController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
-        $tokens = $user->tokens()->get();
+        $usuario = auth()->user();
+        $tokens  = $usuario->tokens()->get();
 
         return view('usuarios.tokens', compact('tokens'));
     }
@@ -25,16 +25,16 @@ class TokenController extends Controller
             'nombre' => 'required|string|max:255',
         ]);
 
-        $user = auth()->user();
-        $token = $user->createToken($request->nombre)->plainTextToken;
+        $usuario = auth()->user();
+        $token   = $usuario->createToken($request->nombre)->plainTextToken;
 
         return redirect()->back()->with('token_creado', $token);
     }
 
     public function destroy($id)
     {
-        $user = auth()->user();
-        $user->tokens()->where('id', $id)->delete();
+        $usuario = auth()->user();
+        $usuario->tokens()->where('id', $id)->delete();
 
         return redirect()->back()->with('success', 'Token eliminado correctamente.');
     }
