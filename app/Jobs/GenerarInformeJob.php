@@ -79,7 +79,7 @@ class GenerarInformeJob implements ShouldQueue
                 $this->correoDestino,
             );
 
-            $rutaAbsoluta = $resultado['absolutePath'];
+            $rutaAbsoluta = $resultado['rutaAbsoluta'];
             $desde  = Carbon::parse($this->fechaDesde)->format('d/m/Y');
             $hasta  = Carbon::parse($this->fechaHasta)->format('d/m/Y');
             $texto  = "📊 Tu informe del período {$desde} al {$hasta} está listo.";

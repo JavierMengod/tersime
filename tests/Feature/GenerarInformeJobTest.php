@@ -75,7 +75,7 @@ class GenerarInformeJobTest extends TestCase
         $this->mock(InformeService::class, function ($m) use ($rutaFalsa) {
             $m->shouldReceive('generarPdfParaInformeExistente')
               ->once()
-              ->andReturn(['absolutePath' => $rutaFalsa]);
+              ->andReturn(['rutaAbsoluta' => $rutaFalsa]);
         });
     }
 

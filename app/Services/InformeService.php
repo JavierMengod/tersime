@@ -32,27 +32,27 @@ class InformeService
         Informe $informe,
         User $user,
         \Illuminate\Support\Collection $dispositivos,
-        string $fromDate,
-        string $toDate,
+        string $fechaDesde,
+        string $fechaHasta,
         bool $telegram = false,
         bool $correo = false,
         bool $discord = false,
         ?string $correoDestino = null
     ): array {
-        $data = $this->compilarGeneracion($user, $dispositivos, $fromDate, $toDate, $telegram, $correo, $discord);
+        $data = $this->compilarGeneracion($user, $dispositivos, $fechaDesde, $fechaHasta, $telegram, $correo, $discord);
 
         $informe->update([
-            'nombre_archivo' => $data['filename'],
-            'pdf_path'       => $data['storagePath'],
-            'tamano_bytes'   => $data['fileSize'],
+            'nombre_archivo' => $data['nombreArchivo'],
+            'pdf_path'       => $data['rutaAlmacenamiento'],
+            'tamano_bytes'   => $data['tamanoBytes'],
             'generado_en'    => now(),
         ]);
 
-        $downloadUrl = route('informes.download', $informe->id, false);
+        $urlDescarga = route('informes.download', $informe->id, false);
 
-        Log::info('[InformeService] PDF generado', ['filename' => $data['filename'], 'informe_id' => $informe->id]);
+        Log::info('[InformeService] PDF generado', ['nombre_archivo' => $data['nombreArchivo'], 'informe_id' => $informe->id]);
 
-        return array_merge($data, compact('informe', 'downloadUrl'));
+        return array_merge($data, compact('informe', 'urlDescarga'));
     }
 
     // ── Núcleo compartido ──────────────────────────────────────────────────────
@@ -60,21 +60,21 @@ class InformeService
     private function compilarGeneracion(
         User $user,
         \Illuminate\Support\Collection $dispositivos,
-        string $fromDate,
-        string $toDate,
+        string $fechaDesde,
+        string $fechaHasta,
         bool $telegram,
         bool $correo,
         bool $discord
     ): array {
-        // Si fromDate/toDate incluyen hora (datetime), se respeta tal cual.
+        // Si fechaDesde/fechaHasta incluyen hora (datetime), se respeta tal cual.
         // Si son solo fecha (Y-m-d), se aplica startOfDay/endOfDay para cubrir el día completo.
-        $hasTime     = fn(string $d) => strlen($d) > 10;
-        $fromMillis  = ($hasTime($fromDate) ? Carbon::parse($fromDate) : Carbon::parse($fromDate)->startOfDay())->timestamp * 1000;
-        $toMillis    = ($hasTime($toDate)   ? Carbon::parse($toDate)   : Carbon::parse($toDate)->endOfDay())->timestamp * 1000;
-        $fechaInicio = $this->epochToIso8601($fromMillis);
-        $fechaFin    = $this->epochToIso8601($toMillis);
-        $start       = Carbon::parse($fechaInicio)->toDateString();
-        $end         = Carbon::parse($fechaFin)->toDateString();
+        $tieneTiempo  = fn(string $d) => strlen($d) > 10;
+        $inicioMillis = ($tieneTiempo($fechaDesde) ? Carbon::parse($fechaDesde) : Carbon::parse($fechaDesde)->startOfDay())->timestamp * 1000;
+        $finMillis    = ($tieneTiempo($fechaHasta)  ? Carbon::parse($fechaHasta)  : Carbon::parse($fechaHasta)->endOfDay())->timestamp  * 1000;
+        $fechaInicio  = $this->epochAIso8601($inicioMillis);
+        $fechaFin     = $this->epochAIso8601($finMillis);
+        $inicio       = Carbon::parse($fechaInicio)->toDateString();
+        $fin          = Carbon::parse($fechaFin)->toDateString();
 
         // ── 1. Datos por dispositivo (InfluxDB) ────────────────────────────
         $resumenPorDispositivo  = [];
@@ -85,66 +85,66 @@ class InformeService
 
         foreach ($dispositivos as $dispositivo) {
             try {
-                $tag = $this->resolveTag($dispositivo);
+                $etiqueta = $this->resolverEtiqueta($dispositivo);
 
-                $res = ['total' => 0.0, 'horas' => [], 'dias' => []];
+                $datosInflux = ['total' => 0.0, 'horas' => [], 'dias' => []];
                 try {
-                    $fetched = $this->influx->resumen($tag, $fechaInicio, $fechaFin);
-                    if (is_array($fetched)) {
-                        $res = $fetched;
+                    $obtenido = $this->influx->resumen($etiqueta, $fechaInicio, $fechaFin);
+                    if (is_array($obtenido)) {
+                        $datosInflux = $obtenido;
                     }
                 } catch (\Throwable $e) {
-                    Log::error('[InformeService] Influx->resumen falló', ['device' => $tag, 'error' => $e->getMessage()]);
+                    Log::error('[InformeService] Influx->resumen falló', ['etiqueta' => $etiqueta, 'error' => $e->getMessage()]);
                 }
 
-                $total = isset($res['total']) ? (float) $res['total'] : 0.0;
+                $total = isset($datosInflux['total']) ? (float) $datosInflux['total'] : 0.0;
 
-                $stats = ['mean' => null, 'stddev' => null, 'max' => null, 'min' => null, 'sum' => null];
-                $horariosCache[$tag] = $res['horas'] ?? [];
+                $estadisticas = ['mean' => null, 'stddev' => null, 'max' => null, 'min' => null, 'sum' => null];
+                $horariosCache[$etiqueta] = $datosInflux['horas'] ?? [];
 
                 try {
-                    $remoteStats = $this->influx->datosEstadisticos($tag, $fechaInicio, $fechaFin);
+                    $remoteStats = $this->influx->datosEstadisticos($etiqueta, $fechaInicio, $fechaFin);
                     if (is_array($remoteStats)) {
-                        $stats = array_merge($stats, $remoteStats);
+                        $estadisticas = array_merge($estadisticas, $remoteStats);
                     }
                 } catch (\Throwable $e) {
-                    Log::warning('[InformeService] datosEstadisticos falló', ['device' => $tag, 'error' => $e->getMessage()]);
+                    Log::warning('[InformeService] datosEstadisticos falló', ['etiqueta' => $etiqueta, 'error' => $e->getMessage()]);
                 }
 
-                $factorCarga     = null;
-                $historicalTotal = null;
+                $factorCarga    = null;
+                $totalHistorico = null;
 
                 try {
-                    $factorCarga = $this->influx->factorCarga($tag, $fechaInicio, $fechaFin);
+                    $factorCarga = $this->influx->factorCarga($etiqueta, $fechaInicio, $fechaFin);
                 } catch (\Throwable $e) {
-                    Log::warning('[InformeService] factorCarga falló', ['device' => $tag, 'error' => $e->getMessage()]);
+                    Log::warning('[InformeService] factorCarga falló', ['etiqueta' => $etiqueta, 'error' => $e->getMessage()]);
                 }
 
                 try {
-                    $historicalTotal = $this->influx->mediaHistoricaPeriodo($tag, $start, $end);
+                    $totalHistorico = $this->influx->mediaHistoricaPeriodo($etiqueta, $inicio, $fin);
                 } catch (\Throwable $e) {
-                    Log::warning('[InformeService] mediaHistoricaPeriodo falló', ['device' => $tag, 'error' => $e->getMessage()]);
+                    Log::warning('[InformeService] mediaHistoricaPeriodo falló', ['etiqueta' => $etiqueta, 'error' => $e->getMessage()]);
                 }
 
-                $variationPercent = null;
-                if (!is_null($historicalTotal) && $historicalTotal != 0.0) {
-                    $variationPercent = (($total - $historicalTotal) / $historicalTotal) * 100.0;
+                $porcentajeVariacion = null;
+                if (!is_null($totalHistorico) && $totalHistorico != 0.0) {
+                    $porcentajeVariacion = (($total - $totalHistorico) / $totalHistorico) * 100.0;
                 }
 
                 $resumenPorDispositivo[] = [
-                    'id'               => $dispositivo->id,
-                    'nombre'           => $dispositivo->nombre ?? $tag,
-                    'device_key'       => $tag,
-                    'total_kwh'        => round($total, 4),
-                    'mean_kwh_h'       => isset($stats['mean']) && is_numeric($stats['mean']) ? round($stats['mean'], 4) : null,
-                    'stddev'           => isset($stats['stddev']) && is_numeric($stats['stddev']) ? round($stats['stddev'], 4) : null,
-                    'max'              => isset($stats['max']) && is_numeric($stats['max']) ? round($stats['max'], 4) : null,
-                    'min'              => isset($stats['min']) && is_numeric($stats['min']) ? round($stats['min'], 4) : null,
-                    'factor_carga'     => is_null($factorCarga) ? null : round($factorCarga, 6),
-                    'historical_total' => is_null($historicalTotal) ? null : round($historicalTotal, 4),
-                    'variation_percent' => is_null($variationPercent) ? null : round($variationPercent, 2),
-                    'horas'            => $res['horas'] ?? [],
-                    'dias'             => $res['dias'] ?? [],
+                    'id'                  => $dispositivo->id,
+                    'nombre'              => $dispositivo->nombre ?? $etiqueta,
+                    'etiqueta'            => $etiqueta,
+                    'total_kwh'           => round($total, 4),
+                    'media_kwh_h'         => isset($estadisticas['mean']) && is_numeric($estadisticas['mean']) ? round($estadisticas['mean'], 4) : null,
+                    'stddev'              => isset($estadisticas['stddev']) && is_numeric($estadisticas['stddev']) ? round($estadisticas['stddev'], 4) : null,
+                    'max'                 => isset($estadisticas['max']) && is_numeric($estadisticas['max']) ? round($estadisticas['max'], 4) : null,
+                    'min'                 => isset($estadisticas['min']) && is_numeric($estadisticas['min']) ? round($estadisticas['min'], 4) : null,
+                    'factor_carga'        => is_null($factorCarga) ? null : round($factorCarga, 6),
+                    'total_historico'     => is_null($totalHistorico) ? null : round($totalHistorico, 4),
+                    'variacion_porcentaje' => is_null($porcentajeVariacion) ? null : round($porcentajeVariacion, 2),
+                    'horas'               => $datosInflux['horas'] ?? [],
+                    'dias'                => $datosInflux['dias']  ?? [],
                 ];
 
                 $totalesGlobales += $total;
@@ -156,45 +156,45 @@ class InformeService
                 $resumenPorDispositivo[] = [
                     'id'            => $dispositivo->id ?? null,
                     'nombre'        => $dispositivo->nombre ?? 'Desconocido',
-                    'device_key'    => $this->resolveTag($dispositivo),
+                    'etiqueta'      => $this->resolverEtiqueta($dispositivo),
                     'error'         => true,
                     'error_message' => $e->getMessage(),
                 ];
             }
         }
 
-        foreach ($resumenPorDispositivo as &$row) {
-            $row['pct_over_total'] = (isset($row['total_kwh']) && $totalesGlobales > 0)
-                ? round(($row['total_kwh'] / $totalesGlobales) * 100.0, 2)
+        foreach ($resumenPorDispositivo as &$fila) {
+            $fila['pct_sobre_total'] = (isset($fila['total_kwh']) && $totalesGlobales > 0)
+                ? round(($fila['total_kwh'] / $totalesGlobales) * 100.0, 2)
                 : 0.0;
         }
-        unset($row);
+        unset($fila);
 
         // ── 1b. Métricas avanzadas (franjas, tendencia, picos) ─────────────
         $metricasAvanzadas = $this->computarMetricasAvanzadas($resumenPorDispositivo);
 
         // Liberar horas/dias — ya procesados, no se necesitan en la vista PDF
-        foreach ($resumenPorDispositivo as &$row) {
-            unset($row['horas'], $row['dias']);
+        foreach ($resumenPorDispositivo as &$fila) {
+            unset($fila['horas'], $fila['dias']);
         }
-        unset($row);
+        unset($fila);
 
         // ── 2. Gráficas + datos horarios ──────────────────────────────────
-        $grafanaBase       = rtrim(config('tersime.grafana.renderer_base_url') ?: Ajuste::get('grafana_base_url') ?: 'http://grafana:3000', '/');
-        $dispositivosQuery = $this->buildDispositivosQuery($dispositivos);
+        $baseGrafana       = rtrim(config('tersime.grafana.renderer_base_url') ?: Ajuste::get('grafana_base_url') ?: 'http://grafana:3000', '/');
+        $consultaDispositivos = $this->construirQueryDispositivos($dispositivos);
 
-        $panelUrlTendencia =
-            "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
-            . "?orgId=1&from={$fromMillis}&to={$toMillis}&timezone=Europe%2FMadrid{$dispositivosQuery}&theme=light&panelId=panel-1";
+        $urlPanelTendencia =
+            "{$baseGrafana}/d-solo/eegznxsjl47i8b/dashboard-initiot"
+            . "?orgId=1&from={$inicioMillis}&to={$finMillis}&timezone=Europe%2FMadrid{$consultaDispositivos}&theme=light&panelId=panel-1";
 
-        $graficas  = [];
-        $datos     = [];
-        $defaultTimeout = (int) config('tersime.grafana.renderer_timeout', 90);
-        $panelUrls = [
-            'tiempo-real'    => [$panelUrlTendencia, 'tiempo-real', 180],
+        $graficas          = [];
+        $datos             = [];
+        $timeoutDefecto    = (int) config('tersime.grafana.renderer_timeout', 90);
+        $urlsPaneles = [
+            'tiempo-real'    => [$urlPanelTendencia, 'tiempo-real', 180],
             'consumo-diario' => [
-                "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
-                . "?orgId=1&from={$fromMillis}&to={$toMillis}&timezone=Europe%2FMadrid{$dispositivosQuery}&theme=light&panelId=panel-7",
+                "{$baseGrafana}/d-solo/eegznxsjl47i8b/dashboard-initiot"
+                . "?orgId=1&from={$inicioMillis}&to={$finMillis}&timezone=Europe%2FMadrid{$consultaDispositivos}&theme=light&panelId=panel-7",
                 'consumo-diario',
                 120,
             ],
@@ -202,48 +202,48 @@ class InformeService
 
         // Panel-5 muestra la media horaria con un eje X fijo de 0-23h.
         // La fecha concreta no importa; solo necesita ser un día completo válido.
-        $panel5RefDay = Carbon::create(2025, 1, 1, 0, 0, 0, 'Europe/Madrid');
-        $panel5From   = $panel5RefDay->getTimestamp() * 1000;
-        $panel5To     = $panel5RefDay->copy()->endOfDay()->getTimestamp() * 1000;
+        $panel5DiaRef = Carbon::create(2025, 1, 1, 0, 0, 0, 'Europe/Madrid');
+        $panel5Inicio = $panel5DiaRef->getTimestamp() * 1000;
+        $panel5Fin    = $panel5DiaRef->copy()->endOfDay()->getTimestamp() * 1000;
 
         foreach ($dispositivos as $dispositivo) {
-            $tag             = $this->resolveTag($dispositivo);
-            $historicalStart = Carbon::parse($end)->subYears(2)->toDateString();
+            $etiqueta        = $this->resolverEtiqueta($dispositivo);
+            $inicioHistorico = Carbon::parse($fin)->subYears(2)->toDateString();
 
-            $panelUrls["media-horaria-{$tag}"] = [
-                "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
-                . "?orgId=1&var-start={$fechaInicio}&var-end={$fechaFin}&var-dispositivos={$tag}&theme=light&panelId=panel-5&from={$panel5From}&to={$panel5To}&timezone=Europe%2FMadrid",
-                "media-horaria-{$tag}",
+            $urlsPaneles["media-horaria-{$etiqueta}"] = [
+                "{$baseGrafana}/d-solo/eegznxsjl47i8b/dashboard-initiot"
+                . "?orgId=1&var-start={$fechaInicio}&var-end={$fechaFin}&var-dispositivos={$etiqueta}&theme=light&panelId=panel-5&from={$panel5Inicio}&to={$panel5Fin}&timezone=Europe%2FMadrid",
+                "media-horaria-{$etiqueta}",
                 240,
             ];
-            $historicalStartIso = Carbon::parse($historicalStart)->toDateString() . 'T00:00:00Z';
-            $panelUrls["media-horaria-historico-{$tag}"] = [
-                "{$grafanaBase}/d-solo/eegznxsjl47i8b/dashboard-initiot"
-                . "?orgId=1&var-start={$historicalStartIso}&var-end={$fechaFin}&var-dispositivos={$tag}&theme=light&panelId=panel-5&from={$panel5From}&to={$panel5To}&timezone=Europe%2FMadrid",
-                "media-horaria-historico-{$tag}",
+            $inicioHistoricoIso = Carbon::parse($inicioHistorico)->toDateString() . 'T00:00:00Z';
+            $urlsPaneles["media-horaria-historico-{$etiqueta}"] = [
+                "{$baseGrafana}/d-solo/eegznxsjl47i8b/dashboard-initiot"
+                . "?orgId=1&var-start={$inicioHistoricoIso}&var-end={$fechaFin}&var-dispositivos={$etiqueta}&theme=light&panelId=panel-5&from={$panel5Inicio}&to={$panel5Fin}&timezone=Europe%2FMadrid",
+                "media-horaria-historico-{$etiqueta}",
                 300,
             ];
 
-            $mediaHistorica = $this->influx->mediaPorHora($tag, $historicalStart, $end);
+            $mediaHistorica = $this->influx->mediaPorHora($etiqueta, $inicioHistorico, $fin);
 
-            $datos[$tag] = [
-                'media-horaria'           => $this->influx->mediaPorHora($tag, $start, $end),
+            $datos[$etiqueta] = [
+                'media-horaria'           => $this->influx->mediaPorHora($etiqueta, $inicio, $fin),
                 'media-horaria-historico' => $mediaHistorica,
                 'nombre-dispositivo'      => $dispositivo->nombre,
             ];
 
             // Reutiliza los horarios ya descargados en loop 1
-            $horariosPrefetchados[$tag]   = $horariosCache[$tag] ?? [];
-            $mediasHorariaHistorico[$tag] = $mediaHistorica;
+            $horariosPrefetchados[$etiqueta]   = $horariosCache[$etiqueta] ?? [];
+            $mediasHorariaHistorico[$etiqueta] = $mediaHistorica;
         }
 
-        $archivosGraficas = $this->renderizarGraficas($panelUrls, $user->name ?? 'admin');
+        $archivosGraficas = $this->renderizarGraficas($urlsPaneles, $user->name ?? 'admin');
 
         foreach ($dispositivos as $dispositivo) {
-            $tag = $this->resolveTag($dispositivo);
-            $graficas[$tag] = [
-                'media-horaria'           => $archivosGraficas["media-horaria-{$tag}"] ?? null,
-                'media-horaria-historico' => $archivosGraficas["media-horaria-historico-{$tag}"] ?? null,
+            $etiqueta = $this->resolverEtiqueta($dispositivo);
+            $graficas[$etiqueta] = [
+                'media-horaria'           => $archivosGraficas["media-horaria-{$etiqueta}"] ?? null,
+                'media-horaria-historico' => $archivosGraficas["media-horaria-historico-{$etiqueta}"] ?? null,
             ];
         }
         $graficas['tiempo-real']    = $archivosGraficas['tiempo-real']    ?? null;
@@ -254,26 +254,26 @@ class InformeService
         $graficas = $this->resolverRutasParaMpdf($graficas);
 
         // ── 3. Anomalías (reutiliza datos ya descargados) ─────────────────
-        $anomalias = $this->obtenerAnomalias($dispositivos, $fromDate, $toDate, $horariosPrefetchados, $mediasHorariaHistorico);
+        $anomalias = $this->obtenerAnomalias($dispositivos, $fechaDesde, $fechaHasta, $horariosPrefetchados, $mediasHorariaHistorico);
 
         // ── 4. Costes (usa total_kwh ya calculado, sin llamada extra a InfluxDB) ──
         $costeEstimado = $this->obtenerCosteEstimado($resumenPorDispositivo);
 
         // ── 5. LLM ────────────────────────────────────────────────────────
-        $diasPeriodo     = max(1, (int) round(Carbon::parse($fechaInicio)->floatDiffInDays(Carbon::parse($fechaFin))) + 1);
-        $totalGlobalCost = array_sum(array_column($costeEstimado, 'coste_estimado'));
-        $totalAnomalias  = array_sum(array_map('count', $anomalias));
+        $diasPeriodo  = max(1, (int) round(Carbon::parse($fechaInicio)->floatDiffInDays(Carbon::parse($fechaFin))) + 1);
+        $costeTotal   = array_sum(array_column($costeEstimado, 'coste_estimado'));
+        $totalAnomalias = array_sum(array_map('count', $anomalias));
 
         $resumenGlobal = [
             'total_kwh'        => round($totalesGlobales, 3),
-            'total_coste'      => round($totalGlobalCost, 2),
+            'total_coste'      => round($costeTotal, 2),
             'total_anomalias'  => $totalAnomalias,
             'dias_periodo'     => $diasPeriodo,
             'num_dispositivos' => count($resumenPorDispositivo),
         ];
 
         $datosParaLLM = $this->estructurarDatosParaLLM($datos, $resumenPorDispositivo, $metricasAvanzadas, $anomalias);
-        $contexto     = compact('fromDate', 'toDate', 'resumenGlobal', 'metricasAvanzadas');
+        $contexto     = compact('fechaDesde', 'fechaHasta', 'resumenGlobal', 'metricasAvanzadas');
 
         $resumen                    = 'No se pudo generar el resumen automático.';
         $conclusion                 = 'No se pudo generar la conclusión automática.';
@@ -298,9 +298,9 @@ class InformeService
         $logoPath = public_path('assets/img/TERSIME.png');
         $logo     = file_exists($logoPath) ? 'file://' . $logoPath : null;
 
-        $viewData = [
-            'fromDate'                   => $fromDate,
-            'toDate'                     => $toDate,
+        $datosVista = [
+            'fechaDesde'                 => $fechaDesde,
+            'fechaHasta'                 => $fechaHasta,
             'dispositivos'               => $dispositivos,
             'user'                       => $user,
             'logo'                       => $logo,
@@ -315,14 +315,14 @@ class InformeService
             'distribucionHorariaTextual' => $distribucionHorariaTextual,
         ];
 
-        $filename    = 'informe_' . $user->id . '_' . now()->format('Ymd_His') . '.pdf';
-        $storagePath = 'public/informes/' . $filename;
+        $nombreArchivo       = 'informe_' . $user->id . '_' . now()->format('Ymd_His') . '.pdf';
+        $rutaAlmacenamiento  = 'public/informes/' . $nombreArchivo;
 
-        $html = view('informes.informe_bajo_demanda', $viewData)->render();
+        $html = view('informes.informe_bajo_demanda', $datosVista)->render();
 
-        $tempDir = storage_path('app/tmp');
-        if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0755, true);
+        $dirTemporal = storage_path('app/tmp');
+        if (!is_dir($dirTemporal)) {
+            mkdir($dirTemporal, 0755, true);
         }
 
         $mpdf = new Mpdf([
@@ -332,7 +332,7 @@ class InformeService
             'margin_bottom' => 14,
             'margin_left'   => 0,
             'margin_right'  => 0,
-            'tempDir'       => $tempDir,
+            'tempDir'       => $dirTemporal,
             // Allow mPDF to load images from these filesystem roots
             'basepath'      => storage_path('app/'),
         ]);
@@ -341,43 +341,43 @@ class InformeService
         ini_set('pcre.backtrack_limit', PHP_INT_MAX);
         $mpdf->WriteHTML($html);
         ini_set('pcre.backtrack_limit', $prev);
-        Storage::put($storagePath, $mpdf->Output('', 'S'));
+        Storage::put($rutaAlmacenamiento, $mpdf->Output('', 'S'));
         $this->limpiarGraficasTemporales($archivosGraficas);
 
-        $fileSize = 0;
+        $tamanoBytes = 0;
         try {
-            $fileSize = Storage::size($storagePath);
+            $tamanoBytes = Storage::size($rutaAlmacenamiento);
         } catch (\Throwable $e) {
             Log::warning('[InformeService] No se pudo obtener tamaño del PDF', ['error' => $e->getMessage()]);
         }
 
-        $absolutePath = storage_path('app/' . $storagePath);
+        $rutaAbsoluta = storage_path('app/' . $rutaAlmacenamiento);
 
-        return compact('filename', 'storagePath', 'absolutePath', 'fileSize');
+        return compact('nombreArchivo', 'rutaAlmacenamiento', 'rutaAbsoluta', 'tamanoBytes');
     }
 
     // ── Helpers privados ───────────────────────────────────────────────────────
 
     private function limpiarGraficasTemporales(array $archivosGraficas): void
     {
-        foreach ($archivosGraficas as $path) {
-            if ($path && is_file($path)) {
-                unlink($path);
+        foreach ($archivosGraficas as $ruta) {
+            if ($ruta && is_file($ruta)) {
+                unlink($ruta);
             }
         }
     }
 
-    private function buildDispositivosQuery($dispositivos): string
+    private function construirQueryDispositivos($dispositivos): string
     {
-        $query = '';
+        $consulta = '';
         foreach ($dispositivos as $d) {
-            $tag    = is_object($d) ? ($d->etiqueta_influx ?? $d->nombre ?? "device_{$d->id}") : (string) $d;
-            $query .= '&var-dispositivos=' . urlencode($tag);
+            $etiqueta  = is_object($d) ? ($d->etiqueta_influx ?? $d->nombre ?? "device_{$d->id}") : (string) $d;
+            $consulta .= '&var-dispositivos=' . urlencode($etiqueta);
         }
-        return $query;
+        return $consulta;
     }
 
-    private function epochToIso8601($epoch, string $timezone = 'UTC'): string
+    private function epochAIso8601($epoch, string $timezone = 'UTC'): string
     {
         if ($epoch > 9999999999) {
             $epoch = $epoch / 1000;
@@ -386,13 +386,13 @@ class InformeService
     }
 
     /**
-     * @param array $horariosPrefetchados   ['tag' => ['iso_datetime' => kWh, ...]]
-     * @param array $mediasHorariaHistorico ['tag' => ['H' => media, ...]]
+     * @param array $horariosPrefetchados   ['etiqueta' => ['iso_datetime' => kWh, ...]]
+     * @param array $mediasHorariaHistorico ['etiqueta' => ['H' => media, ...]]
      */
     private function obtenerAnomalias(
         \Illuminate\Support\Collection $dispositivos,
-        string $fromDate,
-        string $toDate,
+        string $fechaDesde,
+        string $fechaHasta,
         array $horariosPrefetchados = [],
         array $mediasHorariaHistorico = []
     ): array {
@@ -404,22 +404,22 @@ class InformeService
         $anomalias = [];
 
         foreach ($dispositivos as $dispositivo) {
-            $tag = is_object($dispositivo)
+            $etiqueta = is_object($dispositivo)
                 ? ($dispositivo->etiqueta_influx ?? $dispositivo->nombre ?? "device_{$dispositivo->id}")
                 : (string) $dispositivo;
 
-            $horarios = $horariosPrefetchados[$tag] ?? $this->influx->datosHorarios($tag, $fromDate, $toDate);
+            $horarios = $horariosPrefetchados[$etiqueta] ?? $this->influx->datosHorarios($etiqueta, $fechaDesde, $fechaHasta);
 
             if (empty($horarios)) {
-                $anomalias[$tag] = [];
+                $anomalias[$etiqueta] = [];
                 continue;
             }
 
-            $fromHistorico = Carbon::parse($toDate)->subYears(2)->toDateString();
-            $mediaPorHora  = $mediasHorariaHistorico[$tag] ?? $this->influx->mediaPorHora($tag, $fromHistorico, $toDate);
+            $inicioHistorico = Carbon::parse($fechaHasta)->subYears(2)->toDateString();
+            $mediaPorHora    = $mediasHorariaHistorico[$etiqueta] ?? $this->influx->mediaPorHora($etiqueta, $inicioHistorico, $fechaHasta);
 
             if (empty($mediaPorHora)) {
-                $anomalias[$tag] = [];
+                $anomalias[$etiqueta] = [];
                 continue;
             }
 
@@ -446,7 +446,7 @@ class InformeService
                 if ($valor > $umbralAlto) {
                     $lista[] = [
                         'tipo'                     => 'exceso',
-                        'device'                   => $tag,
+                        'etiqueta'                 => $etiqueta,
                         'fecha'                    => $fechaIso,
                         'hora'                     => $hora,
                         'valor_kwh'                => round($valor, 6),
@@ -458,7 +458,7 @@ class InformeService
                 } elseif ($valor < $umbralBajo) {
                     $lista[] = [
                         'tipo'                     => 'defecto',
-                        'device'                   => $tag,
+                        'etiqueta'                 => $etiqueta,
                         'fecha'                    => $fechaIso,
                         'hora'                     => $hora,
                         'valor_kwh'                => round($valor, 6),
@@ -470,7 +470,7 @@ class InformeService
                 }
             }
 
-            $anomalias[$tag] = $lista;
+            $anomalias[$etiqueta] = $lista;
         }
 
         return $anomalias;
@@ -484,13 +484,13 @@ class InformeService
         $costePorKwh = (float) config('tersime.costes.kwh', 0.15);
         $resultados  = [];
 
-        foreach ($resumenPorDispositivo as $row) {
-            if (!empty($row['error'])) {
+        foreach ($resumenPorDispositivo as $fila) {
+            if (!empty($fila['error'])) {
                 continue;
             }
-            $tag          = $row['device_key'];
-            $consumoTotal = (float) ($row['total_kwh'] ?? 0.0);
-            $resultados[$tag] = [
+            $etiqueta         = $fila['etiqueta'];
+            $consumoTotal     = (float) ($fila['total_kwh'] ?? 0.0);
+            $resultados[$etiqueta] = [
                 'consumo_total_kwh' => round($consumoTotal, 6),
                 'coste_estimado'    => round($consumoTotal * $costePorKwh, 6),
             ];
@@ -499,64 +499,64 @@ class InformeService
         return $resultados;
     }
 
-    private function renderizarGraficas(array $panelUrls, string $grafanaUser = 'admin'): array
+    private function renderizarGraficas(array $urlsPaneles, string $grafanaUser = 'admin'): array
     {
-        $width  = (int) config('tersime.grafana.renderer_width', 1000);
-        $height = (int) config('tersime.grafana.renderer_height', 500);
+        $ancho  = (int) config('tersime.grafana.renderer_width', 1000);
+        $alto   = (int) config('tersime.grafana.renderer_height', 500);
 
-        $result = [];
-        foreach ($panelUrls as $key => [$panelUrl, $nombreArchivo, $rendererTimeout]) {
+        $resultado = [];
+        foreach ($urlsPaneles as $clave => [$urlPanel, $nombreArchivo, $timeoutRenderer]) {
             // PHP must wait longer than the renderer's own timeout plus Chrome overhead
-            $phpTimeout = $rendererTimeout + 120;
+            $timeoutPhp = $timeoutRenderer + 120;
 
             // Call Grafana's own render endpoint instead of the renderer directly.
             // Grafana authenticates via auth proxy header, then calls the renderer
             // internally with a renderKey so Chrome can authenticate.
-            $renderUrl = preg_replace('#/d-solo/#', '/render/d-solo/', $panelUrl, 1);
-            $renderUrl .= (str_contains($renderUrl, '?') ? '&' : '?')
-                . "width={$width}&height={$height}&timeout={$rendererTimeout}";
+            $urlRender = preg_replace('#/d-solo/#', '/render/d-solo/', $urlPanel, 1);
+            $urlRender .= (str_contains($urlRender, '?') ? '&' : '?')
+                . "width={$ancho}&height={$alto}&timeout={$timeoutRenderer}";
 
             Log::info('[Renderer] Solicitando panel', [
-                'key'              => $key,
-                'renderer_timeout' => $rendererTimeout,
+                'clave'            => $clave,
+                'renderer_timeout' => $timeoutRenderer,
             ]);
 
-            $result[$key] = null;
-            for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $resultado[$clave] = null;
+            for ($intento = 1; $intento <= 2; $intento++) {
                 try {
-                    $response = Http::withHeaders([
+                    $respuesta = Http::withHeaders([
                         'X-WEBAUTH-USER' => $grafanaUser,
                         'Accept'         => 'image/png',
                     ])
-                    ->timeout($phpTimeout)
-                    ->get($renderUrl);
+                    ->timeout($timeoutPhp)
+                    ->get($urlRender);
 
-                    if ($response->successful()) {
+                    if ($respuesta->successful()) {
                         Log::info('[Renderer] Panel OK', [
-                            'key'     => $key,
-                            'bytes'   => strlen($response->body()),
-                            'attempt' => $attempt,
+                            'clave'   => $clave,
+                            'bytes'   => strlen($respuesta->body()),
+                            'intento' => $intento,
                         ]);
-                        $path = "public/graficas/{$nombreArchivo}.png";
-                        Storage::put($path, $response->body());
-                        $result[$key] = storage_path("app/{$path}");
+                        $ruta = "public/graficas/{$nombreArchivo}.png";
+                        Storage::put($ruta, $respuesta->body());
+                        $resultado[$clave] = storage_path("app/{$ruta}");
                         break;
                     }
 
                     Log::warning('[Renderer] HTTP error', [
-                        'key'     => $key,
-                        'status'  => $response->status(),
-                        'attempt' => $attempt,
+                        'clave'   => $clave,
+                        'status'  => $respuesta->status(),
+                        'intento' => $intento,
                     ]);
                 } catch (\Throwable $e) {
                     Log::warning('[Renderer] Excepción', [
-                        'key'     => $key,
+                        'clave'   => $clave,
                         'error'   => $e->getMessage(),
-                        'attempt' => $attempt,
+                        'intento' => $intento,
                     ]);
                 }
 
-                if ($attempt < 2) {
+                if ($intento < 2) {
                     // Give renderer/Chrome time to fully exit before retrying
                     sleep(30);
                 }
@@ -566,7 +566,7 @@ class InformeService
             sleep(15);
         }
 
-        return $result;
+        return $resultado;
     }
 
     /**
@@ -578,64 +578,64 @@ class InformeService
         $tz       = config('app.timezone', 'Europe/Madrid');
         $metricas = [];
 
-        foreach ($resumenPorDispositivo as $row) {
-            $tag = $row['device_key'] ?? null;
-            if (!$tag || !empty($row['error'])) {
-                if ($tag) $metricas[$tag] = ['error' => true];
+        foreach ($resumenPorDispositivo as $fila) {
+            $etiqueta = $fila['etiqueta'] ?? null;
+            if (!$etiqueta || !empty($fila['error'])) {
+                if ($etiqueta) $metricas[$etiqueta] = ['error' => true];
                 continue;
             }
 
-            $horas = $row['horas'] ?? [];
-            $dias  = $row['dias']  ?? [];
+            $horas = $fila['horas'] ?? [];
+            $dias  = $fila['dias']  ?? [];
 
-            $franjas    = ['punta' => 0.0, 'llano' => 0.0, 'valle' => 0.0];
-            $labTotal   = 0.0; $labCount   = 0;
-            $findTotal  = 0.0; $findCount  = 0;
-            $picosList  = [];
+            $franjas          = ['punta' => 0.0, 'llano' => 0.0, 'valle' => 0.0];
+            $totalLaborable   = 0.0; $conteoLaborable = 0;
+            $totalFestivo     = 0.0; $conteoFestivo   = 0;
+            $listaPicos       = [];
             // Día de semana: sumas acumuladas y conteos por día ISO (1=Lun … 7=Dom)
-            $dowSums   = array_fill_keys(range(1, 7), 0.0);
-            $dowCounts = array_fill_keys(range(1, 7), 0);
+            $sumasDiaSemana   = array_fill_keys(range(1, 7), 0.0);
+            $conteosDiaSemana = array_fill_keys(range(1, 7), 0);
 
             foreach ($horas as $ts => $kwh) {
                 try {
-                    $dt   = Carbon::parse($ts)->setTimezone($tz);
-                    $h    = (int) $dt->format('G');
-                    $dow  = (int) $dt->format('N'); // 1=Lun, 7=Dom
-                    $kwh  = (float) $kwh;
+                    $dt        = Carbon::parse($ts)->setTimezone($tz);
+                    $hora      = (int) $dt->format('G');
+                    $diaSemana = (int) $dt->format('N'); // 1=Lun, 7=Dom
+                    $kwh       = (float) $kwh;
 
-                    $dowSums[$dow]   += $kwh;
-                    $dowCounts[$dow]++;
+                    $sumasDiaSemana[$diaSemana]   += $kwh;
+                    $conteosDiaSemana[$diaSemana]++;
 
                     if ($dt->isWeekend()) {
                         $franjas['valle'] += $kwh;
-                        $findTotal += $kwh; $findCount++;
+                        $totalFestivo += $kwh; $conteoFestivo++;
                     } else {
-                        $labTotal += $kwh; $labCount++;
-                        if (($h >= 10 && $h < 14) || ($h >= 18 && $h < 22)) {
+                        $totalLaborable += $kwh; $conteoLaborable++;
+                        if (($hora >= 10 && $hora < 14) || ($hora >= 18 && $hora < 22)) {
                             $franjas['punta'] += $kwh;
-                        } elseif (($h >= 8 && $h < 10) || ($h >= 14 && $h < 18) || $h >= 22) {
+                        } elseif (($hora >= 8 && $hora < 10) || ($hora >= 14 && $hora < 18) || $hora >= 22) {
                             $franjas['llano'] += $kwh;
                         } else {
                             $franjas['valle'] += $kwh;
                         }
                     }
-                    $picosList[$ts] = $kwh;
+                    $listaPicos[$ts] = $kwh;
                 } catch (\Throwable $e) {
                     Log::warning('[InformeService] timestamp inválido en métricas', ['ts' => $ts, 'error' => $e->getMessage()]);
                     continue;
                 }
             }
 
-            $dowLabels = [1 => 'Lun', 2 => 'Mar', 3 => 'Mié', 4 => 'Jue', 5 => 'Vie', 6 => 'Sáb', 7 => 'Dom'];
-            $patronDiaSemana = [];
-            foreach ($dowSums as $dow => $sum) {
-                $c = $dowCounts[$dow];
-                $patronDiaSemana[$dowLabels[$dow]] = $c > 0 ? round($sum / $c, 4) : null;
+            $etiquetasDiaSemana = [1 => 'Lun', 2 => 'Mar', 3 => 'Mié', 4 => 'Jue', 5 => 'Vie', 6 => 'Sáb', 7 => 'Dom'];
+            $patronDiaSemana    = [];
+            foreach ($sumasDiaSemana as $diaSemana => $suma) {
+                $c = $conteosDiaSemana[$diaSemana];
+                $patronDiaSemana[$etiquetasDiaSemana[$diaSemana]] = $c > 0 ? round($suma / $c, 4) : null;
             }
 
-            arsort($picosList);
+            arsort($listaPicos);
             $topPicos = [];
-            foreach (array_slice($picosList, 0, 5, true) as $ts => $kwh) {
+            foreach (array_slice($listaPicos, 0, 5, true) as $ts => $kwh) {
                 try {
                     $topPicos[] = [
                         'fecha' => Carbon::parse($ts)->setTimezone($tz)->format('d/m/Y H:i'),
@@ -646,33 +646,33 @@ class InformeService
                 }
             }
 
-            $diasValores = [];
+            $valoresDias = [];
             foreach ($dias as $ts => $kwh) {
                 try {
-                    $diasValores[Carbon::parse($ts)->setTimezone($tz)->format('d/m/Y')] = (float) $kwh;
+                    $valoresDias[Carbon::parse($ts)->setTimezone($tz)->format('d/m/Y')] = (float) $kwh;
                 } catch (\Throwable $e) {
                     Log::warning('[InformeService] timestamp inválido en top días', ['ts' => $ts, 'error' => $e->getMessage()]);
                 }
             }
-            arsort($diasValores);
-            $topDias = array_slice($diasValores, 0, 5, true);
+            arsort($valoresDias);
+            $topDias = array_slice($valoresDias, 0, 5, true);
 
             // Regresión lineal simple para tendencia diaria (kWh/día)
             $tendencia = null;
-            $diasArr   = array_values($dias);
-            $n         = count($diasArr);
+            $diasLista = array_values($dias);
+            $n         = count($diasLista);
             if ($n >= 3) {
                 $sumX = 0; $sumY = 0.0; $sumXY = 0.0; $sumX2 = 0;
-                foreach ($diasArr as $i => $v) {
+                foreach ($diasLista as $i => $v) {
                     $sumX  += $i; $sumY  += (float) $v;
                     $sumXY += $i * (float) $v; $sumX2 += $i * $i;
                 }
-                $denom     = $n * $sumX2 - $sumX * $sumX;
-                $tendencia = round(($n * $sumXY - $sumX * $sumY) / $denom, 5);
+                $denominador = $n * $sumX2 - $sumX * $sumX;
+                $tendencia   = round(($n * $sumXY - $sumX * $sumY) / $denominador, 5);
             }
 
             $totalFranjas = array_sum($franjas);
-            $metricas[$tag] = [
+            $metricas[$etiqueta] = [
                 'franjas_tarifarias' => [
                     'punta_kwh'  => round($franjas['punta'], 3),
                     'llano_kwh'  => round($franjas['llano'], 3),
@@ -682,8 +682,8 @@ class InformeService
                     'valle_pct'  => $totalFranjas > 0 ? round($franjas['valle'] / $totalFranjas * 100, 1) : 0.0,
                 ],
                 'patron_semana' => [
-                    'media_hora_laborable' => $labCount  > 0 ? round($labTotal  / $labCount,  4) : null,
-                    'media_hora_festivo'   => $findCount > 0 ? round($findTotal / $findCount, 4) : null,
+                    'media_hora_laborable' => $conteoLaborable > 0 ? round($totalLaborable / $conteoLaborable, 4) : null,
+                    'media_hora_festivo'   => $conteoFestivo   > 0 ? round($totalFestivo   / $conteoFestivo,   4) : null,
                 ],
                 'top_picos_horarios'  => $topPicos,
                 'top_dias_consumo'    => $topDias,
@@ -704,51 +704,51 @@ class InformeService
         array $metricasAvanzadas,
         array $anomalias
     ): array {
-        $resumenByTag = [];
-        foreach ($resumenPorDispositivo as $row) {
-            $resumenByTag[$row['device_key'] ?? ''] = $row;
+        $resumenPorEtiqueta = [];
+        foreach ($resumenPorDispositivo as $fila) {
+            $resumenPorEtiqueta[$fila['etiqueta'] ?? ''] = $fila;
         }
 
-        $result = [];
-        foreach ($datos as $tag => $info) {
-            $r = $resumenByTag[$tag] ?? [];
-            $m = $metricasAvanzadas[$tag] ?? [];
+        $resultado = [];
+        foreach ($datos as $etiqueta => $info) {
+            $r = $resumenPorEtiqueta[$etiqueta] ?? [];
+            $m = $metricasAvanzadas[$etiqueta]  ?? [];
 
-            $nAnom = count($anomalias[$tag] ?? []);
+            $numAnomalias = count($anomalias[$etiqueta] ?? []);
 
-            $result[$tag] = [
-                'nombre'                  => $info['nombre-dispositivo'] ?? $tag,
-                'total_kwh'               => $r['total_kwh'] ?? null,
-                'media_kwh_hora'          => $r['mean_kwh_h'] ?? null,
-                'max_kwh_hora'            => $r['max'] ?? null,
-                'min_kwh_hora'            => $r['min'] ?? null,
-                'stddev'                  => $r['stddev'] ?? null,
-                'factor_carga'            => $r['factor_carga'] ?? null,
-                'variacion_historico_pct' => $r['variation_percent'] ?? null,
-                'pct_sobre_total'         => $r['pct_over_total'] ?? null,
-                'media_horaria_periodo'   => $info['media-horaria'] ?? [],
+            $resultado[$etiqueta] = [
+                'nombre'                  => $info['nombre-dispositivo'] ?? $etiqueta,
+                'total_kwh'               => $r['total_kwh']            ?? null,
+                'media_kwh_hora'          => $r['media_kwh_h']          ?? null,
+                'max_kwh_hora'            => $r['max']                  ?? null,
+                'min_kwh_hora'            => $r['min']                  ?? null,
+                'stddev'                  => $r['stddev']               ?? null,
+                'factor_carga'            => $r['factor_carga']         ?? null,
+                'variacion_historico_pct' => $r['variacion_porcentaje'] ?? null,
+                'pct_sobre_total'         => $r['pct_sobre_total']      ?? null,
+                'media_horaria_periodo'   => $info['media-horaria']           ?? [],
                 'media_horaria_historica' => $info['media-horaria-historico'] ?? [],
-                'franjas_tarifarias'      => $m['franjas_tarifarias'] ?? null,
-                'patron_semana'           => $m['patron_semana'] ?? null,
-                'top_picos_horarios'      => $m['top_picos_horarios'] ?? [],
-                'top_dias_consumo'        => $m['top_dias_consumo'] ?? [],
-                'tendencia_kwh_dia'       => $m['tendencia_kwh_dia'] ?? null,
-                'patron_dia_semana'       => $m['patron_dia_semana'] ?? null,
-                'num_anomalias'           => $nAnom,
+                'franjas_tarifarias'      => $m['franjas_tarifarias']   ?? null,
+                'patron_semana'           => $m['patron_semana']        ?? null,
+                'top_picos_horarios'      => $m['top_picos_horarios']   ?? [],
+                'top_dias_consumo'        => $m['top_dias_consumo']     ?? [],
+                'tendencia_kwh_dia'       => $m['tendencia_kwh_dia']    ?? null,
+                'patron_dia_semana'       => $m['patron_dia_semana']    ?? null,
+                'num_anomalias'           => $numAnomalias,
             ];
         }
 
-        return $result;
+        return $resultado;
     }
 
-    private function resolveTag($dispositivo): string
+    private function resolverEtiqueta($dispositivo): string
     {
         return $dispositivo->etiqueta_influx ?? $dispositivo->nombre ?? "device_{$dispositivo->id}";
     }
 
     private function resolverRutasParaMpdf(array $graficas): array
     {
-        foreach ($graficas as $key => &$valor) {
+        foreach ($graficas as $clave => &$valor) {
             if (is_array($valor)) {
                 $valor = $this->resolverRutasParaMpdf($valor);
             } elseif (is_string($valor) && $valor !== '' && file_exists($valor)) {

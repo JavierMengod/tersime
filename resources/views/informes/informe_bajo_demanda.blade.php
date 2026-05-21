@@ -192,7 +192,7 @@
     <div class="header-text-cell">
       <p class="header-title">Informe de Consumo Energético</p>
       <p class="header-sub">
-        Período: {{ \Carbon\Carbon::parse($fromDate)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($toDate)->format('d/m/Y') }}
+        Período: {{ \Carbon\Carbon::parse($fechaDesde)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($fechaHasta)->format('d/m/Y') }}
         &nbsp;|&nbsp; {{ $resumenGlobal['dias_periodo'] }} días
         &nbsp;|&nbsp; {{ $dispositivos->count() }} dispositivo{{ $dispositivos->count() !== 1 ? 's' : '' }}
       </p>
@@ -209,8 +209,8 @@
 {{-- ── KPI GLOBALES ─────────────────────────────────────────────────────────── --}}
 @php
   $varMedia = collect($resumenPorDispositivo)
-    ->whereNotNull('variation_percent')
-    ->avg('variation_percent');
+    ->whereNotNull('variacion_porcentaje')
+    ->avg('variacion_porcentaje');
 @endphp
 <table class="kpi-table">
   <tr>
@@ -248,9 +248,9 @@
 
 @foreach($resumenPorDispositivo as $rowIdx => $row)
   @php
-    $tag      = $row['device_key'] ?? '';
+    $tag      = $row['etiqueta'] ?? '';
     $metricas = $metricasAvanzadas[$tag] ?? null;
-    $varPct   = $row['variation_percent'] ?? null;
+    $varPct   = $row['variacion_porcentaje'] ?? null;
   @endphp
 
   <div class="device-block">
@@ -280,7 +280,7 @@
     <tbody>
       <tr>
         <td><strong>{{ number_format($row['total_kwh'] ?? 0, 3, ',', '.') }} kWh</strong></td>
-        <td>{{ isset($row['mean_kwh_h']) ? number_format($row['mean_kwh_h'], 4, ',', '.') : '—' }}</td>
+        <td>{{ isset($row['media_kwh_h']) ? number_format($row['media_kwh_h'], 4, ',', '.') : '—' }}</td>
         <td>{{ isset($row['max']) ? number_format($row['max'], 4, ',', '.') : '—' }}</td>
         <td>{{ isset($row['min']) ? number_format($row['min'], 4, ',', '.') : '—' }}</td>
         <td>{{ isset($row['stddev']) ? number_format($row['stddev'], 4, ',', '.') : '—' }}</td>
@@ -290,7 +290,7 @@
           @else {{ $varPct >= 0 ? '+' : '' }}{{ number_format($varPct, 2, ',', '.') }}%
           @endif
         </td>
-        <td>{{ number_format($row['pct_over_total'] ?? 0, 2, ',', '.') }}%</td>
+        <td>{{ number_format($row['pct_sobre_total'] ?? 0, 2, ',', '.') }}%</td>
       </tr>
     </tbody>
   </table>
@@ -581,7 +581,7 @@
 {{-- ── ANEXO TÉCNICO ────────────────────────────────────────────────────────── --}}
 <div class="anexo">
   <strong>Anexo técnico</strong><br>
-  Período analizado: {{ \Carbon\Carbon::parse($fromDate)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($toDate)->format('d/m/Y') }}
+  Período analizado: {{ \Carbon\Carbon::parse($fechaDesde)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($fechaHasta)->format('d/m/Y') }}
   ({{ $resumenGlobal['dias_periodo'] }} días) &nbsp;|&nbsp;
   Dispositivos: {{ $dispositivos->count() }} &nbsp;|&nbsp;
   Generado: {{ now()->format('Y-m-d H:i:s') }} &nbsp;|&nbsp;
