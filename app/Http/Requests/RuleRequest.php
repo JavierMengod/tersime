@@ -8,17 +8,17 @@ use Illuminate\Validation\Rule;
 
 class RuleRequest extends FormRequest
 {
-    private ?ReglaModel $resolvedRule = null;
+    private ?ReglaModel $reglaResuelta = null;
 
     public function authorize(): bool
     {
         $id = $this->route('id');
 
         if ($id !== null) {
-            $user               = $this->user();
-            $this->resolvedRule = ReglaModel::find($id);
+            $usuario             = $this->user();
+            $this->reglaResuelta = ReglaModel::find($id);
 
-            if (!$this->resolvedRule || !$user || (int) $this->resolvedRule->user_id !== (int) $user->id) {
+            if (!$this->reglaResuelta || !$usuario || (int) $this->reglaResuelta->user_id !== (int) $usuario->id) {
                 abort(404);
             }
         }
@@ -26,20 +26,20 @@ class RuleRequest extends FormRequest
         return true;
     }
 
-    public function resolvedRule(): ?ReglaModel
+    public function reglaResuelta(): ?ReglaModel
     {
-        return $this->resolvedRule;
+        return $this->reglaResuelta;
     }
 
     public function rules(): array
     {
-        $userId = $this->user() ? $this->user()->id : null;
+        $idUsuario = $this->user() ? $this->user()->id : null;
 
         return [
             'name'              => 'required|string|max:100',
             'devices'           => 'required|array|min:1',
             'devices.*'         => ['integer', Rule::exists('user_dispositivo', 'dispositivo_id')
-                                        ->where('user_id', $userId)],
+                                        ->where('user_id', $idUsuario)],
             'operator'          => 'required|in:>,<,==,!=,>=,<=',
             'value'             => 'required|numeric',
             'for_duration'      => 'required|integer|min:0|max:168',

@@ -46,7 +46,7 @@ class RuleController extends Controller
 
     public function update(RuleRequest $request, $id)
     {
-        $regla = $request->resolvedRule() ?? Regla::where('id', $id)
+        $regla = $request->reglaResuelta() ?? Regla::where('id', $id)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 

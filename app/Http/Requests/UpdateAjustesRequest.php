@@ -13,11 +13,11 @@ class UpdateAjustesRequest extends FormRequest
 
     public function rules(): array
     {
-        $tzValues = implode(',', array_keys(UserRequest::timezones()));
+        $valoresZona = implode(',', array_keys(UserRequest::timezones()));
 
         return [
             'theme'     => 'required|in:light,dark',
-            'timezone'  => "required|string|in:{$tzValues}",
+            'timezone'  => "required|string|in:{$valoresZona}",
             'coste_kwh' => 'required|numeric|min:0|max:99',
         ];
     }

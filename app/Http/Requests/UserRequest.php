@@ -31,17 +31,17 @@ class UserRequest extends FormRequest
 
     public function rules(): array
     {
-        $user       = $this->route('user');
-        $userId     = $user ? $user->id : null;
-        $nameRule   = 'required|string|max:255|unique:users,name' . ($userId ? ",{$userId}" : '');
-        $passRule   = $userId ? 'nullable|string|min:8|confirmed' : 'required|string|min:8|confirmed';
-        $tzValues   = implode(',', array_keys(self::timezones()));
+        $usuario           = $this->route('user');
+        $idUsuario         = $usuario ? $usuario->id : null;
+        $reglaNombre       = 'required|string|max:255|unique:users,name' . ($idUsuario ? ",{$idUsuario}" : '');
+        $reglaContrasena   = $idUsuario ? 'nullable|string|min:8|confirmed' : 'required|string|min:8|confirmed';
+        $valoresZona       = implode(',', array_keys(self::timezones()));
 
         return [
-            'name'     => $nameRule,
-            'password' => $passRule,
+            'name'     => $reglaNombre,
+            'password' => $reglaContrasena,
             'language' => 'required|in:es,en,fr',
-            'timezone' => "required|string|in:{$tzValues}",
+            'timezone' => "required|string|in:{$valoresZona}",
             'theme'    => 'required|in:light,dark',
             'admin'    => 'sometimes|boolean',
         ];
