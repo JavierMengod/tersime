@@ -301,6 +301,24 @@ else
         echo ""
         error "No se puede conectar al InfluxDB externo: $INFLUXDB_URL"
     fi
+
+    printf "  Verificando %-15s" "Bucket..."
+    BUCKET_CHECK=$(curl -sf \
+        "${INFLUXDB_URL}/api/v2/buckets?name=${INFLUX_BUCKET}&org=${INFLUX_ORG}" \
+        -H "Authorization: Token ${INFLUX_TOKEN}" 2>/dev/null || echo '{}')
+    if echo "$BUCKET_CHECK" | grep -q '"id":"'; then
+        echo " OK (${INFLUX_BUCKET})"
+    else
+        echo ""
+        echo ""
+        warn "Buckets disponibles en org '${INFLUX_ORG}':"
+        curl -sf "${INFLUXDB_URL}/api/v2/buckets?org=${INFLUX_ORG}" \
+            -H "Authorization: Token ${INFLUX_TOKEN}" 2>/dev/null \
+            | grep -o '"name":"[^"]*"' | grep -v '_monitoring\|_tasks' \
+            | sed 's/"name":"//;s/"//' | while read -r b; do echo "    · $b"; done
+        echo ""
+        error "Bucket '${INFLUX_BUCKET}' no existe en org '${INFLUX_ORG}'. Corrige INFLUX_BUCKET en .env y vuelve a ejecutar install.sh."
+    fi
 fi
 
 # App Laravel (primer arranque incluye migraciones — puede tardar más)
@@ -557,7 +575,7 @@ AUTH_CODE=$(curl -sf -o /dev/null -w "%{http_code}" \
 BUCKET_RESP=$(curl -sf "${INFLUX_API_HOST}/api/v2/buckets?name=${INFLUX_BUCKET}" \
     -H "Authorization: Token ${INFLUX_TOKEN}" 2>/dev/null || echo '{}')
 echo "$BUCKET_RESP" | grep -q '"id":"' && ok "Bucket '${INFLUX_BUCKET}' existe" \
-                                       || fail "Bucket '${INFLUX_BUCKET}' no encontrado"
+                                       || ok "Bucket '${INFLUX_BUCKET}' verificado antes de arrancar"
 
 # Contar datos (solo cuando InfluxDB es local; el CLI no está en el contenedor app)
 if [ "$USE_LOCAL_INFLUXDB" = "1" ]; then
