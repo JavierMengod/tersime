@@ -46,7 +46,7 @@ class ConfigControllerTest extends TestCase
         Ajuste::set('alert_log_retention_days', '90');
         Ajuste::set('report_retention_days', '180');
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->administrador()->create())
              ->get(route('configuracion.sistema'))
              ->assertStatus(200);
     }
@@ -167,7 +167,7 @@ class ConfigControllerTest extends TestCase
         Ajuste::set('alert_log_retention_days', '90');
         Ajuste::set('report_retention_days', '180');
 
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->administrador()->create();
 
         $this->actingAs($admin)->post(route('configuracion.sistema.update'), [
             'alert_log_retention_days' => 30,
@@ -195,7 +195,7 @@ class ConfigControllerTest extends TestCase
     {
         Ajuste::set('alert_log_retention_days', '30');
 
-        $user  = User::factory()->admin()->create();
+        $user  = User::factory()->administrador()->create();
 
         // Log antiguo (fuera de retención)
         RegistroAlerta::factory()->create([
@@ -223,7 +223,7 @@ class ConfigControllerTest extends TestCase
     public function purgar_alertas_deletes_all_when_retention_is_zero(): void
     {
         Ajuste::set('alert_log_retention_days', '0');
-        $user = User::factory()->admin()->create();
+        $user = User::factory()->administrador()->create();
 
         RegistroAlerta::factory()->count(5)->create([
             'user_id'    => $user->id,
@@ -251,7 +251,7 @@ class ConfigControllerTest extends TestCase
         Ajuste::set('grafana_datasource_id', '1');
         Ajuste::set('grafana_api_key', 'gf-key');
 
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->administrador()->create();
 
         $this->actingAs($admin)->post(route('configuracion.conexiones.update'), [
             'influxdb_url'            => 'http://influx:8086',
@@ -283,7 +283,7 @@ class ConfigControllerTest extends TestCase
         Ajuste::set('grafana_base_url', 'http://grafana:3000');
         Ajuste::set('grafana_datasource_id', '1');
 
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->administrador()->create();
 
         $this->actingAs($admin)->post(route('configuracion.conexiones.update'), [
             'influxdb_url'            => 'http://influx:8086',

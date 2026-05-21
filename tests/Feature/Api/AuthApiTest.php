@@ -96,7 +96,7 @@ class AuthApiTest extends TestCase
     #[Test]
     public function login_returns_403_for_disabled_user(): void
     {
-        User::factory()->disabled()->create([
+        User::factory()->deshabilitado()->create([
             'name'     => 'bloqueado',
             'password' => bcrypt('pass123'),
         ]);

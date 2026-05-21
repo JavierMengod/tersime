@@ -55,7 +55,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function email_template_interpolates_dispositivo_regla_valor(): void
     {
-        $regla = Regla::factory()->withOperator('>', 100)->create([
+        $regla = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->usuario->id,
             'nombre'              => 'Alto Consumo',
             'correo_activo'       => true,
@@ -84,7 +84,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function telegram_template_supports_alias_device_rule_value(): void
     {
-        $regla = Regla::factory()->withOperator('<', 50)->create([
+        $regla = Regla::factory()->conOperador('<', 50)->create([
             'user_id'            => $this->usuario->id,
             'nombre'             => 'Bajo Consumo',
             'telegram_activo'    => true,
@@ -113,7 +113,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function discord_template_interpolates_correctly(): void
     {
-        $regla = Regla::factory()->withOperator('>', 200)->create([
+        $regla = Regla::factory()->conOperador('>', 200)->create([
             'user_id'           => $this->usuario->id,
             'discord_activo'    => true,
             'plantilla_discord' => '{dispositivo} superó el límite: {valor}',
@@ -140,7 +140,7 @@ class VerificarReglasTemplatesTest extends TestCase
     public function null_influx_value_skips_evaluation_and_sends_no_notification(): void
     {
         // Con datos ausentes el comando debe omitir la evaluación sin disparar alertas.
-        $regla = Regla::factory()->withOperator('>', 0)->create([
+        $regla = Regla::factory()->conOperador('>', 0)->create([
             'user_id'            => $this->usuario->id,
             'telegram_activo'    => true,
             'plantilla_telegram' => 'Valor actual: {valor}',
@@ -161,7 +161,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function without_template_uses_default_message_with_emoji(): void
     {
-        $regla = Regla::factory()->withOperator('>', 100)->create([
+        $regla = Regla::factory()->conOperador('>', 100)->create([
             'user_id'            => $this->usuario->id,
             'telegram_activo'    => true,
             'plantilla_telegram' => null,
@@ -186,7 +186,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function telegram_failure_does_not_stop_discord(): void
     {
-        $regla = Regla::factory()->withOperator('>', 100)->create([
+        $regla = Regla::factory()->conOperador('>', 100)->create([
             'user_id'         => $this->usuario->id,
             'telegram_activo' => true,
             'discord_activo'  => true,
@@ -210,7 +210,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function email_failure_does_not_stop_telegram(): void
     {
-        $regla = Regla::factory()->withOperator('>', 100)->create([
+        $regla = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->usuario->id,
             'correo_activo'       => true,
             'correo_destinatario' => 'a@b.com',
@@ -233,7 +233,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function discord_failure_does_not_stop_email(): void
     {
-        $regla = Regla::factory()->withOperator('>', 100)->create([
+        $regla = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->usuario->id,
             'discord_activo'      => true,
             'correo_activo'       => true,
@@ -258,7 +258,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function resolution_uses_correct_message_without_template(): void
     {
-        $regla = Regla::factory()->withOperator('>', 100)->create([
+        $regla = Regla::factory()->conOperador('>', 100)->create([
             'user_id'         => $this->usuario->id,
             'telegram_activo' => true,
         ]);
@@ -283,7 +283,7 @@ class VerificarReglasTemplatesTest extends TestCase
     #[Test]
     public function email_not_called_when_recipient_email_is_missing(): void
     {
-        $regla = Regla::factory()->withOperator('>', 100)->create([
+        $regla = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->usuario->id,
             'correo_activo'       => true,
             'correo_destinatario' => null,

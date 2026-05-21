@@ -93,14 +93,14 @@ class AlertLogTest extends TestCase
     #[Test]
     public function type_firing_is_stored_correctly(): void
     {
-        $log = RegistroAlerta::factory()->firing()->create();
+        $log = RegistroAlerta::factory()->enDisparo()->create();
         $this->assertSame('firing', $log->tipo);
     }
 
     #[Test]
     public function type_resolution_is_stored_correctly(): void
     {
-        $log = RegistroAlerta::factory()->resolution()->create();
+        $log = RegistroAlerta::factory()->resuelta()->create();
         $this->assertSame('resolution', $log->tipo);
     }
 

@@ -64,7 +64,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function ok_transitions_to_firing_immediately_when_condition_met_and_no_duration(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id'       => $this->user->id,
             'duracion'  => 0,
             'correo_activo' => true,
@@ -85,7 +85,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function ok_stays_ok_when_condition_not_met(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -102,7 +102,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function ok_transitions_to_pending_when_condition_met_and_duration_set(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->withDuration(15)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->conDuracion(15)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -121,7 +121,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function pending_transitions_to_firing_after_duration_elapsed(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->withDuration(15)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->conDuracion(15)->create([
             'user_id'             => $this->user->id,
             'correo_activo'       => true,
             'correo_destinatario' => 'alerts@test.com',
@@ -141,7 +141,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function pending_stays_pending_when_duration_not_yet_elapsed(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->withDuration(60)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->conDuracion(60)->create([
             'user_id' => $this->user->id,
         ]);
         $pendingSince = Carbon::now()->subMinutes(10)->toDateTimeString();
@@ -159,7 +159,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function pending_resets_to_ok_when_condition_resolves_before_firing(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->withDuration(15)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->conDuracion(15)->create([
             'user_id' => $this->user->id,
         ]);
         $pendingSince = Carbon::now()->subMinutes(5)->toDateTimeString();
@@ -179,7 +179,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function firing_transitions_to_ok_when_condition_resolves(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->user->id,
             'correo_activo'       => true,
             'correo_destinatario' => 'alerts@test.com',
@@ -199,7 +199,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function firing_stays_firing_when_condition_still_met(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'firing');
@@ -216,7 +216,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function firing_transition_creates_alert_log_with_type_firing(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->user->id,
             'correo_activo'       => true,
             'correo_destinatario' => 'alerts@test.com',
@@ -240,7 +240,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function resolution_transition_creates_alert_log_with_type_resolution(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id'         => $this->user->id,
             'telegram_activo' => true,
         ]);
@@ -262,7 +262,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function alert_log_records_multiple_enabled_channels(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->user->id,
             'correo_activo'       => true,
             'telegram_activo'     => true,
@@ -286,7 +286,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function alert_log_records_device_name_and_rule_name(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
             'nombre'  => 'Consumo Máximo',
         ]);
@@ -310,7 +310,7 @@ class VerificarReglasCommandTest extends TestCase
     public function null_influx_value_skips_evaluation_and_state_stays_ok(): void
     {
         // Con datos ausentes el estado no debe cambiar y no deben enviarse notificaciones.
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -327,7 +327,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function null_influx_value_generates_no_alert_log(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -345,7 +345,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function inactive_rule_is_not_evaluated(): void
     {
-        $rule = Regla::factory()->inactive()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->inactiva()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -366,7 +366,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function operator_less_than_triggers_when_value_below_threshold(): void
     {
-        $rule = Regla::factory()->withOperator('<', 50)->create([
+        $rule = Regla::factory()->conOperador('<', 50)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -382,7 +382,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function operator_less_than_does_not_trigger_when_value_above_threshold(): void
     {
-        $rule = Regla::factory()->withOperator('<', 50)->create([
+        $rule = Regla::factory()->conOperador('<', 50)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -396,7 +396,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function operator_equals_triggers_only_on_exact_match(): void
     {
-        $rule = Regla::factory()->withOperator('==', 100.0)->create([
+        $rule = Regla::factory()->conOperador('==', 100.0)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -412,7 +412,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function operator_not_equals_triggers_when_values_differ(): void
     {
-        $rule = Regla::factory()->withOperator('!=', 100.0)->create([
+        $rule = Regla::factory()->conOperador('!=', 100.0)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -432,7 +432,7 @@ class VerificarReglasCommandTest extends TestCase
     {
         Notification::fake();
 
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
@@ -451,7 +451,7 @@ class VerificarReglasCommandTest extends TestCase
     {
         Notification::fake();
 
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'firing');
@@ -470,7 +470,7 @@ class VerificarReglasCommandTest extends TestCase
     {
         Notification::fake();
 
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'firing');
@@ -484,7 +484,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function email_notification_sent_when_email_enabled_and_recipient_set(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->user->id,
             'correo_activo'       => true,
             'correo_destinatario' => 'alerts@example.com',
@@ -509,7 +509,7 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function email_not_sent_when_recipient_email_is_null(): void
     {
-        $rule = Regla::factory()->withOperator('>', 100)->create([
+        $rule = Regla::factory()->conOperador('>', 100)->create([
             'user_id'             => $this->user->id,
             'correo_activo'       => true,
             'correo_destinatario' => null, // enabled but no recipient
@@ -532,8 +532,8 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function command_evaluates_multiple_active_rules_independently(): void
     {
-        $rule1 = Regla::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
-        $rule2 = Regla::factory()->withOperator('<', 50)->create(['user_id' => $this->user->id]);
+        $rule1 = Regla::factory()->conOperador('>', 100)->create(['user_id' => $this->user->id]);
+        $rule2 = Regla::factory()->conOperador('<', 50)->create(['user_id' => $this->user->id]);
 
         $device2 = Dispositivo::factory()->create(['etiqueta_influx' => 'TEST-DEV-002']);
         $this->user->dispositivos()->attach($device2->id, ['nombre' => 'Medidor 2', 'habilitado' => 1]);
@@ -564,8 +564,8 @@ class VerificarReglasCommandTest extends TestCase
     #[Test]
     public function inactive_rules_are_skipped_while_active_rules_are_evaluated(): void
     {
-        $active   = Regla::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
-        $inactive = Regla::factory()->inactive()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
+        $active   = Regla::factory()->conOperador('>', 100)->create(['user_id' => $this->user->id]);
+        $inactive = Regla::factory()->inactiva()->conOperador('>', 100)->create(['user_id' => $this->user->id]);
 
         $device2 = Dispositivo::factory()->create(['etiqueta_influx' => 'DEV-002']);
         $this->user->dispositivos()->attach($device2->id, ['nombre' => 'Dev 2', 'habilitado' => 1]);

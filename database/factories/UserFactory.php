@@ -22,12 +22,12 @@ class UserFactory extends Factory
         ];
     }
 
-    public function admin()
+    public function administrador(): static
     {
         return $this->state(['admin' => true]);
     }
 
-    public function disabled()
+    public function deshabilitado(): static
     {
         return $this->state(['enabled' => false]);
     }

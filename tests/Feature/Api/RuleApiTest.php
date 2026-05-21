@@ -243,7 +243,7 @@ class RuleApiTest extends TestCase
     public function toggle_activates_inactive_rule(): void
     {
         $user = $this->user();
-        $rule = Regla::factory()->inactive()->create(['user_id' => $user->id]);
+        $rule = Regla::factory()->inactiva()->create(['user_id' => $user->id]);
 
         Sanctum::actingAs($user);
 

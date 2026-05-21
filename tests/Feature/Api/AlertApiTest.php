@@ -127,8 +127,8 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        RegistroAlerta::factory()->count(3)->firing()->create(['user_id' => $user->id]);
-        RegistroAlerta::factory()->count(2)->resolution()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(3)->enDisparo()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(2)->resuelta()->create(['user_id' => $user->id]);
 
         $response = $this->getJson('/api/alerts?type=firing');
         $this->assertSame(3, $response->json('total'));
@@ -142,8 +142,8 @@ class AlertApiTest extends TestCase
     {
         $user = $this->authAs();
 
-        RegistroAlerta::factory()->count(2)->firing()->create(['user_id' => $user->id]);
-        RegistroAlerta::factory()->count(4)->resolution()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(2)->enDisparo()->create(['user_id' => $user->id]);
+        RegistroAlerta::factory()->count(4)->resuelta()->create(['user_id' => $user->id]);
 
         $response = $this->getJson('/api/alerts?type=resolution');
         $this->assertSame(4, $response->json('total'));
