@@ -185,7 +185,7 @@ class InformeController extends Controller
     public function download(Informe $informe)
     {
         $this->autorizarAcceso($informe);
-        $rutaAbsoluta = $this->resolveInformePath($informe->pdf_path);
+        $rutaAbsoluta = $this->resolverRutaInforme($informe->pdf_path);
 
         if (!$rutaAbsoluta || !is_file($rutaAbsoluta)) {
             return back()->with('error', 'No se encontró el archivo en el servidor.');
@@ -201,7 +201,7 @@ class InformeController extends Controller
         $this->autorizarAcceso($informe);
 
         if (!empty($informe->pdf_path)) {
-            $rutaAbsoluta = $this->resolveInformePath($informe->pdf_path);
+            $rutaAbsoluta = $this->resolverRutaInforme($informe->pdf_path);
             if ($rutaAbsoluta && is_file($rutaAbsoluta)) {
                 unlink($rutaAbsoluta);
             }

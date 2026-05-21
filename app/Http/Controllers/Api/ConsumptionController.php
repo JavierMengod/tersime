@@ -25,52 +25,52 @@ class ConsumptionController extends Controller
             'devices.*' => 'integer',
         ]);
 
-        $from      = $request->input('from');
-        $to        = $request->input('to');
-        $deviceIds = $request->input('devices', []);
+        $desde         = $request->input('from');
+        $hasta         = $request->input('to');
+        $idsDispositivos = $request->input('devices', []);
 
-        $query = $request->user()
+        $consulta = $request->user()
             ->dispositivos()
             ->wherePivot('habilitado', 1);
 
-        if (!empty($deviceIds)) {
-            $query->whereIn('dispositivos.id', $deviceIds);
+        if (!empty($idsDispositivos)) {
+            $consulta->whereIn('dispositivos.id', $idsDispositivos);
         }
 
-        $devices = $query->get();
-        $results = [];
-        $grandTotal = 0.0;
+        $dispositivos = $consulta->get();
+        $resultados   = [];
+        $totalGlobal  = 0.0;
 
-        foreach ($devices as $device) {
+        foreach ($dispositivos as $dispositivo) {
             try {
-                $total = $this->influx->consumoTotal($device->etiqueta_influx, $from, $to);
-                $grandTotal += $total;
-                $results[] = [
-                    'id'         => $device->id,
-                    'etiqueta_influx' => $device->etiqueta_influx,
-                    'nombre'     => $device->nombre,
-                    'total_kwh'  => round($total, 4),
+                $total = $this->influx->consumoTotal($dispositivo->etiqueta_influx, $desde, $hasta);
+                $totalGlobal += $total;
+                $resultados[] = [
+                    'id'              => $dispositivo->id,
+                    'etiqueta_influx' => $dispositivo->etiqueta_influx,
+                    'nombre'          => $dispositivo->nombre,
+                    'total_kwh'       => round($total, 4),
                 ];
             } catch (\Throwable $e) {
                 Log::warning('[API] consumption summary error', [
-                    'device' => $device->etiqueta_influx,
+                    'device' => $dispositivo->etiqueta_influx,
                     'error'  => $e->getMessage(),
                 ]);
-                $results[] = [
-                    'id'         => $device->id,
-                    'etiqueta_influx' => $device->etiqueta_influx,
-                    'nombre'     => $device->nombre,
-                    'total_kwh'  => null,
-                    'error'      => 'No se pudieron obtener datos.',
+                $resultados[] = [
+                    'id'              => $dispositivo->id,
+                    'etiqueta_influx' => $dispositivo->etiqueta_influx,
+                    'nombre'          => $dispositivo->nombre,
+                    'total_kwh'       => null,
+                    'error'           => 'No se pudieron obtener datos.',
                 ];
             }
         }
 
         return response()->json([
-            'from'        => $from,
-            'to'          => $to,
-            'devices'     => $results,
-            'grand_total_kwh' => round($grandTotal, 4),
+            'from'            => $desde,
+            'to'              => $hasta,
+            'devices'         => $resultados,
+            'grand_total_kwh' => round($totalGlobal, 4),
         ]);
     }
 
@@ -84,60 +84,60 @@ class ConsumptionController extends Controller
             'rate'       => 'required|numeric|min:0',
         ]);
 
-        $from      = $request->input('from');
-        $to        = $request->input('to');
-        $rate      = (float) $request->input('rate');
-        $deviceIds = $request->input('devices', []);
+        $desde           = $request->input('from');
+        $hasta           = $request->input('to');
+        $tarifa          = (float) $request->input('rate');
+        $idsDispositivos = $request->input('devices', []);
 
-        $query = $request->user()
+        $consulta = $request->user()
             ->dispositivos()
             ->wherePivot('habilitado', 1);
 
-        if (!empty($deviceIds)) {
-            $query->whereIn('dispositivos.id', $deviceIds);
+        if (!empty($idsDispositivos)) {
+            $consulta->whereIn('dispositivos.id', $idsDispositivos);
         }
 
-        $devices    = $query->get();
-        $results    = [];
-        $grandTotal = 0.0;
-        $grandCost  = 0.0;
+        $dispositivos = $consulta->get();
+        $resultados   = [];
+        $totalGlobal  = 0.0;
+        $costeTotal   = 0.0;
 
-        foreach ($devices as $device) {
+        foreach ($dispositivos as $dispositivo) {
             try {
-                $total = $this->influx->consumoTotal($device->etiqueta_influx, $from, $to);
-                $cost  = $total * $rate;
-                $grandTotal += $total;
-                $grandCost  += $cost;
-                $results[] = [
-                    'id'         => $device->id,
-                    'etiqueta_influx' => $device->etiqueta_influx,
-                    'nombre'     => $device->nombre,
-                    'total_kwh'  => round($total, 4),
-                    'cost'       => round($cost, 2),
+                $total       = $this->influx->consumoTotal($dispositivo->etiqueta_influx, $desde, $hasta);
+                $coste       = $total * $tarifa;
+                $totalGlobal += $total;
+                $costeTotal  += $coste;
+                $resultados[] = [
+                    'id'              => $dispositivo->id,
+                    'etiqueta_influx' => $dispositivo->etiqueta_influx,
+                    'nombre'          => $dispositivo->nombre,
+                    'total_kwh'       => round($total, 4),
+                    'cost'            => round($coste, 2),
                 ];
             } catch (\Throwable $e) {
                 Log::warning('[API] consumption cost error', [
-                    'device' => $device->etiqueta_influx,
+                    'device' => $dispositivo->etiqueta_influx,
                     'error'  => $e->getMessage(),
                 ]);
-                $results[] = [
-                    'id'         => $device->id,
-                    'etiqueta_influx' => $device->etiqueta_influx,
-                    'nombre'     => $device->nombre,
-                    'total_kwh'  => null,
-                    'cost'       => null,
-                    'error'      => 'No se pudieron obtener datos.',
+                $resultados[] = [
+                    'id'              => $dispositivo->id,
+                    'etiqueta_influx' => $dispositivo->etiqueta_influx,
+                    'nombre'          => $dispositivo->nombre,
+                    'total_kwh'       => null,
+                    'cost'            => null,
+                    'error'           => 'No se pudieron obtener datos.',
                 ];
             }
         }
 
         return response()->json([
-            'from'             => $from,
-            'to'               => $to,
-            'rate_per_kwh'     => $rate,
-            'devices'          => $results,
-            'grand_total_kwh'  => round($grandTotal, 4),
-            'grand_total_cost' => round($grandCost, 2),
+            'from'             => $desde,
+            'to'               => $hasta,
+            'rate_per_kwh'     => $tarifa,
+            'devices'          => $resultados,
+            'grand_total_kwh'  => round($totalGlobal, 4),
+            'grand_total_cost' => round($costeTotal, 2),
         ]);
     }
 }

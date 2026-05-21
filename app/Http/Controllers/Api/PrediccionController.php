@@ -35,14 +35,14 @@ class PrediccionController extends Controller
             'predic_hours' => 'sometimes|integer|min:1|max:720',
         ]);
 
-        $start       = $request->query('start');
-        $stop        = $request->query('stop');
-        $device      = $request->query('device');
-        $predicHours = (int) $request->query('predic_hours', Ajuste::get('predictor_default_hours', '24'));
+        $inicio          = $request->query('start');
+        $fin             = $request->query('stop');
+        $etiqueta        = $request->query('device');
+        $horasPrediccion = (int) $request->query('predic_hours', Ajuste::get('predictor_default_hours', '24'));
 
         try {
-            $startDate = Carbon::parse($start)->startOfDay();
-            $stopDate  = Carbon::parse($stop)->endOfDay();
+            $fechaInicio = Carbon::parse($inicio)->startOfDay();
+            $fechaFin    = Carbon::parse($fin)->endOfDay();
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Formato de fecha inválido.'], 422);
         }
@@ -53,69 +53,67 @@ class PrediccionController extends Controller
         }
 
         try {
-            $stopDate0 = Carbon::parse($stop)->format('Y-m-d');
-            $trainKey  = 'pred_training_' . $device . '_' . $stopDate0;
-            $data      = Cache::remember($trainKey, 3600, fn () => $influx->datosParaPrediccion($device, $stop));
+            $finFecha           = Carbon::parse($fin)->format('Y-m-d');
+            $claveEntrenamiento = 'pred_training_' . $etiqueta . '_' . $finFecha;
+            $datos              = Cache::remember($claveEntrenamiento, 3600, fn () => $influx->datosParaPrediccion($etiqueta, $fin));
 
-            if (empty($data['timestamps'])) {
+            if (empty($datos['timestamps'])) {
                 return response()->json(['message' => 'Sin datos históricos para este dispositivo.'], 422);
             }
 
-            $predKey = 'pred_result_' . $device . '_' . $stopDate0 . '_' . $predicHours;
-            $predRaw = Cache::remember($predKey, 1200, function () use (
-                $urlPredictor, $data, $predicHours
+            $clavePrediccion = 'pred_result_' . $etiqueta . '_' . $finFecha . '_' . $horasPrediccion;
+            $prediccionesRaw = Cache::remember($clavePrediccion, 1200, function () use (
+                $urlPredictor, $datos, $horasPrediccion
             ) {
-                $timeout = (int) (Ajuste::get('predictor_timeout') ?: 120);
-                $resp    = Http::timeout($timeout)->asJson()->post($urlPredictor, [
-                    'timestamps'   => $data['timestamps'],
-                    'values'       => $data['values'],
-                    'predic_hours' => $predicHours,
+                $timeout   = (int) (Ajuste::get('predictor_timeout') ?: 120);
+                $respuesta = Http::timeout($timeout)->asJson()->post($urlPredictor, [
+                    'timestamps'   => $datos['timestamps'],
+                    'values'       => $datos['values'],
+                    'predic_hours' => $horasPrediccion,
                 ]);
 
-                if ($resp->failed()) {
-                    Log::error('[API] prediction predictor error', ['status' => $resp->status()]);
+                if ($respuesta->failed()) {
+                    Log::error('[API] prediction predictor error', ['status' => $respuesta->status()]);
                     return null;
                 }
 
-                $json = $resp->json();
+                $json = $respuesta->json();
                 return $json['predichos'] ?? $json['predictions'] ?? $json['data'] ?? [];
             });
 
-            if ($predRaw === null) {
+            if ($prediccionesRaw === null) {
                 return response()->json(['message' => 'Error en el servicio de predicción.'], 502);
             }
 
-            $now      = Carbon::now('UTC');
-            $output   = [];
+            $ahora = Carbon::now('UTC');
+            $salida = [];
 
-            // Datos reales filtrados al rango visible
-            foreach ($data['timestamps'] as $i => $t) {
-                if (Carbon::parse($t)->between($startDate, $stopDate)) {
-                    $output[] = ['metric' => 'reales', 'time' => $t, 'value' => $data['values'][$i]];
+            foreach ($datos['timestamps'] as $i => $t) {
+                if (Carbon::parse($t)->between($fechaInicio, $fechaFin)) {
+                    $salida[] = ['metric' => 'reales', 'time' => $t, 'value' => $datos['values'][$i]];
                 }
             }
 
-            // Predicciones futuras
-            foreach ($predRaw as $item) {
-                if (!is_array($item)) continue;
+            foreach ($prediccionesRaw as $elemento) {
+                if (!is_array($elemento)) continue;
 
-                $ds    = $item['ds']         ?? $item['timestamp'] ?? $item[0] ?? null;
-                $y     = $item['yhat']       ?? $item['value']     ?? $item[1] ?? null;
-                $lower = $item['yhat_lower'] ?? $item[2] ?? null;
-                $upper = $item['yhat_upper'] ?? $item[3] ?? null;
+                $ds    = $elemento['ds']         ?? $elemento['timestamp'] ?? $elemento[0] ?? null;
+                $y     = $elemento['yhat']       ?? $elemento['value']     ?? $elemento[1] ?? null;
+                $lower = $elemento['yhat_lower'] ?? $elemento[2] ?? null;
+                $upper = $elemento['yhat_upper'] ?? $elemento[3] ?? null;
 
                 if (!$ds || !is_numeric($y)) continue;
-                if (!Carbon::parse($ds)->greaterThan($now)) continue;
+                if (!Carbon::parse($ds)->greaterThan($ahora)) continue;
 
-                $output[] = ['metric' => 'predichos',       'time' => (string) $ds, 'value' => (float) $y];
+                $salida[] = ['metric' => 'predichos',       'time' => (string) $ds, 'value' => (float) $y];
 
                 if ($lower !== null) {
-                    $output[] = ['metric' => 'predichos_lower', 'time' => (string) $ds, 'value' => (float) $lower];
-                    $output[] = ['metric' => 'predichos_upper', 'time' => (string) $ds, 'value' => (float) $upper];
+                    $salida[] = ['metric' => 'predichos_lower', 'time' => (string) $ds, 'value' => (float) $lower];
+                    $salida[] = ['metric' => 'predichos_upper', 'time' => (string) $ds, 'value' => (float) $upper];
                 }
             }
 
-            return response()->json($output);
+            return response()->json($salida);
 
         } catch (\Throwable $e) {
             Log::error('[API] prediction exception', ['error' => $e->getMessage()]);

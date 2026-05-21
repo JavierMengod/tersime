@@ -4,22 +4,21 @@ namespace App\Traits;
 
 trait ResolvesInformePath
 {
-    private function resolveInformePath(?string $pdfPath): ?string
+    private function resolverRutaInforme(?string $rutaPdf): ?string
     {
-        if (empty($pdfPath)) {
+        if (empty($rutaPdf)) {
             return null;
         }
 
-        // Already an absolute path on this system
-        if (str_starts_with($pdfPath, '/')) {
-            return $pdfPath;
+        if (str_starts_with($rutaPdf, '/')) {
+            return $rutaPdf;
         }
 
-        $relative = ltrim($pdfPath, '/');
-        $relative = preg_replace('#^storage/app/public/#', '', $relative);
-        $relative = preg_replace('#^public/#', '', $relative);
-        $relative = preg_replace('#^storage/#', '', $relative);
+        $relativa = ltrim($rutaPdf, '/');
+        $relativa = preg_replace('#^storage/app/public/#', '', $relativa);
+        $relativa = preg_replace('#^public/#', '', $relativa);
+        $relativa = preg_replace('#^storage/#', '', $relativa);
 
-        return storage_path('app/public/' . $relative);
+        return storage_path('app/public/' . $relativa);
     }
 }

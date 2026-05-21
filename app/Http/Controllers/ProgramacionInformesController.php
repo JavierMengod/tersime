@@ -13,13 +13,13 @@ class ProgramacionInformesController extends Controller
             return back()->withErrors(['nombre' => 'Has alcanzado el límite de 10 programaciones.']);
         }
 
-        $data = $request->validated();
+        $datos = $request->validated();
 
         $programacion = ProgramacionInformes::create(
-            array_merge($this->attributesFrom($data), ['user_id' => auth()->id()])
+            array_merge($this->atributosDesde($datos), ['user_id' => auth()->id()])
         );
 
-        $programacion->dispositivos()->sync($data['dispositivos']);
+        $programacion->dispositivos()->sync($datos['dispositivos']);
 
         return redirect()->route('informes.programados')
             ->with('success', 'Programación creada correctamente.');
@@ -29,10 +29,10 @@ class ProgramacionInformesController extends Controller
     {
         abort_unless((int) $programacion->user_id === (int) auth()->id(), 403);
 
-        $data = $request->validated();
+        $datos = $request->validated();
 
-        $programacion->fill($this->attributesFrom($data))->save();
-        $programacion->dispositivos()->sync($data['dispositivos']);
+        $programacion->fill($this->atributosDesde($datos))->save();
+        $programacion->dispositivos()->sync($datos['dispositivos']);
 
         return redirect()->route('informes.programados')
             ->with('success', 'Programación actualizada correctamente.');
@@ -57,18 +57,18 @@ class ProgramacionInformesController extends Controller
         return back();
     }
 
-    private function attributesFrom(array $data): array
+    private function atributosDesde(array $datos): array
     {
         return [
-            'nombre'         => $data['nombre'],
-            'tipo_periodo'   => $data['tipo_periodo'],
-            'valor_periodo'  => $data['valor_periodo'],
-            'hora_inicio'    => $data['hora_inicio'] ?? null,
-            'telegram'       => $data['telegram'] ?? false,
-            'discord'        => $data['discord'] ?? false,
-            'correo'         => $data['correo'] ?? false,
-            'correo_destino' => $data['correo_destino'] ?? null,
-            'activo'         => $data['activo'] ?? false,
+            'nombre'         => $datos['nombre'],
+            'tipo_periodo'   => $datos['tipo_periodo'],
+            'valor_periodo'  => $datos['valor_periodo'],
+            'hora_inicio'    => $datos['hora_inicio'] ?? null,
+            'telegram'       => $datos['telegram'] ?? false,
+            'discord'        => $datos['discord'] ?? false,
+            'correo'         => $datos['correo'] ?? false,
+            'correo_destino' => $datos['correo_destino'] ?? null,
+            'activo'         => $datos['activo'] ?? false,
         ];
     }
 }

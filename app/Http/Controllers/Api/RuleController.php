@@ -16,10 +16,10 @@ class RuleController extends Controller
 
     public function index(Request $request)
     {
-        $rules = $request->user()->reglas()->with('dispositivos')->get();
+        $reglas = $request->user()->reglas()->with('dispositivos')->get();
 
         return response()->json(
-            $rules->map(fn($r) => (new RuleResource($r))->toArray($request))
+            $reglas->map(fn($r) => (new RuleResource($r))->toArray($request))
         );
     }
 
@@ -29,57 +29,57 @@ class RuleController extends Controller
             return response()->json(['error' => 'Has alcanzado el límite de 50 reglas.'], 422);
         }
 
-        $validated = $request->validated();
+        $validado = $request->validated();
 
-        $rule = Regla::create(array_merge($this->ruleFieldsFrom($validated), [
+        $regla = Regla::create(array_merge($this->camposReglaDesde($validado), [
             'user_id' => $request->user()->id,
             'activo'  => true,
         ]));
 
-        $rule->dispositivos()->sync($validated['devices']);
-        $rule->load('dispositivos');
+        $regla->dispositivos()->sync($validado['devices']);
+        $regla->load('dispositivos');
 
-        Log::info('[API] Regla creada: ' . $rule->id);
+        Log::info('[API] Regla creada: ' . $regla->id);
 
-        return (new RuleResource($rule))->response()->setStatusCode(201);
+        return (new RuleResource($regla))->response()->setStatusCode(201);
     }
 
     public function update(RuleRequest $request, $id)
     {
-        $rule = $request->resolvedRule() ?? Regla::where('id', $id)
+        $regla = $request->resolvedRule() ?? Regla::where('id', $id)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $validated = $request->validated();
+        $validado = $request->validated();
 
-        $rule->fill($this->ruleFieldsFrom($validated))->save();
-        $rule->dispositivos()->sync($validated['devices']);
-        $rule->load('dispositivos');
+        $regla->fill($this->camposReglaDesde($validado))->save();
+        $regla->dispositivos()->sync($validado['devices']);
+        $regla->load('dispositivos');
 
-        return new RuleResource($rule);
+        return new RuleResource($regla);
     }
 
     public function destroy(Request $request, $id)
     {
-        $rule = $this->findOwnedRule($request, $id);
-        $rule->delete();
+        $regla = $this->buscarReglaPropietaria($request, $id);
+        $regla->delete();
 
         return response()->json(['message' => 'Regla eliminada.']);
     }
 
     public function toggle(Request $request, $id)
     {
-        $rule     = $this->findOwnedRule($request, $id);
-        $newState = !$rule->activo;
-        $rule->update(['activo' => $newState]);
+        $regla       = $this->buscarReglaPropietaria($request, $id);
+        $nuevoEstado = !$regla->activo;
+        $regla->update(['activo' => $nuevoEstado]);
 
         return response()->json([
-            'id'     => $rule->id,
-            'activo' => $newState,
+            'id'     => $regla->id,
+            'activo' => $nuevoEstado,
         ]);
     }
 
-    private function findOwnedRule(Request $request, $id): Regla
+    private function buscarReglaPropietaria(Request $request, $id): Regla
     {
         return Regla::where('id', $id)
             ->where('user_id', $request->user()->id)

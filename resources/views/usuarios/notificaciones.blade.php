@@ -58,7 +58,7 @@
             <div class="list-group-item list-group-item-action d-flex gap-3 py-3">
                 {{-- Icono --}}
                 <div class="d-flex align-items-start pt-1">
-                    <i class="{{ $item['iconClass'] }} fs-5"></i>
+                    <i class="{{ $item['claseIcono'] }} fs-5"></i>
                 </div>
 
                 {{-- Contenido --}}
@@ -66,7 +66,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <span class="fw-semibold">{{ $item['titulo'] }}</span>
-                            <span class="badge {{ $item['badgeClass'] }} ms-2 small">{{ $item['badgeText'] }}</span>
+                            <span class="badge {{ $item['claseBadge'] }} ms-2 small">{{ $item['textoBadge'] }}</span>
                         </div>
                         <small class="text-muted ms-3 text-nowrap">
                             {{ $item['fecha'] ? $item['fecha']->diffForHumans() : '' }}

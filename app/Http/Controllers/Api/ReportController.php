@@ -30,7 +30,7 @@ class ReportController extends Controller
     {
         abort_unless((int) $informe->user_id === (int) $request->user()->id, 403);
 
-        $rutaAbsoluta = $this->resolveInformePath($informe->pdf_path);
+        $rutaAbsoluta = $this->resolverRutaInforme($informe->pdf_path);
 
         if (!$rutaAbsoluta || !is_file($rutaAbsoluta)) {
             return response()->json(['message' => 'Archivo no encontrado.'], 404);
@@ -65,7 +65,7 @@ class ReportController extends Controller
             return;
         }
 
-        $absoluta = $this->resolveInformePath($rutaPdf);
+        $absoluta = $this->resolverRutaInforme($rutaPdf);
         if ($absoluta && is_file($absoluta)) {
             unlink($absoluta);
         }

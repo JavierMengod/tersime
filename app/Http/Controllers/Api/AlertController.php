@@ -10,27 +10,27 @@ class AlertController extends Controller
 {
     public function index(AlertIndexRequest $request)
     {
-        $query = RegistroAlerta::porUsuario($request->user()->id);
+        $consulta = RegistroAlerta::porUsuario($request->user()->id);
 
         if ($request->filled('device')) {
-            $query->where('nombre_dispositivo', $request->input('device'));
+            $consulta->where('nombre_dispositivo', $request->input('device'));
         }
         if ($request->filled('rule')) {
-            $query->where('nombre_regla', $request->input('rule'));
+            $consulta->where('nombre_regla', $request->input('rule'));
         }
         if ($request->filled('type')) {
-            $query->where('tipo', $request->input('type'));
+            $consulta->where('tipo', $request->input('type'));
         }
         if ($request->filled('from')) {
-            $query->whereDate('created_at', '>=', $request->input('from'));
+            $consulta->whereDate('created_at', '>=', $request->input('from'));
         }
         if ($request->filled('to')) {
-            $query->whereDate('created_at', '<=', $request->input('to'));
+            $consulta->whereDate('created_at', '<=', $request->input('to'));
         }
 
-        $perPage = (int) $request->input('per_page', 20);
-        $logs    = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $porPagina = (int) $request->input('per_page', 20);
+        $registros = $consulta->orderBy('created_at', 'desc')->paginate($porPagina);
 
-        return response()->json($logs);
+        return response()->json($registros);
     }
 }

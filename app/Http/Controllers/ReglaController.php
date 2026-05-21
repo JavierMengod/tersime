@@ -27,7 +27,7 @@ class ReglaController extends Controller
 
         $validado = $request->validated();
 
-        $regla = Regla::create(array_merge($this->ruleFieldsFrom($validado), [
+        $regla = Regla::create(array_merge($this->camposReglaDesde($validado), [
             'user_id' => auth()->id(),
             'activo'  => true,
         ]));
@@ -45,7 +45,7 @@ class ReglaController extends Controller
 
         $validado = $request->validated();
 
-        $regla->fill($this->ruleFieldsFrom($validado))->save();
+        $regla->fill($this->camposReglaDesde($validado))->save();
         $regla->dispositivos()->sync($validado['devices']);
 
         Log::info("Regla ID {$regla->id} actualizada correctamente.");

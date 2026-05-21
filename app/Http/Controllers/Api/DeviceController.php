@@ -22,36 +22,36 @@ class DeviceController extends Controller
 
     public function index(Request $request)
     {
-        $devices = $request->user()
+        $dispositivos = $request->user()
             ->dispositivos()
             ->wherePivot('habilitado', 1)
             ->get()
             ->map(function ($d) {
                 return [
-                    'id'         => $d->id,
+                    'id'              => $d->id,
                     'etiqueta_influx' => $d->etiqueta_influx,
-                    'nombre'     => $d->nombre,
+                    'nombre'          => $d->nombre,
                 ];
             });
 
-        return response()->json($devices);
+        return response()->json($dispositivos);
     }
 
     public function current(Request $request, $id)
     {
-        $device = $this->findDevice($request, $id);
+        $dispositivo = $this->buscarDispositivo($request, $id);
 
-        if (!$device) {
+        if (!$dispositivo) {
             return response()->json(['message' => 'Dispositivo no encontrado.'], 404);
         }
 
-        $value = $this->influx->ultimoValor($device->etiqueta_influx);
+        $valor = $this->influx->ultimoValor($dispositivo->etiqueta_influx);
 
         return response()->json([
-            'device'     => $device->etiqueta_influx,
-            'nombre'     => $device->nombre,
-            'value_kwh'  => $value,
-            'has_data'   => $value !== null,
+            'device'    => $dispositivo->etiqueta_influx,
+            'nombre'    => $dispositivo->nombre,
+            'value_kwh' => $valor,
+            'has_data'  => $valor !== null,
         ]);
     }
 
@@ -62,28 +62,28 @@ class DeviceController extends Controller
             'to'   => 'required|date_format:Y-m-d|after_or_equal:from',
         ]);
 
-        $device = $this->findDevice($request, $id);
+        $dispositivo = $this->buscarDispositivo($request, $id);
 
-        if (!$device) {
+        if (!$dispositivo) {
             return response()->json(['message' => 'Dispositivo no encontrado.'], 404);
         }
 
-        $from = $request->input('from');
-        $to   = $request->input('to');
-        $tag  = $device->etiqueta_influx;
+        $desde   = $request->input('from');
+        $hasta   = $request->input('to');
+        $etiqueta = $dispositivo->etiqueta_influx;
 
-        $total  = $this->influx->consumoTotal($tag, $from, $to);
-        $hourly = $this->influx->datosHorarios($tag, $from, $to);
-        $daily  = $this->influx->datosDiarios($tag, $from, $to);
+        $total    = $this->influx->consumoTotal($etiqueta, $desde, $hasta);
+        $horarios = $this->influx->datosHorarios($etiqueta, $desde, $hasta);
+        $diarios  = $this->influx->datosDiarios($etiqueta, $desde, $hasta);
 
         return response()->json([
-            'device'        => $tag,
-            'nombre'        => $device->nombre,
-            'from'          => $from,
-            'to'            => $to,
-            'total_kwh'     => round($total, 4),
-            'hourly'        => $hourly,
-            'daily'         => $daily,
+            'device'    => $etiqueta,
+            'nombre'    => $dispositivo->nombre,
+            'from'      => $desde,
+            'to'        => $hasta,
+            'total_kwh' => round($total, 4),
+            'hourly'    => $horarios,
+            'daily'     => $diarios,
         ]);
     }
 
@@ -94,30 +94,30 @@ class DeviceController extends Controller
             'to'   => 'required|date_format:Y-m-d|after_or_equal:from',
         ]);
 
-        $device = $this->findDevice($request, $id);
+        $dispositivo = $this->buscarDispositivo($request, $id);
 
-        if (!$device) {
+        if (!$dispositivo) {
             return response()->json(['message' => 'Dispositivo no encontrado.'], 404);
         }
 
-        $from  = $request->input('from');
-        $to    = $request->input('to');
-        $tag   = $device->etiqueta_influx;
+        $desde    = $request->input('from');
+        $hasta    = $request->input('to');
+        $etiqueta = $dispositivo->etiqueta_influx;
 
-        $stats = $this->influx->datosEstadisticos($tag, $from, $to);
-        $fc    = $this->influx->factorCarga($tag, $from, $to);
+        $estadisticas = $this->influx->datosEstadisticos($etiqueta, $desde, $hasta);
+        $factorCarga  = $this->influx->factorCarga($etiqueta, $desde, $hasta);
 
         return response()->json([
-            'device'        => $tag,
-            'nombre'        => $device->nombre,
-            'from'          => $from,
-            'to'            => $to,
-            'mean_kwh'      => $stats['mean'] !== null ? round($stats['mean'], 4) : null,
-            'stddev_kwh'    => $stats['stddev'] !== null ? round($stats['stddev'], 4) : null,
-            'max_kwh'       => $stats['max'] !== null ? round($stats['max'], 4) : null,
-            'min_kwh'       => $stats['min'] !== null ? round($stats['min'], 4) : null,
-            'total_kwh'     => $stats['sum'] !== null ? round($stats['sum'], 4) : null,
-            'load_factor'   => $fc !== null ? round($fc, 4) : null,
+            'device'      => $etiqueta,
+            'nombre'      => $dispositivo->nombre,
+            'from'        => $desde,
+            'to'          => $hasta,
+            'mean_kwh'    => $estadisticas['mean']   !== null ? round($estadisticas['mean'],   4) : null,
+            'stddev_kwh'  => $estadisticas['stddev'] !== null ? round($estadisticas['stddev'], 4) : null,
+            'max_kwh'     => $estadisticas['max']    !== null ? round($estadisticas['max'],    4) : null,
+            'min_kwh'     => $estadisticas['min']    !== null ? round($estadisticas['min'],    4) : null,
+            'total_kwh'   => $estadisticas['sum']    !== null ? round($estadisticas['sum'],    4) : null,
+            'load_factor' => $factorCarga             !== null ? round($factorCarga,            4) : null,
         ]);
     }
 
@@ -127,15 +127,15 @@ class DeviceController extends Controller
             'hours' => 'sometimes|integer|min:1|max:168',
         ]);
 
-        $device = $this->findDevice($request, $id);
+        $dispositivo = $this->buscarDispositivo($request, $id);
 
-        if (!$device) {
+        if (!$dispositivo) {
             return response()->json(['message' => 'Dispositivo no encontrado.'], 404);
         }
 
-        $tag   = $device->etiqueta_influx;
-        $hours = (int) $request->input('hours', 24);
-        $stop  = Carbon::now()->format('Y-m-d');
+        $etiqueta     = $dispositivo->etiqueta_influx;
+        $horas        = (int) $request->input('hours', 24);
+        $fin          = Carbon::now()->format('Y-m-d');
 
         $urlPredictor = Ajuste::get('predictor_url');
         if (!$urlPredictor) {
@@ -143,43 +143,43 @@ class DeviceController extends Controller
         }
 
         try {
-            $cacheKey = 'pred_training_' . $tag . '_' . $stop;
-            $data = Cache::remember($cacheKey, 3600, function () use ($tag, $stop) {
-                return $this->influx->datosParaPrediccion($tag, $stop);
+            $claveCache = 'pred_training_' . $etiqueta . '_' . $fin;
+            $datos = Cache::remember($claveCache, 3600, function () use ($etiqueta, $fin) {
+                return $this->influx->datosParaPrediccion($etiqueta, $fin);
             });
 
-            if (empty($data['timestamps'])) {
+            if (empty($datos['timestamps'])) {
                 return response()->json(['message' => 'Sin datos históricos para este dispositivo.'], 422);
             }
 
-            $predResponse = Http::timeout(120)->asJson()->post($urlPredictor, [
-                'timestamps'   => $data['timestamps'],
-                'values'       => $data['values'],
-                'predic_hours' => $hours,
+            $respuestaPredictor = Http::timeout(120)->asJson()->post($urlPredictor, [
+                'timestamps'   => $datos['timestamps'],
+                'values'       => $datos['values'],
+                'predic_hours' => $horas,
             ]);
 
-            if ($predResponse->failed()) {
-                Log::error('[API] forecast predictor error', ['status' => $predResponse->status()]);
+            if ($respuestaPredictor->failed()) {
+                Log::error('[API] forecast predictor error', ['status' => $respuestaPredictor->status()]);
                 return response()->json(['message' => 'Error en el servicio de predicción.'], 502);
             }
 
-            $json     = $predResponse->json();
-            $pred_raw = $json['predichos'] ?? $json['predictions'] ?? $json['data'] ?? [];
-            $now      = Carbon::now('UTC');
-            $result   = [];
+            $json            = $respuestaPredictor->json();
+            $prediccionesRaw = $json['predichos'] ?? $json['predictions'] ?? $json['data'] ?? [];
+            $ahora           = Carbon::now('UTC');
+            $resultado       = [];
 
-            foreach ($pred_raw as $item) {
-                if (!is_array($item)) continue;
+            foreach ($prediccionesRaw as $elemento) {
+                if (!is_array($elemento)) continue;
 
-                $ds    = $item['ds']         ?? $item['timestamp'] ?? $item[0] ?? null;
-                $y     = $item['yhat']       ?? $item['value']     ?? $item[1] ?? null;
-                $lower = $item['yhat_lower'] ?? $item[2] ?? null;
-                $upper = $item['yhat_upper'] ?? $item[3] ?? null;
+                $ds    = $elemento['ds']         ?? $elemento['timestamp'] ?? $elemento[0] ?? null;
+                $y     = $elemento['yhat']       ?? $elemento['value']     ?? $elemento[1] ?? null;
+                $lower = $elemento['yhat_lower'] ?? $elemento[2] ?? null;
+                $upper = $elemento['yhat_upper'] ?? $elemento[3] ?? null;
 
                 if (!$ds || !is_numeric($y)) continue;
-                if (!Carbon::parse($ds)->greaterThan($now)) continue;
+                if (!Carbon::parse($ds)->greaterThan($ahora)) continue;
 
-                $result[] = [
+                $resultado[] = [
                     'time'       => $ds,
                     'yhat'       => round((float) $y, 4),
                     'yhat_lower' => $lower !== null ? round((float) $lower, 4) : null,
@@ -188,10 +188,10 @@ class DeviceController extends Controller
             }
 
             return response()->json([
-                'device'    => $tag,
-                'nombre'    => $device->nombre,
-                'hours'     => $hours,
-                'forecast'  => $result,
+                'device'   => $etiqueta,
+                'nombre'   => $dispositivo->nombre,
+                'hours'    => $horas,
+                'forecast' => $resultado,
             ]);
 
         } catch (\Throwable $e) {
@@ -200,7 +200,7 @@ class DeviceController extends Controller
         }
     }
 
-    private function findDevice(Request $request, $id)
+    private function buscarDispositivo(Request $request, $id)
     {
         return $request->user()
             ->dispositivos()

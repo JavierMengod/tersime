@@ -9,63 +9,63 @@ class NotificacionesController extends Controller
 {
     public function index(Request $request)
     {
-        $user = auth()->user();
-        $tipo = $request->get('tipo', 'todas');
+        $usuario = auth()->user();
+        $tipo    = $request->get('tipo', 'todas');
 
-        $todas = $user->notifications()->latest()->get();
+        $todas = $usuario->notifications()->latest()->get();
 
         $cuentaAlertas  = $todas->filter(fn($n) => in_array($n->data['tipo'] ?? '', ['firing', 'resolution']))->count();
         $cuentaInformes = $todas->filter(fn($n) => ($n->data['tipo'] ?? '') === 'informe')->count();
 
         $feed = collect();
 
-        foreach ($todas as $notif) {
-            $data  = $notif->data;
-            $tipoN = $data['tipo'] ?? '';
+        foreach ($todas as $notificacion) {
+            $datos      = $notificacion->data;
+            $tipoNotif  = $datos['tipo'] ?? '';
 
-            if ($tipoN === 'firing' || $tipoN === 'resolution') {
-                $firing = $tipoN === 'firing';
+            if ($tipoNotif === 'firing' || $tipoNotif === 'resolution') {
+                $activa = $tipoNotif === 'firing';
                 $feed->push([
-                    'tipo'       => 'alerta',
-                    'subtipo'    => $tipoN,
-                    'titulo'     => $data['titulo']             ?? __('Alerta'),
-                    'mensaje'    => $data['mensaje']            ?? '',
-                    'fecha'      => $notif->created_at,
-                    'meta'       => $data['nombre_dispositivo'] ?? '',
-                    'canales'    => $data['canales']            ?? [],
-                    'url'        => $data['url']                ?? route('alertas.historial'),
-                    'iconClass'  => $firing ? 'bi bi-exclamation-octagon-fill text-danger' : 'bi bi-check-circle-fill text-success',
-                    'badgeClass' => $firing ? 'bg-danger' : 'bg-success',
-                    'badgeText'  => $firing ? __('Alerta activa') : __('Resuelta'),
+                    'tipo'        => 'alerta',
+                    'subtipo'     => $tipoNotif,
+                    'titulo'      => $datos['titulo']             ?? __('Alerta'),
+                    'mensaje'     => $datos['mensaje']            ?? '',
+                    'fecha'       => $notificacion->created_at,
+                    'meta'        => $datos['nombre_dispositivo'] ?? '',
+                    'canales'     => $datos['canales']            ?? [],
+                    'url'         => $datos['url']                ?? route('alertas.historial'),
+                    'claseIcono'  => $activa ? 'bi bi-exclamation-octagon-fill text-danger' : 'bi bi-check-circle-fill text-success',
+                    'claseBadge'  => $activa ? 'bg-danger' : 'bg-success',
+                    'textoBadge'  => $activa ? __('Alerta activa') : __('Resuelta'),
                 ]);
 
-            } elseif ($tipoN === 'informe') {
-                $subtipo = strtolower($data['subtipo'] ?? 'demanda');
+            } elseif ($tipoNotif === 'informe') {
+                $subtipo = strtolower($datos['subtipo'] ?? 'demanda');
                 $feed->push([
-                    'tipo'       => 'informe',
-                    'subtipo'    => $subtipo,
-                    'titulo'     => $data['titulo']        ?? __('Informe'),
-                    'mensaje'    => $data['mensaje']       ?? '',
-                    'fecha'      => $notif->created_at,
-                    'meta'       => $data['nombre_archivo'] ?? '',
-                    'url'        => $data['url']            ?? '#',
-                    'iconClass'  => 'bi bi-file-earmark-pdf-fill text-primary',
-                    'badgeClass' => 'bg-primary',
-                    'badgeText'  => $subtipo === 'programado' ? __('Programado') : __('Demanda'),
+                    'tipo'        => 'informe',
+                    'subtipo'     => $subtipo,
+                    'titulo'      => $datos['titulo']        ?? __('Informe'),
+                    'mensaje'     => $datos['mensaje']       ?? '',
+                    'fecha'       => $notificacion->created_at,
+                    'meta'        => $datos['nombre_archivo'] ?? '',
+                    'url'         => $datos['url']            ?? '#',
+                    'claseIcono'  => 'bi bi-file-earmark-pdf-fill text-primary',
+                    'claseBadge'  => 'bg-primary',
+                    'textoBadge'  => $subtipo === 'programado' ? __('Programado') : __('Demanda'),
                 ]);
 
-            } elseif ($tipoN === 'reset_password' && $user->admin) {
+            } elseif ($tipoNotif === 'reset_password' && $usuario->admin) {
                 $feed->push([
-                    'tipo'       => 'reset_password',
-                    'subtipo'    => 'reset_password',
-                    'titulo'     => $data['titulo']   ?? __('Solicitud de contraseña'),
-                    'mensaje'    => $data['mensaje']  ?? '',
-                    'fecha'      => $notif->created_at,
-                    'meta'       => '',
-                    'url'        => $data['url']      ?? route('usuarios.index'),
-                    'iconClass'  => 'bi bi-key-fill text-warning',
-                    'badgeClass' => 'bg-warning text-dark',
-                    'badgeText'  => __('Reset contraseña'),
+                    'tipo'        => 'reset_password',
+                    'subtipo'     => 'reset_password',
+                    'titulo'      => $datos['titulo']   ?? __('Solicitud de contraseña'),
+                    'mensaje'     => $datos['mensaje']  ?? '',
+                    'fecha'       => $notificacion->created_at,
+                    'meta'        => '',
+                    'url'         => $datos['url']      ?? route('usuarios.index'),
+                    'claseIcono'  => 'bi bi-key-fill text-warning',
+                    'claseBadge'  => 'bg-warning text-dark',
+                    'textoBadge'  => __('Reset contraseña'),
                 ]);
             }
         }
@@ -79,15 +79,15 @@ class NotificacionesController extends Controller
         }
 
         $feed     = $feed->values();
-        $noLeidas = $user->unreadNotifications->count();
+        $noLeidas = $usuario->unreadNotifications->count();
 
-        $perPage = 20;
-        $page    = LengthAwarePaginator::resolveCurrentPage();
-        $feed    = new LengthAwarePaginator(
-            $feed->forPage($page, $perPage),
+        $porPagina = 20;
+        $pagina    = LengthAwarePaginator::resolveCurrentPage();
+        $feed      = new LengthAwarePaginator(
+            $feed->forPage($pagina, $porPagina),
             $feed->count(),
-            $perPage,
-            $page,
+            $porPagina,
+            $pagina,
             ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
         );
 
