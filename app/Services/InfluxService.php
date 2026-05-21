@@ -10,17 +10,17 @@ use Illuminate\Support\Facades\Log;
 class InfluxService
 {
     private string $bucket;
-    private string $influxUrl;
-    private string $influxToken;
+    private string $urlInflux;
+    private string $tokenInflux;
 
     public function __construct()
     {
         $this->bucket      = Ajuste::get('influxdb_bucket') ?: config('tersime.influxdb.bucket', 'PINZAS');
-        $this->influxUrl   = rtrim(Ajuste::get('influxdb_url') ?: config('tersime.influxdb.url', 'http://localhost:8086'), '/')
+        $this->urlInflux   = rtrim(Ajuste::get('influxdb_url') ?: config('tersime.influxdb.url', 'http://localhost:8086'), '/')
             . '/api/v2/query?org=' . (Ajuste::get('influxdb_org') ?: config('tersime.influxdb.org', 'tersime'));
-        $this->influxToken = Ajuste::get('influxdb_token') ?: config('tersime.influxdb.token', '');
+        $this->tokenInflux = Ajuste::get('influxdb_token') ?: config('tersime.influxdb.token', '');
 
-        if (empty($this->influxToken)) {
+        if (empty($this->tokenInflux)) {
             Log::warning('[InfluxService] influxdb_token no configurado — las queries fallarán con HTTP 401');
         }
         if (empty($this->bucket)) {
@@ -32,82 +32,82 @@ class InfluxService
     //  PUBLIC API
     // ---------------------------------------------------------
 
-    public function consumoTotal(string $device, string $start, string $stop): float
+    public function consumoTotal(string $etiqueta, string $inicio, string $fin): float
     {
-        $device    = $this->sanitizeTag($device);
-        $startFlux = $this->fluxTimeLiteral($start, true);
-        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+        $etiqueta   = $this->limpiarEtiqueta($etiqueta);
+        $inicioFlux = $this->fluxLiteralFecha($inicio, true);
+        $finFlux    = $this->fluxLiteralFecha($fin, false);
 
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
-  |> range(start: {$startFlux}, stop: {$stopFlux})
+  |> range(start: {$inicioFlux}, stop: {$finFlux})
   |> filter(fn: (r) =>
         r._measurement == "hourly" and
         r._field == "kwh" and
-        r.name == "{$device}"
+        r.name == "{$etiqueta}"
      )
   |> group()
   |> sum(column: "_value")
 FLUX;
 
-        foreach ($this->query($flux) as $row) {
-            if (isset($row['_value']) && is_numeric($row['_value'])) {
-                return (float) $row['_value'];
+        foreach ($this->consultar($flux) as $fila) {
+            if (isset($fila['_value']) && is_numeric($fila['_value'])) {
+                return (float) $fila['_value'];
             }
         }
 
         return 0.0;
     }
 
-    public function datosHorarios(string $device, string $start, string $stop): array
+    public function datosHorarios(string $etiqueta, string $inicio, string $fin): array
     {
-        $device    = $this->sanitizeTag($device);
-        $startFlux = $this->fluxTimeLiteral($start, true);
-        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+        $etiqueta   = $this->limpiarEtiqueta($etiqueta);
+        $inicioFlux = $this->fluxLiteralFecha($inicio, true);
+        $finFlux    = $this->fluxLiteralFecha($fin, false);
 
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
-  |> range(start: {$startFlux}, stop: {$stopFlux})
-  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
+  |> range(start: {$inicioFlux}, stop: {$finFlux})
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$etiqueta}")
   |> sort(columns: ["_time"])
 FLUX;
 
-        return $this->rowsToMap($this->query($flux), '_time', '_value');
+        return $this->filasAMapa($this->consultar($flux), '_time', '_value');
     }
 
-    public function datosDiarios(string $device, string $start, string $stop): array
+    public function datosDiarios(string $etiqueta, string $inicio, string $fin): array
     {
-        $device    = $this->sanitizeTag($device);
-        $startFlux = $this->fluxTimeLiteral($start, true);
-        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+        $etiqueta   = $this->limpiarEtiqueta($etiqueta);
+        $inicioFlux = $this->fluxLiteralFecha($inicio, true);
+        $finFlux    = $this->fluxLiteralFecha($fin, false);
 
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
-  |> range(start: {$startFlux}, stop: {$stopFlux})
-  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
+  |> range(start: {$inicioFlux}, stop: {$finFlux})
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$etiqueta}")
   |> aggregateWindow(every: 1d, fn: sum)
   |> keep(columns: ["_time", "_value"])
   |> sort(columns: ["_time"])
 FLUX;
 
-        return $this->rowsToMap($this->query($flux), '_time', '_value');
+        return $this->filasAMapa($this->consultar($flux), '_time', '_value');
     }
 
-    public function datosEstadisticos(string $device, string $start, string $stop): array
+    public function datosEstadisticos(string $etiqueta, string $inicio, string $fin): array
     {
-        $device    = $this->sanitizeTag($device);
-        $startFlux = $this->fluxTimeLiteral($start, true);
-        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+        $etiqueta   = $this->limpiarEtiqueta($etiqueta);
+        $inicioFlux = $this->fluxLiteralFecha($inicio, true);
+        $finFlux    = $this->fluxLiteralFecha($fin, false);
 
         $flux = <<<FLUX
 import "math"
 
 data = from(bucket: "{$this->bucket}")
-  |> range(start: {$startFlux}, stop: {$stopFlux})
+  |> range(start: {$inicioFlux}, stop: {$finFlux})
   |> filter(fn: (r) =>
        r._measurement == "hourly" and
        r._field == "kwh" and
-       r.name == "{$device}"
+       r.name == "{$etiqueta}"
   )
   |> group()
 
@@ -132,23 +132,23 @@ data
   |> keep(columns: ["mean", "stddev", "max", "min", "sum"])
 FLUX;
 
-        $result = ['mean' => null, 'stddev' => null, 'max' => null, 'min' => null, 'sum' => null];
-        foreach ($this->query($flux) as $row) {
-            foreach (['mean', 'stddev', 'max', 'min', 'sum'] as $key) {
-                if (isset($row[$key]) && is_numeric($row[$key])) {
-                    $result[$key] = (float) $row[$key];
+        $resultado = ['mean' => null, 'stddev' => null, 'max' => null, 'min' => null, 'sum' => null];
+        foreach ($this->consultar($flux) as $fila) {
+            foreach (['mean', 'stddev', 'max', 'min', 'sum'] as $clave) {
+                if (isset($fila[$clave]) && is_numeric($fila[$clave])) {
+                    $resultado[$clave] = (float) $fila[$clave];
                 }
             }
             break;
         }
 
-        return $result;
+        return $resultado;
     }
 
-    public function resumen(string $device, string $start, string $stop): array
+    public function resumen(string $etiqueta, string $inicio, string $fin): array
     {
         try {
-            $horas = $this->datosHorarios($device, $start, $stop);
+            $horas = $this->datosHorarios($etiqueta, $inicio, $fin);
 
             $total = array_sum($horas);
 
@@ -157,8 +157,8 @@ FLUX;
             $tz   = config('app.timezone', 'Europe/Madrid');
             $dias = [];
             foreach ($horas as $ts => $kwh) {
-                $day = Carbon::parse($ts)->setTimezone($tz)->startOfDay()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
-                $dias[$day] = ($dias[$day] ?? 0.0) + (float) $kwh;
+                $dia        = Carbon::parse($ts)->setTimezone($tz)->startOfDay()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                $dias[$dia] = ($dias[$dia] ?? 0.0) + (float) $kwh;
             }
             ksort($dias);
 
@@ -169,43 +169,43 @@ FLUX;
         }
     }
 
-    public function mediaHistoricaPeriodo(string $device, string $start, string $stop): ?float
+    public function mediaHistoricaPeriodo(string $etiqueta, string $inicio, string $fin): ?float
     {
         try {
-            $startDt     = Carbon::createFromFormat('Y-m-d', $start)->startOfDay();
-            $stopDt      = Carbon::createFromFormat('Y-m-d', $stop)->endOfDay();
-            $diffSeconds = $stopDt->timestamp - $startDt->timestamp;
+            $inicioDt    = Carbon::createFromFormat('Y-m-d', $inicio)->startOfDay();
+            $finDt       = Carbon::createFromFormat('Y-m-d', $fin)->endOfDay();
+            $segundosDiff = $finDt->timestamp - $inicioDt->timestamp;
 
-            if ($diffSeconds <= 0) return null;
+            if ($segundosDiff <= 0) return null;
 
-            $histStop  = $startDt->copy()->subSecond();
-            $histStart = $histStop->copy()->subSeconds($diffSeconds);
+            $histFin    = $inicioDt->copy()->subSecond();
+            $histInicio = $histFin->copy()->subSeconds($segundosDiff);
 
-            return $this->consumoTotal($device, $histStart->format('Y-m-d'), $histStop->format('Y-m-d'));
+            return $this->consumoTotal($etiqueta, $histInicio->format('Y-m-d'), $histFin->format('Y-m-d'));
         } catch (\Throwable $e) {
             Log::error('[InfluxService] mediaHistoricaPeriodo ERROR', ['error' => $e->getMessage()]);
             return null;
         }
     }
 
-    public function factorCarga(string $device = 'general', ?string $start = null, ?string $stop = null): ?float
+    public function factorCarga(string $etiqueta = 'general', ?string $inicio = null, ?string $fin = null): ?float
     {
-        $device = $this->sanitizeTag($device);
-        if (empty($device)) {
-            Log::error('[InfluxService] factorCarga: parámetro device vacío');
+        $etiqueta = $this->limpiarEtiqueta($etiqueta);
+        if (empty($etiqueta)) {
+            Log::error('[InfluxService] factorCarga: parámetro etiqueta vacío');
             return null;
         }
 
-        $start     = $start ?? Carbon::now()->subDays(365)->format('Y-m-d');
-        $stop      = $stop  ?? Carbon::now()->format('Y-m-d');
-        $startFlux = $this->fluxTimeLiteral($start, true);
-        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+        $inicio     = $inicio ?? Carbon::now()->subDays(365)->format('Y-m-d');
+        $fin        = $fin    ?? Carbon::now()->format('Y-m-d');
+        $inicioFlux = $this->fluxLiteralFecha($inicio, true);
+        $finFlux    = $this->fluxLiteralFecha($fin, false);
 
         $flux = <<<FLUX
 hourly = from(bucket: "{$this->bucket}")
-  |> range(start: {$startFlux}, stop: {$stopFlux})
+  |> range(start: {$inicioFlux}, stop: {$finFlux})
   |> filter(fn: (r) =>
-      r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}"
+      r._measurement == "hourly" and r._field == "kwh" and r.name == "{$etiqueta}"
   )
   |> keep(columns: ["_time", "_value", "name"])
 
@@ -233,129 +233,129 @@ join(
   |> limit(n: 1)
 FLUX;
 
-        foreach ($this->query($flux) as $row) {
-            if (isset($row['_value']) && is_numeric($row['_value'])) {
-                $v = (float) $row['_value'];
+        foreach ($this->consultar($flux) as $fila) {
+            if (isset($fila['_value']) && is_numeric($fila['_value'])) {
+                $v = (float) $fila['_value'];
                 return $v > 0 ? $v : null;
             }
         }
 
         Log::info('[InfluxService] factorCarga sin resultado (sin datos en el período)', [
-            'device' => $device,
-            'start'  => $start,
-            'stop'   => $stop,
+            'etiqueta' => $etiqueta,
+            'inicio'   => $inicio,
+            'fin'      => $fin,
         ]);
         return null;
     }
 
-    public function mediaPorHora(string $device, string $start, string $stop): array
+    public function mediaPorHora(string $etiqueta, string $inicio, string $fin): array
     {
-        $device = $this->sanitizeTag($device);
+        $etiqueta = $this->limpiarEtiqueta($etiqueta);
         try {
-            $tz        = config('app.timezone', 'Europe/Madrid');
-            $baseDate  = '2025-01-01';
-            $startFlux = $this->fluxTimeLiteral($start, true);
-            $stopFlux  = $this->fluxTimeLiteral($stop, false);
+            $tz         = config('app.timezone', 'Europe/Madrid');
+            $fechaBase  = '2025-01-01';
+            $inicioFlux = $this->fluxLiteralFecha($inicio, true);
+            $finFlux    = $this->fluxLiteralFecha($fin, false);
 
             $flux = <<<FLUX
 import "date"
 option timezone = "{$tz}"
 
 from(bucket: "{$this->bucket}")
-  |> range(start: {$startFlux}, stop: {$stopFlux})
+  |> range(start: {$inicioFlux}, stop: {$finFlux})
   |> filter(fn: (r) =>
        r._measurement == "hourly" and
        r._field == "kwh" and
-       r["name"] == "{$device}"
+       r["name"] == "{$etiqueta}"
   )
   |> map(fn: (r) => ({ r with hour: date.hour(t: r._time) }))
   |> group(columns: ["hour"])
   |> mean(column: "_value")
   |> keep(columns: ["hour", "_value"])
   |> map(fn: (r) => ({ r with hourStr: if r.hour < 10 then "0" + string(v: r.hour) else string(v: r.hour) }))
-  |> map(fn: (r) => ({ r with _time: time(v: "{$baseDate}T" + r.hourStr + ":00:00+01:00") }))
+  |> map(fn: (r) => ({ r with _time: time(v: "{$fechaBase}T" + r.hourStr + ":00:00+01:00") }))
   |> keep(columns: ["_time", "_value"])
   |> sort(columns: ["_time"])
 FLUX;
 
-            $result = [];
-            foreach ($this->query($flux) as $row) {
-                if (!isset($row['_time'], $row['_value']) || !is_numeric($row['_value'])) continue;
+            $resultado = [];
+            foreach ($this->consultar($flux) as $fila) {
+                if (!isset($fila['_time'], $fila['_value']) || !is_numeric($fila['_value'])) continue;
                 try {
-                    $h          = Carbon::parse($row['_time'])->format('H');
-                    $result[$h] = (float) $row['_value'];
+                    $hora             = Carbon::parse($fila['_time'])->format('H');
+                    $resultado[$hora] = (float) $fila['_value'];
                 } catch (\Throwable $e) {
                     Log::warning('[InfluxService] mediaPorHora: timestamp inválido', [
-                        'device' => $device,
-                        'ts'     => $row['_time'],
+                        'etiqueta' => $etiqueta,
+                        'ts'       => $fila['_time'],
                     ]);
                 }
             }
 
-            return $result;
+            return $resultado;
 
         } catch (\Throwable $e) {
             Log::error('[InfluxService] mediaPorHora ERROR', [
-                'device' => $device,
-                'start'  => $start,
-                'stop'   => $stop,
-                'error'  => $e->getMessage(),
+                'etiqueta' => $etiqueta,
+                'inicio'   => $inicio,
+                'fin'      => $fin,
+                'error'    => $e->getMessage(),
             ]);
             return [];
         }
     }
 
-    public function datosParaPrediccion(string $device, string $stop): array
+    public function datosParaPrediccion(string $etiqueta, string $fin): array
     {
-        $device    = $this->sanitizeTag($device);
-        $startFlux = $this->fluxTimeLiteral(Carbon::parse($stop)->subYear()->format('Y-m-d'), true);
-        $stopFlux  = $this->fluxTimeLiteral($stop, false);
+        $etiqueta   = $this->limpiarEtiqueta($etiqueta);
+        $inicioFlux = $this->fluxLiteralFecha(Carbon::parse($fin)->subYear()->format('Y-m-d'), true);
+        $finFlux    = $this->fluxLiteralFecha($fin, false);
 
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
-  |> range(start: {$startFlux}, stop: {$stopFlux})
-  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
+  |> range(start: {$inicioFlux}, stop: {$finFlux})
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$etiqueta}")
   |> sort(columns: ["_time"])
   |> keep(columns: ["_time", "_value"])
 FLUX;
 
-        $rows = $this->query($flux, 30);
+        $filas = $this->consultar($flux, 30);
 
         $timestamps = [];
         $values     = [];
 
-        foreach ($rows as $row) {
-            if (!isset($row['_time'], $row['_value']) || !is_numeric($row['_value'])) continue;
-            $timestamps[] = $row['_time'];
-            $values[]     = (float) $row['_value'];
+        foreach ($filas as $fila) {
+            if (!isset($fila['_time'], $fila['_value']) || !is_numeric($fila['_value'])) continue;
+            $timestamps[] = $fila['_time'];
+            $values[]     = (float) $fila['_value'];
         }
 
         Log::info('[InfluxService] datosParaPrediccion OK', [
-            'device' => $device,
-            'puntos' => count($timestamps),
+            'etiqueta' => $etiqueta,
+            'puntos'   => count($timestamps),
         ]);
 
         return ['timestamps' => $timestamps, 'values' => $values];
     }
 
-    public function ultimoValor(string $device): ?float
+    public function ultimoValor(string $etiqueta): ?float
     {
-        $device = $this->sanitizeTag($device);
+        $etiqueta = $this->limpiarEtiqueta($etiqueta);
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
   |> range(start: -24h)
-  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$device}")
+  |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh" and r.name == "{$etiqueta}")
   |> last()
   |> keep(columns: ["_value"])
 FLUX;
 
-        foreach ($this->query($flux, 10) as $row) {
-            if (isset($row['_value']) && is_numeric($row['_value'])) {
-                return (float) $row['_value'];
+        foreach ($this->consultar($flux, 10) as $fila) {
+            if (isset($fila['_value']) && is_numeric($fila['_value'])) {
+                return (float) $fila['_value'];
             }
         }
 
-        Log::warning('[InfluxService] ultimoValor: sin datos', ['device' => $device]);
+        Log::warning('[InfluxService] ultimoValor: sin datos', ['etiqueta' => $etiqueta]);
         return null;
     }
 
@@ -370,9 +370,9 @@ from(bucket: "{$this->bucket}")
 FLUX;
 
         $dispositivos = [];
-        foreach ($this->query($flux) as $row) {
-            if (!empty($row['name'])) {
-                $dispositivos[] = $row['name'];
+        foreach ($this->consultar($flux) as $fila) {
+            if (!empty($fila['name'])) {
+                $dispositivos[] = $fila['name'];
             }
         }
 
@@ -384,33 +384,33 @@ FLUX;
     //  PRIVATE HELPERS
     // ---------------------------------------------------------
 
-    private function query(string $flux, int $timeout = 30, int $maxRetries = 2): array
+    private function consultar(string $flux, int $timeout = 30, int $maxReintentos = 2): array
     {
-        $headers = [
-            'Authorization' => "Token {$this->influxToken}",
+        $encabezados = [
+            'Authorization' => "Token {$this->tokenInflux}",
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/csv',
         ];
-        $body = [
+        $cuerpo = [
             'query'   => $flux,
             'dialect' => ['header' => true, 'delimiter' => ','],
         ];
 
-        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-            $response = Http::withHeaders($headers)->timeout($timeout)->post($this->influxUrl, $body);
+        for ($intento = 1; $intento <= $maxReintentos; $intento++) {
+            $respuesta = Http::withHeaders($encabezados)->timeout($timeout)->post($this->urlInflux, $cuerpo);
 
-            if ($response->successful()) {
-                return $this->parseCsv($response->body());
+            if ($respuesta->successful()) {
+                return $this->parsearCsv($respuesta->body());
             }
 
             Log::warning('[InfluxService] query error', [
-                'status'  => $response->status(),
-                'attempt' => $attempt,
-                'body'    => substr($response->body(), 0, 300),
+                'status'  => $respuesta->status(),
+                'intento' => $intento,
+                'body'    => substr($respuesta->body(), 0, 300),
             ]);
 
-            if ($attempt < $maxRetries) {
-                usleep(300_000 * $attempt);
+            if ($intento < $maxReintentos) {
+                usleep(300_000 * $intento);
             }
         }
 
@@ -420,45 +420,45 @@ FLUX;
         return [];
     }
 
-    private function parseCsv(string $csv): array
+    private function parsearCsv(string $csv): array
     {
-        $rows    = [];
-        $headers = null;
+        $filas       = [];
+        $encabezados = null;
 
-        foreach (explode("\n", $csv) as $line) {
-            $line = trim($line);
-            if ($line === '' || strpos($line, '#') === 0) continue;
+        foreach (explode("\n", $csv) as $linea) {
+            $linea = trim($linea);
+            if ($linea === '' || strpos($linea, '#') === 0) continue;
 
-            $cols = str_getcsv($line);
+            $columnas = str_getcsv($linea);
 
-            if ($headers === null) {
-                $headers = $cols;
+            if ($encabezados === null) {
+                $encabezados = $columnas;
                 continue;
             }
 
-            $row = [];
-            foreach ($headers as $i => $h) {
-                $row[$h] = $cols[$i] ?? null;
+            $fila = [];
+            foreach ($encabezados as $i => $columna) {
+                $fila[$columna] = $columnas[$i] ?? null;
             }
-            $rows[] = $row;
+            $filas[] = $fila;
         }
 
-        return $rows;
+        return $filas;
     }
 
-    private function rowsToMap(array $rows, string $timeCol, string $valueCol): array
+    private function filasAMapa(array $filas, string $columnaFecha, string $columnaValor): array
     {
-        $map = [];
-        foreach ($rows as $row) {
-            if (!isset($row[$timeCol], $row[$valueCol]) || !is_numeric($row[$valueCol])) continue;
-            $t = $this->normalizeTimestamp($row[$timeCol]);
-            if ($t) $map[$t] = (float) $row[$valueCol];
+        $mapa = [];
+        foreach ($filas as $fila) {
+            if (!isset($fila[$columnaFecha], $fila[$columnaValor]) || !is_numeric($fila[$columnaValor])) continue;
+            $t = $this->normalizarTimestamp($fila[$columnaFecha]);
+            if ($t) $mapa[$t] = (float) $fila[$columnaValor];
         }
-        ksort($map);
-        return $map;
+        ksort($mapa);
+        return $mapa;
     }
 
-    private function normalizeTimestamp(string $t): ?string
+    private function normalizarTimestamp(string $t): ?string
     {
         if (!is_numeric($t)) {
             try {
@@ -472,28 +472,28 @@ FLUX;
         return gmdate('Y-m-d\TH:i:s\Z', $sec);
     }
 
-    private function sanitizeTag(string $tag): string
+    private function limpiarEtiqueta(string $etiqueta): string
     {
-        return str_replace(['"', "\n", "\r", '\\'], '', $tag);
+        return str_replace(['"', "\n", "\r", '\\'], '', $etiqueta);
     }
 
-    private function fluxTimeLiteral(string $date, bool $startOfDay = true): string
+    private function fluxLiteralFecha(string $fecha, bool $inicioDia = true): string
     {
-        if (strlen($date) > 10) {
+        if (strlen($fecha) > 10) {
             try {
-                return Carbon::parse($date)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                return Carbon::parse($fecha)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
             } catch (\Throwable $e) {
                 // falls through to date-only parsing
             }
         }
 
         try {
-            $dt = Carbon::createFromFormat('Y-m-d', $date, config('app.timezone'));
+            $dt = Carbon::createFromFormat('Y-m-d', $fecha, config('app.timezone'));
         } catch (\Throwable $e) {
-            $dt = Carbon::parse($date);
+            $dt = Carbon::parse($fecha);
         }
 
-        $dt = $startOfDay ? $dt->startOfDay() : $dt->endOfDay();
+        $dt = $inicioDia ? $dt->startOfDay() : $dt->endOfDay();
         return $dt->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
     }
 }
