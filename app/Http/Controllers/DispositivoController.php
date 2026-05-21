@@ -21,7 +21,7 @@ class DispositivoController extends Controller
     public function index(InfluxService $influx)
     {
         $dispositivos        = Auth::user()->dispositivos()->paginate(10);
-        $asignados           = Auth::user()->dispositivos()->pluck('influx_tag')->toArray();
+        $asignados           = Auth::user()->dispositivos()->pluck('etiqueta_influx')->toArray();
         $dispositivosGrafana = array_values(array_diff($influx->listarDispositivos(), $asignados));
 
         return view('monitorizacion.dispositivos', compact('dispositivos', 'dispositivosGrafana'));
@@ -31,10 +31,10 @@ class DispositivoController extends Controller
     {
         $validado = $request->validate([
             'nombre'     => 'required|string|max:255',
-            'influx_tag' => 'required|string|max:255',
+            'etiqueta_influx' => 'required|string|max:255',
         ]);
 
-        $dispositivo = Dispositivo::firstOrCreate(['influx_tag' => $validado['influx_tag']]);
+        $dispositivo = Dispositivo::firstOrCreate(['etiqueta_influx' => $validado['etiqueta_influx']]);
 
         if (Auth::user()->dispositivos()->where('dispositivos.id', $dispositivo->id)->exists()) {
             return redirect()
@@ -54,7 +54,7 @@ class DispositivoController extends Controller
                 'user_id'        => Auth::id(),
                 'dispositivo_id' => $dispositivo->id,
                 'habilitado'     => true,
-                'changed_at'     => $ahora,
+                'modificado_en'  => $ahora,
             ]);
         });
 
@@ -67,12 +67,12 @@ class DispositivoController extends Controller
     {
         $validado = $request->validate([
             'nombre'     => 'required|string|max:255',
-            'influx_tag' => 'required|string|max:255',
+            'etiqueta_influx' => 'required|string|max:255',
         ]);
 
         $usuario = Auth::user();
 
-        if ($validado['influx_tag'] === $dispositivo->influx_tag) {
+        if ($validado['etiqueta_influx'] === $dispositivo->etiqueta_influx) {
             $usuario->dispositivos()->updateExistingPivot($dispositivo->id, ['nombre' => $validado['nombre']]);
         } else {
             $usuario->dispositivos()->detach($dispositivo->id);
@@ -81,7 +81,7 @@ class DispositivoController extends Controller
                 $dispositivo->delete();
             }
 
-            $nuevo = Dispositivo::firstOrCreate(['influx_tag' => $validado['influx_tag']]);
+            $nuevo = Dispositivo::firstOrCreate(['etiqueta_influx' => $validado['etiqueta_influx']]);
             $usuario->dispositivos()->attach($nuevo->id, ['nombre' => $validado['nombre'], 'habilitado' => 1]);
         }
 
@@ -110,7 +110,7 @@ class DispositivoController extends Controller
                 'user_id'        => $usuario->id,
                 'dispositivo_id' => $dispositivo->id,
                 'habilitado'     => $nuevoEstado,
-                'changed_at'     => $ahora,
+                'modificado_en'  => $ahora,
             ]);
         });
 
@@ -123,7 +123,7 @@ class DispositivoController extends Controller
     {
         $usuario = Auth::user();
         $pivot   = $usuario->dispositivos()->where('dispositivos.id', $dispositivo->id)->first();
-        $nombre  = $pivot ? $pivot->pivot->nombre : $dispositivo->influx_tag;
+        $nombre  = $pivot ? $pivot->pivot->nombre : $dispositivo->etiqueta_influx;
 
         $usuario->dispositivos()->detach($dispositivo->id);
 

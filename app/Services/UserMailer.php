@@ -11,7 +11,7 @@ class UserMailer
     public function sendUsingUser(int $userId, string $to, Mailable $mailable): void
     {
         $cred = CredencialSmtp::where('user_id', $userId)
-                              ->where('active', true)
+                              ->where('activo', true)
                               ->first();
 
         if (! $cred) {
@@ -21,12 +21,12 @@ class UserMailer
         config([
             'mail.default'                 => 'smtp',
             'mail.mailers.smtp.host'       => $cred->host,
-            'mail.mailers.smtp.port'       => $cred->port,
-            'mail.mailers.smtp.encryption' => $cred->encryption,
-            'mail.mailers.smtp.username'   => $cred->username,
-            'mail.mailers.smtp.password'   => decrypt($cred->password),
-            'mail.from.address'            => $cred->from_address ?? config('mail.from.address'),
-            'mail.from.name'               => $cred->from_name    ?? config('mail.from.name'),
+            'mail.mailers.smtp.port'       => $cred->puerto,
+            'mail.mailers.smtp.encryption' => $cred->cifrado,
+            'mail.mailers.smtp.username'   => $cred->usuario,
+            'mail.mailers.smtp.password'   => decrypt($cred->contrasena),
+            'mail.from.address'            => $cred->direccion_remitente ?? config('mail.from.address'),
+            'mail.from.name'               => config('mail.from.name'),
         ]);
 
         Mail::mailer('smtp')->to($to)->send($mailable);

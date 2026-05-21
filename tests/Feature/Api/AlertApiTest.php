@@ -84,19 +84,19 @@ class AlertApiTest extends TestCase
         $user = $this->authAs();
 
         RegistroAlerta::factory()->count(3)->create([
-            'user_id'     => $user->id,
-            'device_name' => 'Medidor A',
+            'user_id'            => $user->id,
+            'nombre_dispositivo' => 'Medidor A',
         ]);
         RegistroAlerta::factory()->count(2)->create([
-            'user_id'     => $user->id,
-            'device_name' => 'Medidor B',
+            'user_id'            => $user->id,
+            'nombre_dispositivo' => 'Medidor B',
         ]);
 
         $response = $this->getJson('/api/alerts?device=Medidor A');
         $response->assertStatus(200);
         $this->assertSame(3, $response->json('total'));
         foreach ($response->json('data') as $log) {
-            $this->assertSame('Medidor A', $log['device_name']);
+            $this->assertSame('Medidor A', $log['nombre_dispositivo']);
         }
     }
 
@@ -108,12 +108,12 @@ class AlertApiTest extends TestCase
         $user = $this->authAs();
 
         RegistroAlerta::factory()->count(2)->create([
-            'user_id'   => $user->id,
-            'rule_name' => 'Consumo alto',
+            'user_id'      => $user->id,
+            'nombre_regla' => 'Consumo alto',
         ]);
         RegistroAlerta::factory()->create([
-            'user_id'   => $user->id,
-            'rule_name' => 'Voltaje bajo',
+            'user_id'      => $user->id,
+            'nombre_regla' => 'Voltaje bajo',
         ]);
 
         $response = $this->getJson('/api/alerts?rule=Consumo alto');
@@ -133,7 +133,7 @@ class AlertApiTest extends TestCase
         $response = $this->getJson('/api/alerts?type=firing');
         $this->assertSame(3, $response->json('total'));
         foreach ($response->json('data') as $log) {
-            $this->assertSame('firing', $log['type']);
+            $this->assertSame('firing', $log['tipo']);
         }
     }
 

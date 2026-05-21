@@ -18,27 +18,27 @@ class Informe extends Model
         'telegram',
         'discord',
         'correo',
-        'size_bytes',
-        'generated_at',
-        'status',
-        'error_message',
+        'tamano_bytes',
+        'generado_en',
+        'estado',
+        'mensaje_error',
     ];
 
     protected $casts = [
         'user_id'      => 'integer',
-        'generated_at' => 'datetime',
+        'generado_en'  => 'datetime',
         'periodo_from' => 'date',
         'periodo_to'   => 'date',
     ];
 
-    public function isPending(): bool    { return $this->status === 'pending'; }
-    public function isProcessing(): bool { return $this->status === 'processing'; }
-    public function isCompleted(): bool  { return $this->status === 'completed'; }
-    public function isFailed(): bool     { return $this->status === 'failed'; }
+    public function estaPendiente(): bool    { return $this->estado === 'pending'; }
+    public function estaProcesando(): bool   { return $this->estado === 'processing'; }
+    public function estaCompletado(): bool   { return $this->estado === 'completed'; }
+    public function estaFallido(): bool      { return $this->estado === 'failed'; }
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function dispositivos()

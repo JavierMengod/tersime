@@ -22,9 +22,9 @@ class InformeController extends Controller
             ->with('dispositivos')
             ->paginate(15);
 
-        $tg   = $usuario->telegramCredential;
-        $smtp = $usuario->smtpCredential;
-        $dc   = $usuario->discordCredential;
+        $tg   = $usuario->credencialTelegram;
+        $smtp = $usuario->credencialSmtp;
+        $dc   = $usuario->credencialDiscord;
 
         $canalesSinConfig = [];
         if (!$tg || empty($tg->chat_id)) {
@@ -45,7 +45,7 @@ class InformeController extends Controller
         $registros = auth()->user()
             ->informes()
             ->with('dispositivos')
-            ->orderByRaw("CASE WHEN status IN ('pending','processing') THEN 0 ELSE 1 END ASC")
+            ->orderByRaw("CASE WHEN estado IN ('pending','processing') THEN 0 ELSE 1 END ASC")
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -74,7 +74,7 @@ class InformeController extends Controller
 
         $usuario = auth()->user();
 
-        $pendientes = $usuario->informes()->whereIn('status', ['pending', 'processing'])->count();
+        $pendientes = $usuario->informes()->whereIn('estado', ['pending', 'processing'])->count();
         if ($pendientes >= 3) {
             return response()->json(['error' => 'Tienes informes en proceso. Espera a que finalicen antes de solicitar uno nuevo.'], 429);
         }
@@ -130,7 +130,7 @@ class InformeController extends Controller
                     'discord'        => $discord,
                     'correo'         => $correo,
                     'correo_destino' => $correoDestino,
-                    'status'         => 'pending',
+                    'estado'         => 'pending',
                 ]);
 
                 if (!empty($idsDispositivos)) {
@@ -169,14 +169,14 @@ class InformeController extends Controller
             abort(404);
         }
 
-        $datos = ['status' => $informe->status];
+        $datos = ['status' => $informe->estado];
 
-        if ($informe->isCompleted()) {
+        if ($informe->estaCompletado()) {
             $datos['download_url'] = route('informes.demanda.download', ['nombreArchivo' => $informe->nombre_archivo], false);
         }
 
-        if ($informe->isFailed()) {
-            $datos['error'] = $informe->error_message;
+        if ($informe->estaFallido()) {
+            $datos['error'] = $informe->mensaje_error;
         }
 
         return response()->json($datos);

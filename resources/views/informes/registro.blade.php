@@ -3,7 +3,7 @@
 @section('title', __('Registro de Informes'))
 
 @php
-  $hayActivos = $registros->contains(fn($r) => in_array($r->status, ['pending','processing']));
+  $hayActivos = $registros->contains(fn($r) => in_array($r->estado, ['pending','processing']));
 @endphp
 
 @section('contenido')
@@ -47,27 +47,27 @@
         </thead>
         <tbody>
           @forelse ($registros as $registro)
-            <tr class="{{ in_array($registro->status, ['pending','processing']) ? 'table-warning' : ($registro->status === 'failed' ? 'table-danger' : '') }}"
-                @if(in_array($registro->status, ['pending','processing'])) data-informe-id="{{ $registro->id }}" data-status-url="{{ route('informes.status', $registro->id) }}" @endif>
+            <tr class="{{ in_array($registro->estado, ['pending','processing']) ? 'table-warning' : ($registro->estado === 'failed' ? 'table-danger' : '') }}"
+                @if(in_array($registro->estado, ['pending','processing'])) data-informe-id="{{ $registro->id }}" data-status-url="{{ route('informes.status', $registro->id) }}" @endif>
 
               {{-- Estado --}}
               <td class="text-nowrap">
-                @if($registro->status === 'completed')
+                @if($registro->estado === 'completed')
                   <span class="badge bg-success"><i class="fas fa-check me-1"></i>{{ __('Listo') }}</span>
-                @elseif($registro->status === 'processing')
+                @elseif($registro->estado === 'processing')
                   <span class="badge bg-primary">
                     <span class="spinner-border spinner-border-sm me-1" style="width:.65rem;height:.65rem;"></span>{{ __('Generando') }}
                   </span>
-                @elseif($registro->status === 'pending')
+                @elseif($registro->estado === 'pending')
                   <span class="badge bg-warning text-dark">
                     <span class="spinner-border spinner-border-sm me-1" style="width:.65rem;height:.65rem;"></span>{{ __('En cola') }}
                   </span>
-                @elseif($registro->status === 'failed')
-                  <span class="badge bg-danger" @if($registro->error_message) title="{{ $registro->error_message }}" data-bs-toggle="tooltip" @endif>
+                @elseif($registro->estado === 'failed')
+                  <span class="badge bg-danger" @if($registro->mensaje_error) title="{{ $registro->mensaje_error }}" data-bs-toggle="tooltip" @endif>
                     <i class="fas fa-times me-1"></i>{{ __('Error') }}
                   </span>
                 @else
-                  <span class="badge bg-secondary">{{ $registro->status }}</span>
+                  <span class="badge bg-secondary">{{ $registro->estado }}</span>
                 @endif
               </td>
 
@@ -121,8 +121,8 @@
 
               {{-- Tamaño --}}
               <td class="d-none d-xl-table-cell text-nowrap">
-                @if($registro->size_bytes)
-                  {{ number_format($registro->size_bytes / 1024, 0) }} KB
+                @if($registro->tamano_bytes)
+                  {{ number_format($registro->tamano_bytes / 1024, 0) }} KB
                 @else
                   <em class="text-muted">—</em>
                 @endif
@@ -130,10 +130,10 @@
 
               {{-- Fecha --}}
               <td class="text-nowrap">
-                @if($registro->generated_at)
-                  <div>{{ $registro->generated_at->format('d/m/y') }}</div>
-                  <div class="text-muted" style="font-size:.75rem;">{{ $registro->generated_at->format('H:i') }}</div>
-                @elseif(in_array($registro->status, ['pending','processing']))
+                @if($registro->generado_en)
+                  <div>{{ $registro->generado_en->format('d/m/y') }}</div>
+                  <div class="text-muted" style="font-size:.75rem;">{{ $registro->generado_en->format('H:i') }}</div>
+                @elseif(in_array($registro->estado, ['pending','processing']))
                   <em class="text-muted" style="font-size:.75rem;">{{ __('en proceso') }}</em>
                 @else
                   <em class="text-muted">—</em>
@@ -143,7 +143,7 @@
               {{-- Acciones --}}
               <td>
                 <div class="d-flex gap-1">
-                  @if($registro->status === 'completed')
+                  @if($registro->estado === 'completed')
                     <a href="{{ route('informes.download', $registro) }}"
                        class="btn btn-sm btn-success py-0 px-2"
                        title="{{ __('Descargar') }}">
@@ -170,10 +170,10 @@
             </tr>
 
             {{-- Mensaje de error expandido — solo para admins --}}
-            @if($registro->status === 'failed' && $registro->error_message && auth()->user()->admin)
+            @if($registro->estado === 'failed' && $registro->mensaje_error && auth()->user()->admin)
               <tr class="table-danger">
                 <td colspan="8" class="py-1 px-3">
-                  <small class="text-danger"><i class="fas fa-info-circle me-1"></i>{{ $registro->error_message }}</small>
+                  <small class="text-danger"><i class="fas fa-info-circle me-1"></i>{{ $registro->mensaje_error }}</small>
                 </td>
               </tr>
             @endif

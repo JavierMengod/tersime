@@ -24,20 +24,20 @@ class VerificarReglas extends Command
         $this->info('=== Inicio de revisión de reglas ===');
         Log::info('Inicio de revisión de reglas');
 
-        $reglas = Regla::with(['dispositivos', 'user'])
-            ->where('is_active', true)
+        $reglas = Regla::with(['dispositivos', 'usuario'])
+            ->where('activo', true)
             ->get();
 
         foreach ($reglas as $regla) {
-            $usuario       = $regla->user;
+            $usuario       = $regla->usuario;
             $nombreUsuario = $usuario ? $usuario->name : 'Desconocido';
 
             foreach ($regla->dispositivos as $dispositivo) {
-                $etiqueta    = $dispositivo->influx_tag;
+                $etiqueta    = $dispositivo->etiqueta_influx;
                 $valorActual = $influx->ultimoValor($etiqueta);
 
                 $condicionCumplida = ($valorActual === null)
-                    || $this->evaluarCondicion($valorActual, $regla->operator, $regla->comparison_value);
+                    || $this->evaluarCondicion($valorActual, $regla->operador, $regla->valor_comparacion);
 
                 $estado         = $dispositivo->pivot->alert_state ?? 'ok';
                 $pendienteDesde = $dispositivo->pivot->pending_since
@@ -45,7 +45,7 @@ class VerificarReglas extends Command
                     : null;
 
                 $etiquetaValor = $valorActual === null ? 'sin datos' : "{$valorActual} kWh";
-                $this->line("[{$nombreUsuario}] {$regla->name} | {$dispositivo->nombre} = {$etiquetaValor} | estado={$estado} | condición=" . ($condicionCumplida ? 'SÍ' : 'NO'));
+                $this->line("[{$nombreUsuario}] {$regla->nombre} | {$dispositivo->nombre} = {$etiquetaValor} | estado={$estado} | condición=" . ($condicionCumplida ? 'SÍ' : 'NO'));
 
                 Log::info('Evaluando regla', [
                     'regla_id'          => $regla->id,
@@ -58,11 +58,11 @@ class VerificarReglas extends Command
                 switch ($estado) {
                     case 'ok':
                         if ($condicionCumplida) {
-                            if ($regla->for_duration === 0) {
+                            if ($regla->duracion === 0) {
                                 $this->transicionActiva($regla, $dispositivo, $notificador, $usuario, $valorActual);
                             } else {
                                 $this->transicionPendiente($regla, $dispositivo);
-                                $this->line("  → Condición cumplida, esperando ventana de {$regla->for_duration} min.");
+                                $this->line("  → Condición cumplida, esperando ventana de {$regla->duracion} min.");
                             }
                         }
                         break;
@@ -70,10 +70,10 @@ class VerificarReglas extends Command
                     case 'pending':
                         if ($condicionCumplida) {
                             $minutos = $pendienteDesde ? $pendienteDesde->diffInMinutes(Carbon::now()) : 0;
-                            if ($minutos >= $regla->for_duration) {
+                            if ($minutos >= $regla->duracion) {
                                 $this->transicionActiva($regla, $dispositivo, $notificador, $usuario, $valorActual);
                             } else {
-                                $restantes = $regla->for_duration - $minutos;
+                                $restantes = $regla->duracion - $minutos;
                                 $this->line("  → Pendiente, faltan {$restantes} min para confirmar.");
                             }
                         } else {
@@ -112,14 +112,14 @@ class VerificarReglas extends Command
         $regla->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'       => 'firing',
             'pending_since'     => null,
-            'last_triggered_at' => Carbon::now()->toDateTimeString(),
+            'ultimo_disparo_en' => Carbon::now()->toDateTimeString(),
         ]);
 
         $this->info("  → FIRING: enviando alerta.");
 
         $mensaje = $valorActual === null
-            ? "🚨 Sin datos en las últimas 24 h para {$dispositivo->nombre} (regla: {$regla->name})"
-            : "🚨 Regla '{$regla->name}' activada en {$dispositivo->nombre} (valor={$valorActual} kWh)";
+            ? "🚨 Sin datos en las últimas 24 h para {$dispositivo->nombre} (regla: {$regla->nombre})"
+            : "🚨 Regla '{$regla->nombre}' activada en {$dispositivo->nombre} (valor={$valorActual} kWh)";
 
         $this->despacharAlerta('firing', $regla, $dispositivo, $notificador, $usuario, $valorActual, $mensaje);
         Log::info('Estado → firing', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
@@ -144,7 +144,7 @@ class VerificarReglas extends Command
         $this->info("  → RESUELTO: enviando notificación de resolución.");
 
         $etiquetaValor = $valorActual === null ? 'sin datos' : "{$valorActual} kWh";
-        $mensaje       = "✅ Regla '{$regla->name}' resuelta en {$dispositivo->nombre} (valor actual={$etiquetaValor})";
+        $mensaje       = "✅ Regla '{$regla->nombre}' resuelta en {$dispositivo->nombre} (valor actual={$etiquetaValor})";
 
         $this->despacharAlerta('resolution', $regla, $dispositivo, $notificador, $usuario, $valorActual, $mensaje);
         Log::info('Estado → ok (resolución)', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
@@ -157,7 +157,7 @@ class VerificarReglas extends Command
 
         if ($usuario) {
             try {
-                $usuario->notify(new NotificacionAlerta($tipo, $regla->name, $dispositivo->nombre, $mensaje));
+                $usuario->notify(new NotificacionAlerta($tipo, $regla->nombre, $dispositivo->nombre, $mensaje));
             } catch (\Throwable $e) {
                 Log::error("Error guardando notificación DB ({$tipo})", ['error' => $e->getMessage()]);
             }
@@ -172,12 +172,12 @@ class VerificarReglas extends Command
         ?float $valorActual,
         string $mensajePorDefecto
     ): void {
-        if ($regla->email_enabled && $regla->recipient_email && $usuario) {
-            $mensaje = $regla->template_email
-                ? $this->interpolarPlantilla($regla->template_email, $regla, $dispositivo, $valorActual)
+        if ($regla->correo_activo && $regla->correo_destinatario && $usuario) {
+            $mensaje = $regla->plantilla_correo
+                ? $this->interpolarPlantilla($regla->plantilla_correo, $regla, $dispositivo, $valorActual)
                 : $mensajePorDefecto;
             try {
-                $notificador->sendEmail($mensaje, $usuario, $regla->recipient_email);
+                $notificador->sendEmail($mensaje, $usuario, $regla->correo_destinatario);
                 Log::info('Email enviado', ['regla_id' => $regla->id]);
             } catch (\Throwable $e) {
                 $this->error("Error email: " . $e->getMessage());
@@ -185,9 +185,9 @@ class VerificarReglas extends Command
             }
         }
 
-        if ($regla->telegram_enabled && $usuario) {
-            $mensaje = $regla->template_telegram
-                ? $this->interpolarPlantilla($regla->template_telegram, $regla, $dispositivo, $valorActual)
+        if ($regla->telegram_activo && $usuario) {
+            $mensaje = $regla->plantilla_telegram
+                ? $this->interpolarPlantilla($regla->plantilla_telegram, $regla, $dispositivo, $valorActual)
                 : $mensajePorDefecto;
             try {
                 $notificador->sendTelegram($mensaje, $usuario);
@@ -198,9 +198,9 @@ class VerificarReglas extends Command
             }
         }
 
-        if ($regla->discord_enabled && $usuario) {
-            $mensaje = $regla->template_discord
-                ? $this->interpolarPlantilla($regla->template_discord, $regla, $dispositivo, $valorActual)
+        if ($regla->discord_activo && $usuario) {
+            $mensaje = $regla->plantilla_discord
+                ? $this->interpolarPlantilla($regla->plantilla_discord, $regla, $dispositivo, $valorActual)
                 : $mensajePorDefecto;
             try {
                 $notificador->sendDiscord($mensaje, $usuario);
@@ -216,28 +216,28 @@ class VerificarReglas extends Command
     {
         $etiquetaValor = $valorActual === null ? 'sin datos' : "{$valorActual} kWh";
         return str_replace(
-            ['{dispositivo}', '{device}', '{regla}',    '{rule}',      '{valor}',         '{value}'],
-            [$dispositivo->nombre, $dispositivo->nombre, $regla->name, $regla->name, $etiquetaValor, $etiquetaValor],
+            ['{dispositivo}', '{device}', '{regla}',      '{rule}',       '{valor}',         '{value}'],
+            [$dispositivo->nombre, $dispositivo->nombre, $regla->nombre, $regla->nombre, $etiquetaValor, $etiquetaValor],
             $plantilla
         );
     }
 
     private function registrarLog(Regla $regla, Dispositivo $dispositivo, string $tipo, string $mensaje): void
     {
-        $canales = collect(['telegram', 'email', 'discord'])
-            ->filter(fn($canal) => $regla->{"{$canal}_enabled"})
-            ->values()
-            ->toArray();
+        $canales = [];
+        if ($regla->correo_activo)   $canales[] = 'email';
+        if ($regla->telegram_activo) $canales[] = 'telegram';
+        if ($regla->discord_activo)  $canales[] = 'discord';
 
         RegistroAlerta::create([
-            'user_id'        => $regla->user_id,
-            'rule_id'        => $regla->id,
-            'rule_name'      => $regla->name,
-            'dispositivo_id' => $dispositivo->id,
-            'device_name'    => $dispositivo->nombre,
-            'type'           => $tipo,
-            'channels'       => $canales ?: null,
-            'message'        => $mensaje,
+            'user_id'             => $regla->user_id,
+            'regla_id'            => $regla->id,
+            'nombre_regla'        => $regla->nombre,
+            'dispositivo_id'      => $dispositivo->id,
+            'nombre_dispositivo'  => $dispositivo->nombre,
+            'tipo'                => $tipo,
+            'canales'             => $canales ?: null,
+            'mensaje'             => $mensaje,
         ]);
     }
 

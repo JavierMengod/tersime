@@ -32,7 +32,7 @@
     <div class="row g-4">
 
         {{-- ── TELEGRAM ─────────────────────────────────────────────────────── --}}
-        @php $tg = auth()->user()->telegramCredential; @endphp
+        @php $tg = auth()->user()->credencialTelegram; @endphp
         <div class="col-md-4">
             <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #229ED9 !important;">
                 <div class="card-body d-flex flex-column">
@@ -43,7 +43,7 @@
                             <i class="fab fa-telegram fs-3" style="color:#229ED9;"></i>
                             <h5 class="mb-0">Telegram</h5>
                         </div>
-                        @if ($tg && $tg->active)
+                        @if ($tg && $tg->activo)
                             <span class="badge bg-success">{{ __('Activo') }}</span>
                         @elseif($tg)
                             <span class="badge bg-secondary">{{ __('Inactivo') }}</span>
@@ -73,11 +73,11 @@
                         @if ($tg)
                             <form method="POST" action="{{ route('alertas.medios.update', 'telegram') }}">
                                 @csrf @method('PUT')
-                                <input type="hidden" name="active" value="{{ $tg->active ? 0 : 1 }}">
+                                <input type="hidden" name="active" value="{{ $tg->activo ? 0 : 1 }}">
                                 <button type="submit"
-                                        class="btn btn-sm {{ $tg->active ? 'btn-outline-secondary' : 'btn-outline-success' }}"
-                                        title="{{ $tg->active ? __('Desactivar') : __('Activar') }}">
-                                    <i class="fas {{ $tg->active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                        class="btn btn-sm {{ $tg->activo ? 'btn-outline-secondary' : 'btn-outline-success' }}"
+                                        title="{{ $tg->activo ? __('Desactivar') : __('Activar') }}">
+                                    <i class="fas {{ $tg->activo ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('alertas.medios.destroy', 'telegram') }}"
@@ -95,7 +95,7 @@
         </div>
 
         {{-- ── CORREO ───────────────────────────────────────────────────────── --}}
-        @php $smtp = auth()->user()->smtpCredential; @endphp
+        @php $smtp = auth()->user()->credencialSmtp; @endphp
         <div class="col-md-4">
             <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #f59e0b !important;">
                 <div class="card-body d-flex flex-column">
@@ -105,7 +105,7 @@
                             <i class="fas fa-envelope fs-3 text-warning"></i>
                             <h5 class="mb-0">{{ __('Correo') }}</h5>
                         </div>
-                        @if ($smtp && $smtp->active)
+                        @if ($smtp && $smtp->activo)
                             <span class="badge bg-success">{{ __('Activo') }}</span>
                         @elseif($smtp)
                             <span class="badge bg-secondary">{{ __('Inactivo') }}</span>
@@ -117,10 +117,10 @@
                     <div class="flex-grow-1 mb-3">
                         @if($smtp)
                             <div class="small text-muted mb-1">
-                                <i class="fas fa-at me-1"></i>{{ $smtp->from_address ?: $smtp->username }}
+                                <i class="fas fa-at me-1"></i>{{ $smtp->direccion_remitente ?: $smtp->usuario }}
                             </div>
                             <div class="small text-muted">
-                                <i class="fas fa-server me-1"></i>{{ $smtp->host }}:{{ $smtp->port }}
+                                <i class="fas fa-server me-1"></i>{{ $smtp->host }}:{{ $smtp->puerto }}
                             </div>
                         @else
                             <p class="small text-muted mb-0">{{ __('Configura tu servidor SMTP para enviar alertas por correo electrónico.') }}</p>
@@ -135,11 +135,11 @@
                         @if ($smtp)
                             <form method="POST" action="{{ route('alertas.medios.update', 'email') }}">
                                 @csrf @method('PUT')
-                                <input type="hidden" name="active" value="{{ $smtp->active ? 0 : 1 }}">
+                                <input type="hidden" name="active" value="{{ $smtp->activo ? 0 : 1 }}">
                                 <button type="submit"
-                                        class="btn btn-sm {{ $smtp->active ? 'btn-outline-secondary' : 'btn-outline-success' }}"
-                                        title="{{ $smtp->active ? __('Desactivar') : __('Activar') }}">
-                                    <i class="fas {{ $smtp->active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                        class="btn btn-sm {{ $smtp->activo ? 'btn-outline-secondary' : 'btn-outline-success' }}"
+                                        title="{{ $smtp->activo ? __('Desactivar') : __('Activar') }}">
+                                    <i class="fas {{ $smtp->activo ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('alertas.medios.destroy', 'email') }}"
@@ -157,7 +157,7 @@
         </div>
 
         {{-- ── DISCORD ──────────────────────────────────────────────────────── --}}
-        @php $dc = auth()->user()->discordCredential; @endphp
+        @php $dc = auth()->user()->credencialDiscord; @endphp
         <div class="col-md-4">
             <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #5865F2 !important;">
                 <div class="card-body d-flex flex-column">
@@ -167,7 +167,7 @@
                             <i class="fab fa-discord fs-3" style="color:#5865F2;"></i>
                             <h5 class="mb-0">Discord</h5>
                         </div>
-                        @if ($dc && $dc->active)
+                        @if ($dc && $dc->activo)
                             <span class="badge bg-success">{{ __('Activo') }}</span>
                         @elseif($dc)
                             <span class="badge bg-secondary">{{ __('Inactivo') }}</span>
@@ -194,11 +194,11 @@
                         @if ($dc)
                             <form method="POST" action="{{ route('alertas.medios.update', 'discord') }}">
                                 @csrf @method('PUT')
-                                <input type="hidden" name="active" value="{{ $dc->active ? 0 : 1 }}">
+                                <input type="hidden" name="active" value="{{ $dc->activo ? 0 : 1 }}">
                                 <button type="submit"
-                                        class="btn btn-sm {{ $dc->active ? 'btn-outline-secondary' : 'btn-outline-success' }}"
-                                        title="{{ $dc->active ? __('Desactivar') : __('Activar') }}">
-                                    <i class="fas {{ $dc->active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                        class="btn btn-sm {{ $dc->activo ? 'btn-outline-secondary' : 'btn-outline-success' }}"
+                                        title="{{ $dc->activo ? __('Desactivar') : __('Activar') }}">
+                                    <i class="fas {{ $dc->activo ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('alertas.medios.destroy', 'discord') }}"
@@ -235,7 +235,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                @php $tg = auth()->user()->telegramCredential; @endphp
+                @php $tg = auth()->user()->credencialTelegram; @endphp
 
                 <div class="alert alert-info py-2 small mb-3">
                     <i class="fas fa-info-circle me-1"></i>
@@ -282,7 +282,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                @php $smtp = auth()->user()->smtpCredential; @endphp
+                @php $smtp = auth()->user()->credencialSmtp; @endphp
 
                 <div class="alert alert-info py-2 small mb-3">
                     <i class="fas fa-info-circle me-1"></i>
@@ -293,7 +293,7 @@
                     <div class="col-12">
                         <label class="form-label fw-semibold">{{ __('Dirección de envío (From)') }}</label>
                         <input type="email" class="form-control" name="from_address"
-                               value="{{ old('from_address', $smtp->from_address ?? '') }}"
+                               value="{{ old('from_address', $smtp->direccion_remitente ?? '') }}"
                                placeholder="alertas@tudominio.com">
                     </div>
                     <div class="col-8">
@@ -305,13 +305,13 @@
                     <div class="col-4">
                         <label class="form-label fw-semibold">{{ __('Puerto') }}</label>
                         <input type="number" class="form-control" name="smtp_port"
-                               value="{{ old('smtp_port', $smtp->port ?? 587) }}"
+                               value="{{ old('smtp_port', $smtp->puerto ?? 587) }}"
                                placeholder="587">
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold">{{ __('Usuario SMTP') }}</label>
                         <input type="text" class="form-control" name="smtp_user"
-                               value="{{ old('smtp_user', $smtp->username ?? '') }}"
+                               value="{{ old('smtp_user', $smtp->usuario ?? '') }}"
                                placeholder="usuario@dominio.com"
                                autocomplete="username">
                     </div>
@@ -348,7 +348,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                @php $dc = auth()->user()->discordCredential; @endphp
+                @php $dc = auth()->user()->credencialDiscord; @endphp
 
                 <div class="alert alert-info py-2 small mb-3">
                     <i class="fas fa-info-circle me-1"></i>

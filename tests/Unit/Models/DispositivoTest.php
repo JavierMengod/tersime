@@ -15,7 +15,7 @@ class DispositivoTest extends TestCase
     #[Test]
     public function nombre_returns_influx_tag_as_fallback_when_no_user_context(): void
     {
-        $device = Dispositivo::factory()->create(['influx_tag' => 'RAW_TAG_001']);
+        $device = Dispositivo::factory()->create(['etiqueta_influx' => 'RAW_TAG_001']);
 
         $this->assertSame('RAW_TAG_001', $device->nombre);
     }
@@ -24,7 +24,7 @@ class DispositivoTest extends TestCase
     public function nombre_returns_pivot_nombre_when_loaded_via_user_relation(): void
     {
         $user   = User::factory()->create();
-        $device = Dispositivo::factory()->create(['influx_tag' => 'DEV_001']);
+        $device = Dispositivo::factory()->create(['etiqueta_influx' => 'DEV_001']);
 
         $user->dispositivos()->attach($device->id, [
             'nombre'    => 'Medidor Planta Baja',
@@ -40,7 +40,7 @@ class DispositivoTest extends TestCase
     public function nombre_returns_db_lookup_for_authenticated_user_without_pivot(): void
     {
         $user   = User::factory()->create();
-        $device = Dispositivo::factory()->create(['influx_tag' => 'DEV_002']);
+        $device = Dispositivo::factory()->create(['etiqueta_influx' => 'DEV_002']);
 
         $user->dispositivos()->attach($device->id, [
             'nombre'    => 'Contador Principal',
@@ -57,7 +57,7 @@ class DispositivoTest extends TestCase
     public function nombre_returns_influx_tag_for_authenticated_user_with_no_association(): void
     {
         $user   = User::factory()->create();
-        $device = Dispositivo::factory()->create(['influx_tag' => 'ORPHAN_DEV']);
+        $device = Dispositivo::factory()->create(['etiqueta_influx' => 'ORPHAN_DEV']);
 
         $this->actingAs($user);
 
@@ -84,7 +84,7 @@ class DispositivoTest extends TestCase
     {
         $user1  = User::factory()->create();
         $user2  = User::factory()->create();
-        $device = Dispositivo::factory()->create(['influx_tag' => 'SHARED_DEV']);
+        $device = Dispositivo::factory()->create(['etiqueta_influx' => 'SHARED_DEV']);
 
         $user1->dispositivos()->attach($device->id, ['nombre' => 'Nombre User1', 'habilitado' => 1]);
         $user2->dispositivos()->attach($device->id, ['nombre' => 'Nombre User2', 'habilitado' => 1]);

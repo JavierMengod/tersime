@@ -21,13 +21,13 @@ class NotificationMethodController extends Controller
 
         /** ---------------- TELEGRAM ---------------- */
         if ($tipo === 'telegram') {
-            $credencial = $usuario->telegramCredential;
+            $credencial = $usuario->credencialTelegram;
 
             if ($request->has('active') && !$request->has('chat_id')) {
                 if (!$credencial) {
                     return back()->withErrors('Primero configura Telegram antes de activar/desactivar.');
                 }
-                $credencial->update(['active' => $request->input('active') == 1]);
+                $credencial->update(['activo' => $request->input('active') == 1]);
                 return back()->with('status', 'Estado de Telegram actualizado.');
             }
 
@@ -54,10 +54,10 @@ class NotificationMethodController extends Controller
                              ->with('error_channel', 'telegram');
             }
 
-            $usuario->telegramCredential()->updateOrCreate([], [
+            $usuario->credencialTelegram()->updateOrCreate([], [
                 'chat_id'   => $validado['chat_id'],
                 'bot_token' => encrypt($tokenRaw),
-                'active'    => $credencial ? $credencial->active : true,
+                'activo'    => $credencial ? $credencial->activo : true,
             ]);
 
             return back()->with('status', 'Configuración de Telegram actualizada y verificada.');
@@ -65,13 +65,13 @@ class NotificationMethodController extends Controller
 
         /** ---------------- EMAIL ---------------- */
         if ($tipo === 'email') {
-            $credencial = $usuario->smtpCredential;
+            $credencial = $usuario->credencialSmtp;
 
             if ($request->has('active') && !$request->has('smtp_host')) {
                 if (!$credencial) {
                     return back()->withErrors('Primero configura Email antes de activar/desactivar.');
                 }
-                $credencial->update(['active' => $request->input('active') == 1]);
+                $credencial->update(['activo' => $request->input('active') == 1]);
                 return back()->with('status', 'Estado de Email actualizado.');
             }
 
@@ -91,7 +91,7 @@ class NotificationMethodController extends Controller
                     return back()->withErrors('Se requiere contraseña SMTP para la configuración inicial.')
                                  ->with('error_channel', 'email');
                 }
-                $contrasena = decrypt($credencial->password);
+                $contrasena = decrypt($credencial->contrasena);
             }
 
             try {
@@ -117,16 +117,16 @@ class NotificationMethodController extends Controller
                              ->with('error_channel', 'email');
             }
 
-            $usuario->smtpCredential()->updateOrCreate(
+            $usuario->credencialSmtp()->updateOrCreate(
                 ['user_id' => $usuario->id],
                 [
-                    'host'         => $validado['smtp_host'],
-                    'port'         => $validado['smtp_port'],
-                    'username'     => $validado['smtp_user'],
-                    'from_address' => $validado['from_address'],
-                    'password'     => encrypt($contrasena),
-                    'encryption'   => 'tls',
-                    'active'       => $credencial ? $credencial->active : true,
+                    'host'                => $validado['smtp_host'],
+                    'puerto'              => $validado['smtp_port'],
+                    'usuario'             => $validado['smtp_user'],
+                    'direccion_remitente' => $validado['from_address'],
+                    'contrasena'          => encrypt($contrasena),
+                    'cifrado'             => 'tls',
+                    'activo'              => $credencial ? $credencial->activo : true,
                 ]
             );
 
@@ -135,13 +135,13 @@ class NotificationMethodController extends Controller
 
         /** ---------------- DISCORD ---------------- */
         if ($tipo === 'discord') {
-            $credencial = $usuario->discordCredential;
+            $credencial = $usuario->credencialDiscord;
 
             if ($request->has('active') && !$request->has('webhook_url')) {
                 if (!$credencial) {
                     return back()->withErrors('Primero configura Discord antes de activar/desactivar.');
                 }
-                $credencial->update(['active' => $request->input('active') == 1]);
+                $credencial->update(['activo' => $request->input('active') == 1]);
                 return back()->with('status', 'Estado de Discord actualizado.');
             }
 
@@ -164,11 +164,11 @@ class NotificationMethodController extends Controller
                              ->with('error_channel', 'discord');
             }
 
-            $usuario->discordCredential()->updateOrCreate(
+            $usuario->credencialDiscord()->updateOrCreate(
                 ['user_id' => $usuario->id],
                 [
                     'webhook_url' => $validado['webhook_url'],
-                    'active'      => $credencial ? $credencial->active : true,
+                    'activo'      => $credencial ? $credencial->activo : true,
                 ]
             );
 
@@ -183,12 +183,12 @@ class NotificationMethodController extends Controller
         $usuario = $request->user();
         $nombres = ['telegram' => 'Telegram', 'email' => 'Correo', 'discord' => 'Discord'];
 
-        if ($tipo === 'telegram' && $usuario->telegramCredential) {
-            $usuario->telegramCredential->delete();
-        } elseif ($tipo === 'email' && $usuario->smtpCredential) {
-            $usuario->smtpCredential->delete();
-        } elseif ($tipo === 'discord' && $usuario->discordCredential) {
-            $usuario->discordCredential->delete();
+        if ($tipo === 'telegram' && $usuario->credencialTelegram) {
+            $usuario->credencialTelegram->delete();
+        } elseif ($tipo === 'email' && $usuario->credencialSmtp) {
+            $usuario->credencialSmtp->delete();
+        } elseif ($tipo === 'discord' && $usuario->credencialDiscord) {
+            $usuario->credencialDiscord->delete();
         }
 
         Log::info("Canal {$tipo} desconectado para usuario {$usuario->id}");

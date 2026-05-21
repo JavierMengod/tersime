@@ -20,7 +20,7 @@ class AlertIndexRequest extends FormRequest
             'from'     => 'nullable|date_format:Y-m-d',
             'to'       => 'nullable|date_format:Y-m-d',
             'per_page' => 'nullable|integer|min:1|max:100',
-            'sort'     => 'nullable|in:created_at,device_name,rule_name,type',
+            'sort'     => 'nullable|in:created_at,nombre_dispositivo,nombre_regla,tipo',
             'dir'      => 'nullable|in:asc,desc',
         ];
     }

@@ -18,7 +18,7 @@ class ReportController extends Controller
         $informes = $request->user()
             ->informes()
             ->with('dispositivos')
-            ->latest('generated_at')
+            ->latest('generado_en')
             ->paginate((int) $request->input('per_page', 20));
 
         $informes->getCollection()->transform(fn($informe) => (new ReportResource($informe))->toArray($request));

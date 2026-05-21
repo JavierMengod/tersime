@@ -14,13 +14,13 @@ class CredencialTelegram extends Model
     protected $fillable = [
         'chat_id',
         'bot_token',
-        'active',
+        'activo',
     ];
 
     protected $hidden = ['bot_token'];
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

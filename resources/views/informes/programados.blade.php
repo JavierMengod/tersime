@@ -5,7 +5,7 @@
 @section('contenido')
 @php
     $devicesList = auth()->user()->dispositivos->map(function($d) {
-        return ['id' => $d->id, 'nombre' => $d->nombre ?? $d->name ?? $d->influx_tag ?? 'Dispositivo'];
+        return ['id' => $d->id, 'nombre' => $d->nombre ?? $d->name ?? $d->etiqueta_influx ?? 'Dispositivo'];
     })->values()->toArray();
 @endphp
 
@@ -83,7 +83,7 @@
                         </td>
 
                         <td class="text-nowrap text-muted d-none d-lg-table-cell">
-                            {{ $informe->last_run_at ? $informe->last_run_at->format('d/m/y H:i') : '—' }}
+                            {{ $informe->ultima_ejecucion_at ? $informe->ultima_ejecucion_at->format('d/m/y H:i') : '—' }}
                         </td>
 
                         <td class="text-nowrap d-none d-sm-table-cell {{ ($proxima && $proxima->isPast() && $informe->activo) ? 'text-danger fw-semibold' : 'text-muted' }}">

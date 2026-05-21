@@ -25,15 +25,15 @@ class RuleController extends Controller
 
     public function store(RuleRequest $request)
     {
-        if (Regla::userHasReachedLimit($request->user()->id)) {
+        if (Regla::limiteAlcanzado($request->user()->id)) {
             return response()->json(['error' => 'Has alcanzado el límite de 50 reglas.'], 422);
         }
 
         $validated = $request->validated();
 
         $rule = Regla::create(array_merge($this->ruleFieldsFrom($validated), [
-            'user_id'   => $request->user()->id,
-            'is_active' => true,
+            'user_id' => $request->user()->id,
+            'activo'  => true,
         ]));
 
         $rule->dispositivos()->sync($validated['devices']);
@@ -70,12 +70,12 @@ class RuleController extends Controller
     public function toggle(Request $request, $id)
     {
         $rule     = $this->findOwnedRule($request, $id);
-        $newState = !$rule->is_active;
-        $rule->update(['is_active' => $newState]);
+        $newState = !$rule->activo;
+        $rule->update(['activo' => $newState]);
 
         return response()->json([
-            'id'        => $rule->id,
-            'is_active' => $newState,
+            'id'     => $rule->id,
+            'activo' => $newState,
         ]);
     }
 

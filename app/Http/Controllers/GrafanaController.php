@@ -26,8 +26,8 @@ class GrafanaController extends Controller
         }
 
         $mapaDeNombres = auth()->user()->dispositivos
-            ->whereIn('influx_tag', $etiquetas)
-            ->mapWithKeys(fn($d) => [$d->influx_tag => $d->pivot->nombre])
+            ->whereIn('etiqueta_influx', $etiquetas)
+            ->mapWithKeys(fn($d) => [$d->etiqueta_influx => $d->pivot->nombre])
             ->toArray();
 
         $conjuntoDatos = [];

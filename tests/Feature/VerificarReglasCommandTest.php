@@ -27,7 +27,7 @@ class VerificarReglasCommandTest extends TestCase
         parent::setUp();
 
         $this->user   = User::factory()->create();
-        $this->device = Dispositivo::factory()->create(['influx_tag' => 'TEST-DEV-001']);
+        $this->device = Dispositivo::factory()->create(['etiqueta_influx' => 'TEST-DEV-001']);
 
         $this->user->dispositivos()->attach($this->device->id, [
             'nombre'    => 'Medidor Test',
@@ -66,9 +66,9 @@ class VerificarReglasCommandTest extends TestCase
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'       => $this->user->id,
-            'for_duration'  => 0,
-            'email_enabled' => true,
-            'recipient_email' => 'alerts@test.com',
+            'duracion'  => 0,
+            'correo_activo' => true,
+            'correo_destinatario' => 'alerts@test.com',
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(150.0);
@@ -122,9 +122,9 @@ class VerificarReglasCommandTest extends TestCase
     public function pending_transitions_to_firing_after_duration_elapsed(): void
     {
         $rule = Regla::factory()->withOperator('>', 100)->withDuration(15)->create([
-            'user_id'        => $this->user->id,
-            'email_enabled'  => true,
-            'recipient_email' => 'alerts@test.com',
+            'user_id'             => $this->user->id,
+            'correo_activo'       => true,
+            'correo_destinatario' => 'alerts@test.com',
         ]);
         $pendingSince = Carbon::now()->subMinutes(20)->toDateTimeString();
         $this->attachDevice($rule, 'pending', $pendingSince);
@@ -180,9 +180,9 @@ class VerificarReglasCommandTest extends TestCase
     public function firing_transitions_to_ok_when_condition_resolves(): void
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'        => $this->user->id,
-            'email_enabled'  => true,
-            'recipient_email' => 'alerts@test.com',
+            'user_id'             => $this->user->id,
+            'correo_activo'       => true,
+            'correo_destinatario' => 'alerts@test.com',
         ]);
         $this->attachDevice($rule, 'firing');
         $this->fakeInflux(80.0); // below threshold → resolved
@@ -217,9 +217,9 @@ class VerificarReglasCommandTest extends TestCase
     public function firing_transition_creates_alert_log_with_type_firing(): void
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'        => $this->user->id,
-            'email_enabled'  => true,
-            'recipient_email' => 'alerts@test.com',
+            'user_id'             => $this->user->id,
+            'correo_activo'       => true,
+            'correo_destinatario' => 'alerts@test.com',
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(150.0);
@@ -231,9 +231,9 @@ class VerificarReglasCommandTest extends TestCase
         $this->assertDatabaseCount('registros_alerta', 1);
         $this->assertDatabaseHas('registros_alerta', [
             'user_id'    => $this->user->id,
-            'rule_id'    => $rule->id,
-            'type'       => 'firing',
-            'channels'   => '["email"]',
+            'regla_id'   => $rule->id,
+            'tipo'       => 'firing',
+            'canales'    => '["email"]',
         ]);
     }
 
@@ -242,7 +242,7 @@ class VerificarReglasCommandTest extends TestCase
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id'         => $this->user->id,
-            'telegram_enabled' => true,
+            'telegram_activo' => true,
         ]);
         $this->attachDevice($rule, 'firing');
         $this->fakeInflux(50.0);
@@ -253,9 +253,9 @@ class VerificarReglasCommandTest extends TestCase
 
         $this->assertDatabaseHas('registros_alerta', [
             'user_id'  => $this->user->id,
-            'rule_id'  => $rule->id,
-            'type'     => 'resolution',
-            'channels' => '["telegram"]',
+            'regla_id' => $rule->id,
+            'tipo'     => 'resolution',
+            'canales'  => '["telegram"]',
         ]);
     }
 
@@ -263,11 +263,11 @@ class VerificarReglasCommandTest extends TestCase
     public function alert_log_records_multiple_enabled_channels(): void
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'          => $this->user->id,
-            'email_enabled'    => true,
-            'telegram_enabled' => true,
-            'discord_enabled'  => true,
-            'recipient_email'  => 'a@b.com',
+            'user_id'             => $this->user->id,
+            'correo_activo'       => true,
+            'telegram_activo'     => true,
+            'discord_activo'      => true,
+            'correo_destinatario' => 'a@b.com',
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(200.0);
@@ -278,9 +278,9 @@ class VerificarReglasCommandTest extends TestCase
 
         $log = RegistroAlerta::first();
         $this->assertNotNull($log);
-        $this->assertContains('email', $log->channels);
-        $this->assertContains('telegram', $log->channels);
-        $this->assertContains('discord', $log->channels);
+        $this->assertContains('email', $log->canales);
+        $this->assertContains('telegram', $log->canales);
+        $this->assertContains('discord', $log->canales);
     }
 
     #[Test]
@@ -288,7 +288,7 @@ class VerificarReglasCommandTest extends TestCase
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
-            'name'    => 'Consumo Máximo',
+            'nombre'  => 'Consumo Máximo',
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(200.0);
@@ -297,10 +297,10 @@ class VerificarReglasCommandTest extends TestCase
 
         $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        // In Artisan context there is no authenticated user, so nombre falls back to influx_tag
+        // In Artisan context there is no authenticated user, so nombre falls back to etiqueta_influx
         $this->assertDatabaseHas('registros_alerta', [
-            'rule_name'   => 'Consumo Máximo',
-            'device_name' => 'TEST-DEV-001',
+            'nombre_regla'        => 'Consumo Máximo',
+            'nombre_dispositivo'  => 'TEST-DEV-001',
         ]);
     }
 
@@ -337,7 +337,7 @@ class VerificarReglasCommandTest extends TestCase
 
         $log = RegistroAlerta::first();
         $this->assertNotNull($log);
-        $this->assertStringContainsString('Sin datos', $log->message);
+        $this->assertStringContainsString('Sin datos', $log->mensaje);
     }
 
     // ── Regla inactiva ─────────────────────────────────────────────────────────
@@ -485,9 +485,9 @@ class VerificarReglasCommandTest extends TestCase
     public function email_notification_sent_when_email_enabled_and_recipient_set(): void
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'         => $this->user->id,
-            'email_enabled'   => true,
-            'recipient_email' => 'alerts@example.com',
+            'user_id'             => $this->user->id,
+            'correo_activo'       => true,
+            'correo_destinatario' => 'alerts@example.com',
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(200.0);
@@ -510,9 +510,9 @@ class VerificarReglasCommandTest extends TestCase
     public function email_not_sent_when_recipient_email_is_null(): void
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'         => $this->user->id,
-            'email_enabled'   => true,
-            'recipient_email' => null, // enabled but no recipient
+            'user_id'             => $this->user->id,
+            'correo_activo'       => true,
+            'correo_destinatario' => null, // enabled but no recipient
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(200.0);
@@ -535,7 +535,7 @@ class VerificarReglasCommandTest extends TestCase
         $rule1 = Regla::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
         $rule2 = Regla::factory()->withOperator('<', 50)->create(['user_id' => $this->user->id]);
 
-        $device2 = Dispositivo::factory()->create(['influx_tag' => 'TEST-DEV-002']);
+        $device2 = Dispositivo::factory()->create(['etiqueta_influx' => 'TEST-DEV-002']);
         $this->user->dispositivos()->attach($device2->id, ['nombre' => 'Medidor 2', 'habilitado' => 1]);
 
         $rule1->dispositivos()->attach($this->device->id, ['alert_state' => 'ok']);
@@ -567,7 +567,7 @@ class VerificarReglasCommandTest extends TestCase
         $active   = Regla::factory()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
         $inactive = Regla::factory()->inactive()->withOperator('>', 100)->create(['user_id' => $this->user->id]);
 
-        $device2 = Dispositivo::factory()->create(['influx_tag' => 'DEV-002']);
+        $device2 = Dispositivo::factory()->create(['etiqueta_influx' => 'DEV-002']);
         $this->user->dispositivos()->attach($device2->id, ['nombre' => 'Dev 2', 'habilitado' => 1]);
 
         $active->dispositivos()->attach($this->device->id,  ['alert_state' => 'ok']);

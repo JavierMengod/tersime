@@ -10,13 +10,13 @@ class CredencialSmtp extends Model
     protected $table = 'credenciales_smtp';
 
     protected $fillable = [
-        'user_id', 'host', 'port', 'username', 'from_address', 'password', 'encryption', 'active',
+        'user_id', 'host', 'puerto', 'usuario', 'direccion_remitente', 'contrasena', 'cifrado', 'activo',
     ];
 
-    protected $hidden = ['password'];
+    protected $hidden = ['contrasena'];
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

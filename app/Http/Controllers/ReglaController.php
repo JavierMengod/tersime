@@ -21,15 +21,15 @@ class ReglaController extends Controller
 
     public function store(RuleRequest $request)
     {
-        if (Regla::userHasReachedLimit(auth()->id())) {
+        if (Regla::limiteAlcanzado(auth()->id())) {
             return back()->withErrors(['name' => 'Has alcanzado el límite de 50 reglas.']);
         }
 
         $validado = $request->validated();
 
         $regla = Regla::create(array_merge($this->ruleFieldsFrom($validado), [
-            'user_id'   => auth()->id(),
-            'is_active' => true,
+            'user_id' => auth()->id(),
+            'activo'  => true,
         ]));
 
         $regla->dispositivos()->sync($validado['devices']);
@@ -57,8 +57,8 @@ class ReglaController extends Controller
     {
         abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 
-        $nuevoEstado = !$regla->is_active;
-        $regla->update(['is_active' => $nuevoEstado]);
+        $nuevoEstado = !$regla->activo;
+        $regla->update(['activo' => $nuevoEstado]);
 
         $accion = $nuevoEstado ? 'activada' : 'desactivada';
         Log::info("Regla ID {$regla->id} {$accion}.");

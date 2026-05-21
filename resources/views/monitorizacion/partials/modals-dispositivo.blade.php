@@ -15,7 +15,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('Identificador del sensor') }}</label>
-                        <select name="influx_tag" class="form-select" required>
+                        <select name="etiqueta_influx" class="form-select" required>
                             <option value="" disabled selected>{{ __('-- Selecciona un sensor --') }}</option>
                             @foreach ($dispositivosGrafana as $tag)
                                 <option value="{{ $tag }}">{{ $tag }}</option>
@@ -54,7 +54,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('Identificador del sensor') }}</label>
-                        <select name="influx_tag" id="edit-influx-tag" class="form-select" required>
+                        <select name="etiqueta_influx" id="edit-etiqueta-influx" class="form-select" required>
                             <option value="" disabled>{{ __('-- Selecciona un sensor --') }}</option>
                             @foreach ($dispositivosGrafana as $tag)
                                 <option value="{{ $tag }}">{{ $tag }}</option>

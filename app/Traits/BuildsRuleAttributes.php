@@ -8,17 +8,17 @@ trait BuildsRuleAttributes
     {
         $methods = $validated['methods'] ?? [];
         return [
-            'name'              => $validated['name'],
-            'operator'          => $validated['operator'],
-            'comparison_value'  => $validated['value'],
-            'for_duration'      => $validated['for_duration'] * 60,
-            'email_enabled'     => in_array('email',    $methods, true),
-            'telegram_enabled'  => in_array('telegram', $methods, true),
-            'discord_enabled'   => in_array('discord',  $methods, true),
-            'template_telegram' => $validated['template_telegram'] ?? null,
-            'template_email'    => $validated['template_email']    ?? null,
-            'template_discord'  => $validated['template_discord']  ?? null,
-            'recipient_email'   => $validated['recipient_email']   ?? null,
+            'nombre'             => $validated['name'],
+            'operador'           => $validated['operator'],
+            'valor_comparacion'  => $validated['value'],
+            'duracion'           => $validated['for_duration'] * 60,
+            'correo_activo'      => in_array('email',    $methods, true),
+            'telegram_activo'    => in_array('telegram', $methods, true),
+            'discord_activo'     => in_array('discord',  $methods, true),
+            'plantilla_telegram' => $validated['template_telegram'] ?? null,
+            'plantilla_correo'   => $validated['template_email']    ?? null,
+            'plantilla_discord'  => $validated['template_discord']  ?? null,
+            'correo_destinatario' => $validated['recipient_email']  ?? null,
         ];
     }
 }

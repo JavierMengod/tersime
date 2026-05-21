@@ -41,12 +41,12 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
-    public function smtpCredential()
+    public function credencialSmtp()
     {
         return $this->hasOne(CredencialSmtp::class);
     }
 
-    public function telegramCredential()
+    public function credencialTelegram()
     {
         return $this->hasOne(CredencialTelegram::class);
     }
@@ -56,7 +56,7 @@ class User extends Authenticatable
         return $this->hasMany(Regla::class);
     }
 
-    public function discordCredential()
+    public function credencialDiscord()
     {
         return $this->hasOne(CredencialDiscord::class);
     }

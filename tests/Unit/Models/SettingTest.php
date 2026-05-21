@@ -43,8 +43,8 @@ class SettingTest extends TestCase
         Ajuste::set('new_key', 'new_value');
 
         $this->assertDatabaseHas('ajustes', [
-            'key'   => 'new_key',
-            'value' => 'new_value',
+            'clave' => 'new_key',
+            'valor' => 'new_value',
         ]);
     }
 
@@ -73,7 +73,7 @@ class SettingTest extends TestCase
         $record = Ajuste::find('find_me');
 
         $this->assertNotNull($record);
-        $this->assertSame('42', $record->value);
+        $this->assertSame('42', $record->valor);
     }
 
     #[Test]

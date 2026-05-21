@@ -430,7 +430,7 @@
 
 <h2>Distribución Horaria — Media del Período vs Histórico</h2>
 @foreach($dispositivos as $d)
-  @php $tag = $d->influx_tag ?: $d->nombre; @endphp
+  @php $tag = $d->etiqueta_influx ?: $d->nombre; @endphp
   <h3>{{ $d->nombre }}</h3>
 
   @php $rutaHoraria = $graficas[$tag]['media-horaria'] ?? null; @endphp
@@ -467,7 +467,7 @@
   foreach($tablaAnomalias as $lista) {
     if(!empty($lista)) { $hayAnomalias = true; break; }
   }
-  $tagToNombre = $dispositivos->keyBy(fn($d) => $d->influx_tag ?: $d->nombre)->map->nombre;
+  $tagToNombre = $dispositivos->keyBy(fn($d) => $d->etiqueta_influx ?: $d->nombre)->map->nombre;
 @endphp
 
 @if($hayAnomalias)

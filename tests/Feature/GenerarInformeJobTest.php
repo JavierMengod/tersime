@@ -92,7 +92,7 @@ class GenerarInformeJobTest extends TestCase
 
         $this->assertDatabaseHas('informes', [
             'id'     => $this->informe->id,
-            'status' => 'completed',
+            'estado' => 'completed',
         ]);
     }
 
@@ -113,7 +113,7 @@ class GenerarInformeJobTest extends TestCase
 
         $this->assertDatabaseHas('informes', [
             'id'     => $this->informe->id,
-            'status' => 'failed',
+            'estado' => 'failed',
         ]);
     }
 
@@ -133,7 +133,7 @@ class GenerarInformeJobTest extends TestCase
         }
 
         $informe = $this->informe->fresh();
-        $this->assertStringContainsString('timeout en renderer', $informe->error_message);
+        $this->assertStringContainsString('timeout en renderer', $informe->mensaje_error);
     }
 
     // ── Canal Telegram ──────────────────────────────────────────────────────────
@@ -238,7 +238,7 @@ class GenerarInformeJobTest extends TestCase
         $this->fabricarJob(telegram: true, discord: true)
              ->handle(app(InformeService::class), app(NotificationService::class));
 
-        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'estado' => 'completed']);
     }
 
     #[Test]
@@ -256,7 +256,7 @@ class GenerarInformeJobTest extends TestCase
         $this->fabricarJob(telegram: true, correo: true, correoDestino: 'a@b.com')
              ->handle(app(InformeService::class), app(NotificationService::class));
 
-        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'estado' => 'completed']);
     }
 
     #[Test]
@@ -274,7 +274,7 @@ class GenerarInformeJobTest extends TestCase
         $this->fabricarJob(telegram: true, discord: true)
              ->handle(app(InformeService::class), app(NotificationService::class));
 
-        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'estado' => 'completed']);
     }
 
     // ── Notificación de base de datos ───────────────────────────────────────────
@@ -303,6 +303,6 @@ class GenerarInformeJobTest extends TestCase
 
         $this->fabricarJob(telegram: true)->handle(app(InformeService::class), app(NotificationService::class));
 
-        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('informes', ['id' => $this->informe->id, 'estado' => 'completed']);
     }
 }

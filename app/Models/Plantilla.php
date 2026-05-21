@@ -8,8 +8,8 @@ class Plantilla extends Model
 {
     protected $fillable = ['user_id', 'canal', 'contenido'];
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

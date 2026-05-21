@@ -23,11 +23,11 @@ class ProgramacionInformes extends Model
         'correo',
         'correo_destino',
         'activo',
-        'last_run_at',
+        'ultima_ejecucion_at',
     ];
 
     protected $casts = [
-        'last_run_at'   => 'datetime',
+        'ultima_ejecucion_at' => 'datetime',
         'activo'        => 'boolean',
         'telegram'      => 'boolean',
         'discord'       => 'boolean',
@@ -35,9 +35,9 @@ class ProgramacionInformes extends Model
         'valor_periodo' => 'integer',
     ];
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function dispositivos()
@@ -75,7 +75,7 @@ class ProgramacionInformes extends Model
         $valor = (int) ($this->valor_periodo ?? 1);
         $tipo  = $this->tipo_periodo ?? 'horas';
 
-        if (!$this->last_run_at) {
+        if (!$this->ultima_ejecucion_at) {
             // Primera ejecución: para horas arranca inmediatamente.
             // Para días/meses con hora_inicio calcula la próxima ventana real.
             if ($tipo === 'horas') {
@@ -88,19 +88,19 @@ class ProgramacionInformes extends Model
         }
 
         if ($tipo === 'horas') {
-            return $this->last_run_at->copy()->addHours($valor);
+            return $this->ultima_ejecucion_at->copy()->addHours($valor);
         }
 
-        $next = $tipo === 'meses'
-            ? $this->last_run_at->copy()->addMonths($valor)
-            : $this->last_run_at->copy()->addDays($valor);
+        $siguiente = $tipo === 'meses'
+            ? $this->ultima_ejecucion_at->copy()->addMonths($valor)
+            : $this->ultima_ejecucion_at->copy()->addDays($valor);
 
         if ($this->hora_inicio) {
             [$h, $m] = array_map('intval', explode(':', $this->hora_inicio));
-            $next->setTime($h, $m, 0);
+            $siguiente->setTime($h, $m, 0);
         }
 
-        return $next;
+        return $siguiente;
     }
 
     private function siguienteVentana(Carbon $ahora, string $tipo, int $valor): Carbon

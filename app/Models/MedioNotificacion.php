@@ -11,9 +11,9 @@ class MedioNotificacion extends Model
 
     protected $table = 'medios_notificacion';
 
-    protected $fillable = ['channel', 'active', 'config'];
+    protected $fillable = ['canal', 'activo', 'configuracion'];
     protected $casts = [
-        'active' => 'boolean',
-        'config' => 'array',
+        'activo'        => 'boolean',
+        'configuracion' => 'array',
     ];
 }

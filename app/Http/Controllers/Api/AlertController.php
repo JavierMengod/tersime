@@ -10,16 +10,16 @@ class AlertController extends Controller
 {
     public function index(AlertIndexRequest $request)
     {
-        $query = RegistroAlerta::forUser($request->user()->id);
+        $query = RegistroAlerta::porUsuario($request->user()->id);
 
         if ($request->filled('device')) {
-            $query->where('device_name', $request->input('device'));
+            $query->where('nombre_dispositivo', $request->input('device'));
         }
         if ($request->filled('rule')) {
-            $query->where('rule_name', $request->input('rule'));
+            $query->where('nombre_regla', $request->input('rule'));
         }
         if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
+            $query->where('tipo', $request->input('type'));
         }
         if ($request->filled('from')) {
             $query->whereDate('created_at', '>=', $request->input('from'));

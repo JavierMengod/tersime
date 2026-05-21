@@ -36,10 +36,10 @@
 
 @forelse($reglas as $regla)
 @php
-    $state = $regla->alert_state;
+    $state = $regla->estado_alerta;
     $borderColor = $state === 'firing' ? '#dc3545'
         : ($state === 'pending' ? '#ffc107'
-        : ($regla->is_active ? '#198754' : '#adb5bd'));
+        : ($regla->activo ? '#198754' : '#adb5bd'));
 @endphp
 <div class="card border-0 shadow-sm mb-3" style="border-left: 4px solid {{ $borderColor }} !important;">
     <div class="card-body">
@@ -53,16 +53,16 @@
                             <span class="text-danger"><i class="fas fa-bell fa-lg"></i></span>
                         @elseif($state === 'pending')
                             <span class="text-warning"><i class="fas fa-clock fa-lg"></i></span>
-                        @elseif($regla->is_active)
+                        @elseif($regla->activo)
                             <span class="text-success"><i class="fas fa-shield-alt fa-lg"></i></span>
                         @else
                             <span class="text-muted"><i class="fas fa-shield-alt fa-lg"></i></span>
                         @endif
                     </div>
                     <div>
-                        <div class="fw-semibold lh-sm">{{ $regla->name }}</div>
+                        <div class="fw-semibold lh-sm">{{ $regla->nombre }}</div>
                         <div class="mt-1 d-flex flex-wrap gap-1">
-                            @if($regla->is_active)
+                            @if($regla->activo)
                                 <span class="badge rounded-pill" style="background:#d1fae5;color:#065f46;font-size:.7rem;">{{ __('Activa') }}</span>
                             @else
                                 <span class="badge rounded-pill" style="background:#f3f4f6;color:#6b7280;font-size:.7rem;">{{ __('Inactiva') }}</span>
@@ -84,14 +84,14 @@
                     <span class="badge bg-light text-dark border" style="font-size:.8rem;">
                         <i class="fas fa-bolt me-1 text-warning"></i>valor
                     </span>
-                    <span class="fw-semibold text-primary" style="font-size:.85rem;">{{ $regla->operator_label }}</span>
+                    <span class="fw-semibold text-primary" style="font-size:.85rem;">{{ $regla->etiqueta_operador }}</span>
                     <span class="badge bg-light text-dark border" style="font-size:.8rem;">
-                        {{ $regla->comparison_value }} kWh
+                        {{ $regla->valor_comparacion }} kWh
                     </span>
-                    @if($regla->for_duration > 0)
+                    @if($regla->duracion > 0)
                         <span class="text-muted small">{{ __('durante') }}</span>
                         <span class="badge bg-light text-dark border" style="font-size:.8rem;">
-                            <i class="fas fa-clock me-1"></i>{{ $regla->for_duration / 60 }} h
+                            <i class="fas fa-clock me-1"></i>{{ $regla->duracion / 60 }} h
                         </span>
                     @endif
                 </div>
@@ -114,7 +114,7 @@
             {{-- Canales + acciones --}}
             <div class="col-12 col-md-2 d-flex align-items-center justify-content-between justify-content-md-end gap-2 flex-wrap">
                 <div class="d-flex gap-2 me-1">
-                    @foreach($regla->enabled_channels as $channel)
+                    @foreach($regla->canales_activos as $channel)
                         @php
                             $channelMap = [
                                 'telegram' => ['icon' => 'fab fa-telegram',  'color' => 'text-info',      'label' => 'Telegram'],
@@ -125,7 +125,7 @@
                         @endphp
                         <span title="{{ $ch['label'] }}" class="{{ $ch['color'] }} fs-5"><i class="{{ $ch['icon'] }}"></i></span>
                     @endforeach
-                    @if(empty($regla->enabled_channels))
+                    @if(empty($regla->canales_activos))
                         <span class="text-muted small">—</span>
                     @endif
                 </div>
@@ -133,10 +133,10 @@
                 <form action="{{ route('alertas.reglas.toggle', $regla->id) }}" method="POST" class="d-inline">
                     @csrf @method('PATCH')
                     <button type="submit"
-                            class="btn btn-sm {{ $regla->is_active ? 'btn-outline-secondary' : 'btn-outline-success' }}"
-                            title="{{ $regla->is_active ? __('Desactivar') : __('Activar') }}">
-                        <i class="fas {{ $regla->is_active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
-                        <span class="d-none d-lg-inline ms-1">{{ $regla->is_active ? __('Desactivar') : __('Activar') }}</span>
+                            class="btn btn-sm {{ $regla->activo ? 'btn-outline-secondary' : 'btn-outline-success' }}"
+                            title="{{ $regla->activo ? __('Desactivar') : __('Activar') }}">
+                        <i class="fas {{ $regla->activo ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                        <span class="d-none d-lg-inline ms-1">{{ $regla->activo ? __('Desactivar') : __('Activar') }}</span>
                     </button>
                 </form>
                 {{-- Editar --}}
@@ -145,22 +145,22 @@
                         data-bs-target="#modal-rule-edit"
                         data-rule="{{ json_encode([
                             'id'             => $regla->id,
-                            'name'           => $regla->name,
+                            'name'           => $regla->nombre,
                             'devices'        => $regla->dispositivos->pluck('id')->toArray(),
-                            'operator'       => $regla->operator,
-                            'value'          => $regla->comparison_value,
-                            'for_duration'   => $regla->for_duration / 60,
+                            'operator'       => $regla->operador,
+                            'value'          => $regla->valor_comparacion,
+                            'for_duration'   => $regla->duracion / 60,
                             'methods'        => [
-                                'telegram' => $regla->telegram_enabled,
-                                'email'    => $regla->email_enabled,
-                                'discord'  => $regla->discord_enabled,
+                                'telegram' => $regla->telegram_activo,
+                                'email'    => $regla->correo_activo,
+                                'discord'  => $regla->discord_activo,
                             ],
                             'templates' => [
-                                'telegram' => $regla->template_telegram,
-                                'email'    => $regla->template_email,
-                                'discord'  => $regla->template_discord,
+                                'telegram' => $regla->plantilla_telegram,
+                                'email'    => $regla->plantilla_correo,
+                                'discord'  => $regla->plantilla_discord,
                             ],
-                            'recipient_email' => $regla->recipient_email,
+                            'recipient_email' => $regla->correo_destinatario,
                             'update_url'      => route('alertas.reglas.update', $regla->id),
                             'delete_url'      => route('alertas.reglas.destroy', $regla->id),
                         ]) }}"

@@ -9,83 +9,83 @@ class Regla extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'name',
+        'nombre',
         'user_id',
-        'operator',
-        'for_duration',
-        'comparison_value',
-        'is_active',
-        'last_triggered_at',
-        'email_enabled',
-        'telegram_enabled',
-        'discord_enabled',
-        'recipient_email',
-        'template_telegram',
-        'template_email',
-        'template_discord',
+        'operador',
+        'duracion',
+        'valor_comparacion',
+        'activo',
+        'ultimo_disparo_en',
+        'correo_activo',
+        'telegram_activo',
+        'discord_activo',
+        'correo_destinatario',
+        'plantilla_telegram',
+        'plantilla_correo',
+        'plantilla_discord',
     ];
 
     protected $casts = [
-        'last_triggered_at'  => 'datetime',
-        'for_duration'       => 'integer',
-        'is_active'          => 'boolean',
-        'email_enabled'      => 'boolean',
-        'telegram_enabled'   => 'boolean',
-        'discord_enabled'    => 'boolean',
-        'comparison_value'   => 'float',
+        'ultimo_disparo_en' => 'datetime',
+        'duracion'          => 'integer',
+        'activo'            => 'boolean',
+        'correo_activo'     => 'boolean',
+        'telegram_activo'   => 'boolean',
+        'discord_activo'    => 'boolean',
+        'valor_comparacion' => 'float',
     ];
 
     public function dispositivos()
     {
-        return $this->belongsToMany(Dispositivo::class, 'dispositivo_regla', 'rule_id', 'dispositivo_id')
-                    ->withPivot('last_triggered_at', 'alert_state', 'pending_since')
+        return $this->belongsToMany(Dispositivo::class, 'dispositivo_regla', 'regla_id', 'dispositivo_id')
+                    ->withPivot('ultimo_disparo_en', 'alert_state', 'pending_since')
                     ->withTimestamps();
     }
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function getAlertStateAttribute(): string
+    public function getEstadoAlertaAttribute(): string
     {
         if (!$this->relationLoaded('dispositivos')) {
             return 'ok';
         }
 
-        $states = $this->dispositivos->pluck('pivot.alert_state')->toArray();
+        $estados = $this->dispositivos->pluck('pivot.alert_state')->toArray();
 
-        if (in_array('firing',  $states)) {
+        if (in_array('firing',  $estados)) {
             return 'firing';
         }
-        if (in_array('pending', $states)) {
+        if (in_array('pending', $estados)) {
             return 'pending';
         }
 
         return 'ok';
     }
 
-    public static function userHasReachedLimit(int $userId): bool
+    public static function limiteAlcanzado(int $userId): bool
     {
         return static::where('user_id', $userId)->count() >= 50;
     }
 
-    public function getEnabledChannelsAttribute(): array
+    public function getCanalesActivosAttribute(): array
     {
-        $channels = [];
-        if ($this->telegram_enabled) $channels[] = 'telegram';
-        if ($this->email_enabled)    $channels[] = 'email';
-        if ($this->discord_enabled)  $channels[] = 'discord';
-        return $channels;
+        $canales = [];
+        if ($this->telegram_activo) $canales[] = 'telegram';
+        if ($this->correo_activo)   $canales[] = 'email';
+        if ($this->discord_activo)  $canales[] = 'discord';
+        return $canales;
     }
 
-    public function getOperatorLabelAttribute(): string
+    public function getEtiquetaOperadorAttribute(): string
     {
-        $labels = [
+        $etiquetas = [
             '>'  => 'mayor que',        '<'  => 'menor que',
             '>=' => 'mayor o igual que', '<=' => 'menor o igual que',
             '==' => 'igual a',           '!=' => 'distinto de',
         ];
-        return $labels[$this->operator] ?? $this->operator;
+        return $etiquetas[$this->operador] ?? $this->operador;
     }
 }

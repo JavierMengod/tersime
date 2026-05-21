@@ -12,23 +12,23 @@ class RegistroAlerta extends Model
     protected $table = 'registros_alerta';
 
     protected $fillable = [
-        'user_id', 'rule_id', 'rule_name',
-        'dispositivo_id', 'device_name',
-        'type', 'channels', 'message',
+        'user_id', 'regla_id', 'nombre_regla',
+        'dispositivo_id', 'nombre_dispositivo',
+        'tipo', 'canales', 'mensaje',
     ];
 
     protected $casts = [
-        'channels' => 'array',
+        'canales' => 'array',
     ];
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function regla()
     {
-        return $this->belongsTo(Regla::class, 'rule_id');
+        return $this->belongsTo(Regla::class, 'regla_id');
     }
 
     public function dispositivo()
@@ -36,7 +36,7 @@ class RegistroAlerta extends Model
         return $this->belongsTo(Dispositivo::class);
     }
 
-    public function scopeForUser($query, int $userId)
+    public function scopePorUsuario($query, int $userId)
     {
         return $query->where('user_id', $userId);
     }

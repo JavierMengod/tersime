@@ -23,7 +23,7 @@ class PrediccionController extends Controller
      * Parámetros:
      *   start        – fecha inicio del rango visible (ISO / Y-m-d)
      *   stop         – fecha fin del rango visible   (ISO / Y-m-d)
-     *   device       – influx_tag del dispositivo
+     *   device       – etiqueta_influx del dispositivo
      *   predic_hours – horas a predecir (opcional, default: setting predictor_default_hours)
      */
     public function index(Request $request, InfluxService $influx)

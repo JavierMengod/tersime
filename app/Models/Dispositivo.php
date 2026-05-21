@@ -10,7 +10,7 @@ class Dispositivo extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['influx_tag'];
+    protected $fillable = ['etiqueta_influx'];
 
     protected $casts = ['activo' => 'boolean'];
 
@@ -36,7 +36,7 @@ class Dispositivo extends Model
             }
         }
 
-        return $this->influx_tag;
+        return $this->etiqueta_influx;
     }
 
     public function usuarios()
@@ -48,7 +48,7 @@ class Dispositivo extends Model
 
     public function reglas()
     {
-        return $this->belongsToMany(Regla::class, 'dispositivo_regla', 'dispositivo_id', 'rule_id');
+        return $this->belongsToMany(Regla::class, 'dispositivo_regla', 'dispositivo_id', 'regla_id');
     }
 
     public function informes()

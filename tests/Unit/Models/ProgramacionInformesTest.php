@@ -41,7 +41,7 @@ class ProgramacionInformesTest extends TestCase
             'tipo_periodo'  => 'horas',
             'valor_periodo' => 3,
         ]);
-        $p->last_run_at = $lastRun;
+        $p->ultima_ejecucion_at = $lastRun;
 
         $proxima = $p->proximaEjecucion();
 
@@ -156,7 +156,7 @@ class ProgramacionInformesTest extends TestCase
             'valor_periodo' => 1,
             'hora_inicio'   => '09:00',
         ]);
-        $p->last_run_at = $lastRun;
+        $p->ultima_ejecucion_at = $lastRun;
 
         $proxima = $p->proximaEjecucion();
 
@@ -172,7 +172,7 @@ class ProgramacionInformesTest extends TestCase
             'valor_periodo' => 7,
             'hora_inicio'   => '09:00',
         ]);
-        $p->last_run_at = $lastRun;
+        $p->ultima_ejecucion_at = $lastRun;
 
         $proxima = $p->proximaEjecucion();
 
@@ -188,7 +188,7 @@ class ProgramacionInformesTest extends TestCase
             'valor_periodo' => 1,
             'hora_inicio'   => '08:30',
         ]);
-        $p->last_run_at = $lastRun;
+        $p->ultima_ejecucion_at = $lastRun;
 
         $proxima = $p->proximaEjecucion();
 
@@ -204,7 +204,7 @@ class ProgramacionInformesTest extends TestCase
             'valor_periodo' => 2,
             'hora_inicio'   => null,
         ]);
-        $p->last_run_at = $lastRun;
+        $p->ultima_ejecucion_at = $lastRun;
 
         $proxima = $p->proximaEjecucion();
 
@@ -220,7 +220,7 @@ class ProgramacionInformesTest extends TestCase
             'valor_periodo' => 3,
             'hora_inicio'   => '09:00',
         ]);
-        $p->last_run_at = $lastRun;
+        $p->ultima_ejecucion_at = $lastRun;
 
         $proxima = $p->proximaEjecucion();
 

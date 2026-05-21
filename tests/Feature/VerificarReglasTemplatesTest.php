@@ -32,7 +32,7 @@ class VerificarReglasTemplatesTest extends TestCase
         parent::setUp();
 
         $this->usuario     = User::factory()->create();
-        $this->dispositivo = Dispositivo::factory()->create(['influx_tag' => 'SENSOR-001']);
+        $this->dispositivo = Dispositivo::factory()->create(['etiqueta_influx' => 'SENSOR-001']);
 
         $this->usuario->dispositivos()->attach($this->dispositivo->id, [
             'nombre'    => 'Medidor Oficina',
@@ -56,11 +56,11 @@ class VerificarReglasTemplatesTest extends TestCase
     public function email_template_interpolates_dispositivo_regla_valor(): void
     {
         $regla = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'        => $this->usuario->id,
-            'name'           => 'Alto Consumo',
-            'email_enabled'  => true,
-            'recipient_email' => 'a@b.com',
-            'template_email' => 'Dispositivo: {dispositivo} | Regla: {regla} | Valor: {valor}',
+            'user_id'             => $this->usuario->id,
+            'nombre'              => 'Alto Consumo',
+            'correo_activo'       => true,
+            'correo_destinatario' => 'a@b.com',
+            'plantilla_correo'    => 'Dispositivo: {dispositivo} | Regla: {regla} | Valor: {valor}',
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(150.5);
@@ -85,10 +85,10 @@ class VerificarReglasTemplatesTest extends TestCase
     public function telegram_template_supports_alias_device_rule_value(): void
     {
         $regla = Regla::factory()->withOperator('<', 50)->create([
-            'user_id'           => $this->usuario->id,
-            'name'              => 'Bajo Consumo',
-            'telegram_enabled'  => true,
-            'template_telegram' => 'ALERTA {device} / {rule} = {value}',
+            'user_id'            => $this->usuario->id,
+            'nombre'             => 'Bajo Consumo',
+            'telegram_activo'    => true,
+            'plantilla_telegram' => 'ALERTA {device} / {rule} = {value}',
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(30.0);
@@ -114,9 +114,9 @@ class VerificarReglasTemplatesTest extends TestCase
     public function discord_template_interpolates_correctly(): void
     {
         $regla = Regla::factory()->withOperator('>', 200)->create([
-            'user_id'          => $this->usuario->id,
-            'discord_enabled'  => true,
-            'template_discord' => '{dispositivo} superó el límite: {valor}',
+            'user_id'           => $this->usuario->id,
+            'discord_activo'    => true,
+            'plantilla_discord' => '{dispositivo} superó el límite: {valor}',
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(250.0);
@@ -140,9 +140,9 @@ class VerificarReglasTemplatesTest extends TestCase
     public function template_renders_sin_datos_when_influx_value_is_null(): void
     {
         $regla = Regla::factory()->withOperator('>', 0)->create([
-            'user_id'           => $this->usuario->id,
-            'telegram_enabled'  => true,
-            'template_telegram' => 'Valor actual: {valor}',
+            'user_id'            => $this->usuario->id,
+            'telegram_activo'    => true,
+            'plantilla_telegram' => 'Valor actual: {valor}',
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(null);
@@ -163,9 +163,9 @@ class VerificarReglasTemplatesTest extends TestCase
     public function without_template_uses_default_message_with_emoji(): void
     {
         $regla = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'          => $this->usuario->id,
-            'telegram_enabled' => true,
-            'template_telegram' => null,
+            'user_id'            => $this->usuario->id,
+            'telegram_activo'    => true,
+            'plantilla_telegram' => null,
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(200.0);
@@ -188,9 +188,9 @@ class VerificarReglasTemplatesTest extends TestCase
     public function telegram_failure_does_not_stop_discord(): void
     {
         $regla = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'          => $this->usuario->id,
-            'telegram_enabled' => true,
-            'discord_enabled'  => true,
+            'user_id'         => $this->usuario->id,
+            'telegram_activo' => true,
+            'discord_activo'  => true,
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(200.0);
@@ -212,10 +212,10 @@ class VerificarReglasTemplatesTest extends TestCase
     public function email_failure_does_not_stop_telegram(): void
     {
         $regla = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'         => $this->usuario->id,
-            'email_enabled'   => true,
-            'recipient_email' => 'a@b.com',
-            'telegram_enabled' => true,
+            'user_id'             => $this->usuario->id,
+            'correo_activo'       => true,
+            'correo_destinatario' => 'a@b.com',
+            'telegram_activo'     => true,
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(200.0);
@@ -235,10 +235,10 @@ class VerificarReglasTemplatesTest extends TestCase
     public function discord_failure_does_not_stop_email(): void
     {
         $regla = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'         => $this->usuario->id,
-            'discord_enabled' => true,
-            'email_enabled'   => true,
-            'recipient_email' => 'a@b.com',
+            'user_id'             => $this->usuario->id,
+            'discord_activo'      => true,
+            'correo_activo'       => true,
+            'correo_destinatario' => 'a@b.com',
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(200.0);
@@ -260,8 +260,8 @@ class VerificarReglasTemplatesTest extends TestCase
     public function resolution_uses_correct_message_without_template(): void
     {
         $regla = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'          => $this->usuario->id,
-            'telegram_enabled' => true,
+            'user_id'         => $this->usuario->id,
+            'telegram_activo' => true,
         ]);
         $regla->dispositivos()->attach($this->dispositivo->id, ['alert_state' => 'firing']);
         $this->simularInflux(50.0);
@@ -285,10 +285,10 @@ class VerificarReglasTemplatesTest extends TestCase
     public function email_not_called_when_recipient_email_is_missing(): void
     {
         $regla = Regla::factory()->withOperator('>', 100)->create([
-            'user_id'         => $this->usuario->id,
-            'email_enabled'   => true,
-            'recipient_email' => null,
-            'telegram_enabled' => true,
+            'user_id'             => $this->usuario->id,
+            'correo_activo'       => true,
+            'correo_destinatario' => null,
+            'telegram_activo'     => true,
         ]);
         $this->adjuntarOk($regla);
         $this->simularInflux(200.0);

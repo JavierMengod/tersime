@@ -20,7 +20,7 @@ class GenerarInformesProgramados extends Command
 
         $this->limpiarInformesAtascados($ahora);
 
-        $programaciones = ProgramacionInformes::with(['user', 'dispositivos'])
+        $programaciones = ProgramacionInformes::with(['usuario', 'dispositivos'])
             ->where('activo', true)
             ->get()
             ->filter(fn($p) => $p->proximaEjecucion($ahora)->lte($ahora));
@@ -33,7 +33,7 @@ class GenerarInformesProgramados extends Command
         $this->info("Encolando {$programaciones->count()} programación(es)...");
 
         foreach ($programaciones as $programacion) {
-            $usuario = $programacion->user;
+            $usuario = $programacion->usuario;
 
             if (!$usuario) {
                 Log::warning("[InformesProgramados] Programación {$programacion->id} sin usuario.");
@@ -47,17 +47,17 @@ class GenerarInformesProgramados extends Command
                 continue;
             }
 
-            // Atomic compare-and-swap: solo procede si last_run_at no cambió desde que lo leímos.
+            // Atomic compare-and-swap: solo procede si ultima_ejecucion_at no cambió desde que lo leímos.
             // Evita doble despacho si dos instancias del cron se solapan.
             $actualizado = ProgramacionInformes::where('id', $programacion->id)
                 ->where(function ($q) use ($programacion) {
-                    if ($programacion->last_run_at) {
-                        $q->where('last_run_at', $programacion->last_run_at);
+                    if ($programacion->ultima_ejecucion_at) {
+                        $q->where('ultima_ejecucion_at', $programacion->ultima_ejecucion_at);
                     } else {
-                        $q->whereNull('last_run_at');
+                        $q->whereNull('ultima_ejecucion_at');
                     }
                 })
-                ->update(['last_run_at' => $ahora]);
+                ->update(['ultima_ejecucion_at' => $ahora]);
 
             if (!$actualizado) {
                 $this->line("  ↷ '{$programacion->nombre}' ya fue reclamada por otro proceso.");
@@ -77,7 +77,7 @@ class GenerarInformesProgramados extends Command
                     'discord'        => $programacion->discord,
                     'correo'         => $programacion->correo,
                     'correo_destino' => $programacion->correo_destino,
-                    'status'         => 'pending',
+                    'estado'         => 'pending',
                 ]);
 
                 $informe->dispositivos()->sync($idsDispositivos);
@@ -131,11 +131,11 @@ class GenerarInformesProgramados extends Command
     {
         $limite = $ahora->copy()->subMinutes(22);
 
-        $conteo = Informe::where('status', 'processing')
+        $conteo = Informe::where('estado', 'processing')
             ->where('updated_at', '<', $limite)
             ->update([
-                'status'        => 'failed',
-                'error_message' => 'El proceso de generación se interrumpió inesperadamente.',
+                'estado'        => 'failed',
+                'mensaje_error' => 'El proceso de generación se interrumpió inesperadamente.',
             ]);
 
         if ($conteo > 0) {

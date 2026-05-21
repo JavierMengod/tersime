@@ -7,11 +7,11 @@ class CredencialDiscord extends Model
 {
     protected $table = 'credenciales_discord';
 
-    protected $fillable = ['user_id','webhook_url','active'];
-    protected $casts = ['active'=>'boolean'];
+    protected $fillable = ['user_id','webhook_url','activo'];
+    protected $casts = ['activo'=>'boolean'];
 
-    public function user()
+    public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

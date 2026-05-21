@@ -29,7 +29,7 @@ class DeviceController extends Controller
             ->map(function ($d) {
                 return [
                     'id'         => $d->id,
-                    'influx_tag' => $d->influx_tag,
+                    'etiqueta_influx' => $d->etiqueta_influx,
                     'nombre'     => $d->nombre,
                 ];
             });
@@ -45,10 +45,10 @@ class DeviceController extends Controller
             return response()->json(['message' => 'Dispositivo no encontrado.'], 404);
         }
 
-        $value = $this->influx->ultimoValor($device->influx_tag);
+        $value = $this->influx->ultimoValor($device->etiqueta_influx);
 
         return response()->json([
-            'device'     => $device->influx_tag,
+            'device'     => $device->etiqueta_influx,
             'nombre'     => $device->nombre,
             'value_kwh'  => $value,
             'has_data'   => $value !== null,
@@ -70,7 +70,7 @@ class DeviceController extends Controller
 
         $from = $request->input('from');
         $to   = $request->input('to');
-        $tag  = $device->influx_tag;
+        $tag  = $device->etiqueta_influx;
 
         $total  = $this->influx->consumoTotal($tag, $from, $to);
         $hourly = $this->influx->datosHorarios($tag, $from, $to);
@@ -102,7 +102,7 @@ class DeviceController extends Controller
 
         $from  = $request->input('from');
         $to    = $request->input('to');
-        $tag   = $device->influx_tag;
+        $tag   = $device->etiqueta_influx;
 
         $stats = $this->influx->datosEstadisticos($tag, $from, $to);
         $fc    = $this->influx->factorCarga($tag, $from, $to);
@@ -133,7 +133,7 @@ class DeviceController extends Controller
             return response()->json(['message' => 'Dispositivo no encontrado.'], 404);
         }
 
-        $tag   = $device->influx_tag;
+        $tag   = $device->etiqueta_influx;
         $hours = (int) $request->input('hours', 24);
         $stop  = Carbon::now()->format('Y-m-d');
 

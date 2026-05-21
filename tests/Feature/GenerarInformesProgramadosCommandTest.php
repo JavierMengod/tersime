@@ -52,7 +52,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
             'correo'         => false,
             'correo_destino' => null,
             'activo'         => true,
-            'last_run_at'    => null,
+            'ultima_ejecucion_at'    => null,
         ], $atributos));
 
         $p->dispositivos()->attach($this->dispositivo->id);
@@ -80,7 +80,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
         $this->crearProgramacion([
             'tipo_periodo'  => 'horas',
             'valor_periodo' => 2,
-            'last_run_at'   => Carbon::now()->subHours(3),
+            'ultima_ejecucion_at'   => Carbon::now()->subHours(3),
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);
@@ -95,7 +95,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
         $this->crearProgramacion([
             'tipo_periodo'  => 'horas',
             'valor_periodo' => 4,
-            'last_run_at'   => Carbon::now()->subHours(1),
+            'ultima_ejecucion_at'   => Carbon::now()->subHours(1),
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);
@@ -115,7 +115,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
             'tipo_periodo'  => 'dias',
             'valor_periodo' => 1,
             'hora_inicio'   => '09:00',
-            'last_run_at'   => null,
+            'ultima_ejecucion_at'   => null,
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);
@@ -134,7 +134,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
             'tipo_periodo'  => 'dias',
             'valor_periodo' => 1,
             'hora_inicio'   => '09:00',
-            'last_run_at'   => null,
+            'ultima_ejecucion_at'   => null,
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);
@@ -155,7 +155,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
             'tipo_periodo'  => 'dias',
             'valor_periodo' => 1,
             'hora_inicio'   => '09:00',
-            'last_run_at'   => Carbon::create(2026, 5, 19, 9, 0),
+            'ultima_ejecucion_at'   => Carbon::create(2026, 5, 19, 9, 0),
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);
@@ -174,7 +174,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
             'tipo_periodo'  => 'dias',
             'valor_periodo' => 1,
             'hora_inicio'   => '09:00',
-            'last_run_at'   => Carbon::create(2026, 5, 20, 9, 0),
+            'ultima_ejecucion_at'   => Carbon::create(2026, 5, 20, 9, 0),
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);
@@ -193,7 +193,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
             'tipo_periodo'  => 'meses',
             'valor_periodo' => 1,
             'hora_inicio'   => '09:00',
-            'last_run_at'   => Carbon::create(2026, 5, 1, 9, 0),
+            'ultima_ejecucion_at'   => Carbon::create(2026, 5, 1, 9, 0),
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);
@@ -226,7 +226,7 @@ class GenerarInformesProgramadosCommandTest extends TestCase
         $this->artisan('informes:programados')->assertExitCode(0);
 
         $programacion->refresh();
-        $this->assertNotNull($programacion->last_run_at);
+        $this->assertNotNull($programacion->ultima_ejecucion_at);
     }
 
     // ── Sin dispositivos ────────────────────────────────────────────────────────
@@ -259,13 +259,13 @@ class GenerarInformesProgramadosCommandTest extends TestCase
         $this->crearProgramacion([
             'tipo_periodo'  => 'horas',
             'valor_periodo' => 2,
-            'last_run_at'   => Carbon::now()->subHours(3),
+            'ultima_ejecucion_at'   => Carbon::now()->subHours(3),
         ]);
 
         $this->crearProgramacion([
             'tipo_periodo'  => 'horas',
             'valor_periodo' => 4,
-            'last_run_at'   => Carbon::now()->subHours(1),
+            'ultima_ejecucion_at'   => Carbon::now()->subHours(1),
         ]);
 
         $this->artisan('informes:programados')->assertExitCode(0);

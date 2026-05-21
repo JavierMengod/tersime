@@ -91,7 +91,7 @@ $operatorOptions = [
                          for="create-dev-{{ $d->id }}" style="cursor:pointer;">
                     <i class="fas fa-microchip text-muted small"></i>
                     {{ $d->nombre }}
-                    <code class="ms-auto text-muted" style="font-size:.7rem;">{{ $d->influx_tag }}</code>
+                    <code class="ms-auto text-muted" style="font-size:.7rem;">{{ $d->etiqueta_influx }}</code>
                   </label>
                 </div>
               @endforeach
@@ -264,7 +264,7 @@ $operatorOptions = [
                          for="edit-dev-{{ $d->id }}" style="cursor:pointer;">
                     <i class="fas fa-microchip text-muted small"></i>
                     {{ $d->nombre }}
-                    <code class="ms-auto text-muted" style="font-size:.7rem;">{{ $d->influx_tag }}</code>
+                    <code class="ms-auto text-muted" style="font-size:.7rem;">{{ $d->etiqueta_influx }}</code>
                   </label>
                 </div>
               @endforeach

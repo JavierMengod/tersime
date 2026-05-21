@@ -16,12 +16,12 @@ class ReportResource extends JsonResource
             'tipo'           => $this->tipo,
             'from'           => $this->periodo_from,
             'to'             => $this->periodo_to,
-            'generated_at'   => $this->generated_at,
-            'size_bytes'     => $this->size_bytes,
+            'generado_en'    => $this->generado_en,
+            'tamano_bytes'   => $this->tamano_bytes,
             'dispositivos'   => $this->whenLoaded('dispositivos', fn() =>
                 $this->dispositivos->map(fn($d) => [
                     'id'        => $d->id,
-                    'influx_tag' => $d->influx_tag,
+                    'etiqueta_influx' => $d->etiqueta_influx,
                 ])
             ),
         ];

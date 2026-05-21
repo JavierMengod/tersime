@@ -21,7 +21,7 @@
                 use App\Models\Ajuste;
 
                 $dispositivos   = $dispositivos ?? collect([]);
-                $deviceParams   = $dispositivos->map(fn($d) => 'var-dispositivos=' . rawurlencode($d->influx_tag))->implode('&');
+                $deviceParams   = $dispositivos->map(fn($d) => 'var-dispositivos=' . rawurlencode($d->etiqueta_influx))->implode('&');
                 $deviceQuery    = $deviceParams ? '&' . $deviceParams : '';
                 $costeKwh       = auth()->user()->coste_kwh ?? '0.15';
                 $deviceQuery   .= '&var-coste_kwh=' . $costeKwh;

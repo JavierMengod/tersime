@@ -15,7 +15,7 @@ class NotificacionesController extends Controller
         $tipo = $request->get('tipo', 'todas');
 
         $alertas  = RegistroAlerta::where('user_id', $user->id)->latest()->get();
-        $informes = Informe::where('user_id', $user->id)->latest('generated_at')->get();
+        $informes = Informe::where('user_id', $user->id)->latest('generado_en')->get();
 
         $feed = collect();
 
@@ -45,16 +45,16 @@ class NotificacionesController extends Controller
         }
 
         foreach ($alertas as $alerta) {
-            $subtipo = $alerta->type ?? 'info';
+            $subtipo = $alerta->tipo ?? 'info';
             $firing  = $subtipo === 'firing';
             $feed->push([
                 'tipo'       => 'alerta',
                 'subtipo'    => $subtipo,
-                'titulo'     => $alerta->rule_name ?? __('Alerta'),
-                'mensaje'    => $alerta->message ?? '',
+                'titulo'     => $alerta->nombre_regla ?? __('Alerta'),
+                'mensaje'    => $alerta->mensaje ?? '',
                 'fecha'      => $alerta->created_at,
-                'meta'       => $alerta->device_name ?? '',
-                'canales'    => $alerta->channels,
+                'meta'       => $alerta->nombre_dispositivo ?? '',
+                'canales'    => $alerta->canales,
                 'objeto'     => $alerta,
                 'iconClass'  => $firing ? 'bi bi-exclamation-octagon-fill text-danger' : 'bi bi-check-circle-fill text-success',
                 'badgeClass' => $firing ? 'bg-danger' : 'bg-success',
@@ -69,7 +69,7 @@ class NotificacionesController extends Controller
                 'subtipo'    => $subtipo,
                 'titulo'     => __('Informe') . ' ' . ($informe->tipo ?? ''),
                 'mensaje'    => __('Periodo') . ': ' . $informe->periodo_from . ' — ' . $informe->periodo_to,
-                'fecha'      => $informe->generated_at ?? $informe->created_at,
+                'fecha'      => $informe->generado_en ?? $informe->created_at,
                 'meta'       => $informe->nombre_archivo ?? '',
                 'objeto'     => $informe,
                 'iconClass'  => 'bi bi-file-earmark-pdf-fill text-primary',

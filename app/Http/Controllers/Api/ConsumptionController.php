@@ -43,22 +43,22 @@ class ConsumptionController extends Controller
 
         foreach ($devices as $device) {
             try {
-                $total = $this->influx->consumoTotal($device->influx_tag, $from, $to);
+                $total = $this->influx->consumoTotal($device->etiqueta_influx, $from, $to);
                 $grandTotal += $total;
                 $results[] = [
                     'id'         => $device->id,
-                    'influx_tag' => $device->influx_tag,
+                    'etiqueta_influx' => $device->etiqueta_influx,
                     'nombre'     => $device->nombre,
                     'total_kwh'  => round($total, 4),
                 ];
             } catch (\Throwable $e) {
                 Log::warning('[API] consumption summary error', [
-                    'device' => $device->influx_tag,
+                    'device' => $device->etiqueta_influx,
                     'error'  => $e->getMessage(),
                 ]);
                 $results[] = [
                     'id'         => $device->id,
-                    'influx_tag' => $device->influx_tag,
+                    'etiqueta_influx' => $device->etiqueta_influx,
                     'nombre'     => $device->nombre,
                     'total_kwh'  => null,
                     'error'      => 'No se pudieron obtener datos.',
@@ -104,25 +104,25 @@ class ConsumptionController extends Controller
 
         foreach ($devices as $device) {
             try {
-                $total = $this->influx->consumoTotal($device->influx_tag, $from, $to);
+                $total = $this->influx->consumoTotal($device->etiqueta_influx, $from, $to);
                 $cost  = $total * $rate;
                 $grandTotal += $total;
                 $grandCost  += $cost;
                 $results[] = [
                     'id'         => $device->id,
-                    'influx_tag' => $device->influx_tag,
+                    'etiqueta_influx' => $device->etiqueta_influx,
                     'nombre'     => $device->nombre,
                     'total_kwh'  => round($total, 4),
                     'cost'       => round($cost, 2),
                 ];
             } catch (\Throwable $e) {
                 Log::warning('[API] consumption cost error', [
-                    'device' => $device->influx_tag,
+                    'device' => $device->etiqueta_influx,
                     'error'  => $e->getMessage(),
                 ]);
                 $results[] = [
                     'id'         => $device->id,
-                    'influx_tag' => $device->influx_tag,
+                    'etiqueta_influx' => $device->etiqueta_influx,
                     'nombre'     => $device->nombre,
                     'total_kwh'  => null,
                     'cost'       => null,

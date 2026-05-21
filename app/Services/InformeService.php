@@ -44,8 +44,8 @@ class InformeService
         $informe->update([
             'nombre_archivo' => $data['filename'],
             'pdf_path'       => $data['storagePath'],
-            'size_bytes'     => $data['fileSize'],
-            'generated_at'   => now(),
+            'tamano_bytes'   => $data['fileSize'],
+            'generado_en'    => now(),
         ]);
 
         $downloadUrl = route('informes.download', $informe->id, false);
@@ -371,7 +371,7 @@ class InformeService
     {
         $query = '';
         foreach ($dispositivos as $d) {
-            $tag    = is_object($d) ? ($d->influx_tag ?? $d->nombre ?? "device_{$d->id}") : (string) $d;
+            $tag    = is_object($d) ? ($d->etiqueta_influx ?? $d->nombre ?? "device_{$d->id}") : (string) $d;
             $query .= '&var-dispositivos=' . urlencode($tag);
         }
         return $query;
@@ -405,7 +405,7 @@ class InformeService
 
         foreach ($dispositivos as $dispositivo) {
             $tag = is_object($dispositivo)
-                ? ($dispositivo->influx_tag ?? $dispositivo->nombre ?? "device_{$dispositivo->id}")
+                ? ($dispositivo->etiqueta_influx ?? $dispositivo->nombre ?? "device_{$dispositivo->id}")
                 : (string) $dispositivo;
 
             $horarios = $horariosPrefetchados[$tag] ?? $this->influx->datosHorarios($tag, $fromDate, $toDate);
@@ -743,7 +743,7 @@ class InformeService
 
     private function resolveTag($dispositivo): string
     {
-        return $dispositivo->influx_tag ?? $dispositivo->nombre ?? "device_{$dispositivo->id}";
+        return $dispositivo->etiqueta_influx ?? $dispositivo->nombre ?? "device_{$dispositivo->id}";
     }
 
     private function resolverRutasParaMpdf(array $graficas): array

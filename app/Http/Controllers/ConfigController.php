@@ -82,11 +82,11 @@ class ConfigController extends Controller
     public function sistema()
     {
         $claves    = ['alert_log_retention_days', 'report_retention_days'];
-        $guardados = Ajuste::whereIn('key', $claves)->get()->keyBy('key');
+        $guardados = Ajuste::whereIn('clave', $claves)->get()->keyBy('clave');
 
         $configuracion = [
-            'alert_log_retention_days' => optional($guardados->get('alert_log_retention_days'))->value ?? self::DEFAULT_ALERT_RETENTION_DAYS,
-            'report_retention_days'    => optional($guardados->get('report_retention_days'))->value    ?? self::DEFAULT_REPORT_RETENTION_DAYS,
+            'alert_log_retention_days' => optional($guardados->get('alert_log_retention_days'))->valor ?? self::DEFAULT_ALERT_RETENTION_DAYS,
+            'report_retention_days'    => optional($guardados->get('report_retention_days'))->valor    ?? self::DEFAULT_REPORT_RETENTION_DAYS,
         ];
 
         $estadisticas = [
@@ -128,7 +128,7 @@ class ConfigController extends Controller
         $fechaCorte = Carbon::now()->subDays($dias);
         $eliminados = 0;
 
-        Informe::where('generated_at', '<', $fechaCorte)->chunk(100, function ($informes) use (&$eliminados) {
+        Informe::where('generado_en', '<', $fechaCorte)->chunk(100, function ($informes) use (&$eliminados) {
             foreach ($informes as $informe) {
                 $this->eliminarPdfInforme($informe->pdf_path);
                 $informe->delete();
@@ -148,8 +148,8 @@ class ConfigController extends Controller
                       'grafana_base_url', 'grafana_datasource_id', 'grafana_renderer_url', 'grafana_api_key',
                       'predictor_url', 'predictor_timeout', 'predictor_default_hours',
                       'openrouter_model', 'openrouter_api_key'];
-        $guardados = Ajuste::whereIn('key', $claves)->get()->keyBy('key');
-        $s         = fn(string $clave, $defecto = '') => optional($guardados->get($clave))->value ?? $defecto;
+        $guardados = Ajuste::whereIn('clave', $claves)->get()->keyBy('clave');
+        $s         = fn(string $clave, $defecto = '') => optional($guardados->get($clave))->valor ?? $defecto;
 
         $configuracion = [
             'influxdb_url'            => $s('influxdb_url',            env('INFLUXDB_URL', '')),

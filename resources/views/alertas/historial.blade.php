@@ -102,24 +102,24 @@
                             </a>
                         </th>
                         <th>
-                            <a href="{{ sortUrl('type', $ordenar, $direccion) }}"
+                            <a href="{{ sortUrl('tipo', $ordenar, $direccion) }}"
                                class="text-decoration-none text-dark d-flex align-items-center gap-1">
                                 {{ __('Tipo') }}
-                                <i class="fas {{ sortIcon('type', $ordenar, $direccion) }} small"></i>
+                                <i class="fas {{ sortIcon('tipo', $ordenar, $direccion) }} small"></i>
                             </a>
                         </th>
                         <th>
-                            <a href="{{ sortUrl('rule_name', $ordenar, $direccion) }}"
+                            <a href="{{ sortUrl('nombre_regla', $ordenar, $direccion) }}"
                                class="text-decoration-none text-dark d-flex align-items-center gap-1">
                                 {{ __('Regla') }}
-                                <i class="fas {{ sortIcon('rule_name', $ordenar, $direccion) }} small"></i>
+                                <i class="fas {{ sortIcon('nombre_regla', $ordenar, $direccion) }} small"></i>
                             </a>
                         </th>
                         <th>
-                            <a href="{{ sortUrl('device_name', $ordenar, $direccion) }}"
+                            <a href="{{ sortUrl('nombre_dispositivo', $ordenar, $direccion) }}"
                                class="text-decoration-none text-dark d-flex align-items-center gap-1">
                                 {{ __('Dispositivo') }}
-                                <i class="fas {{ sortIcon('device_name', $ordenar, $direccion) }} small"></i>
+                                <i class="fas {{ sortIcon('nombre_dispositivo', $ordenar, $direccion) }} small"></i>
                             </a>
                         </th>
                         <th class="d-none d-md-table-cell">{{ __('Canales') }}</th>
@@ -138,7 +138,7 @@
 
                         {{-- Tipo --}}
                         <td>
-                            @if($log->type === 'firing')
+                            @if($log->tipo === 'firing')
                                 <span class="badge rounded-pill bg-danger">🔥 {{ __('Disparada') }}</span>
                             @else
                                 <span class="badge rounded-pill bg-success">✅ {{ __('Resuelta') }}</span>
@@ -147,29 +147,29 @@
 
                         {{-- Regla --}}
                         <td>
-                            <a href="{{ route('alertas.historial', array_merge($queryParams, ['rule' => $log->rule_name, 'page' => 1])) }}"
+                            <a href="{{ route('alertas.historial', array_merge($queryParams, ['rule' => $log->nombre_regla, 'page' => 1])) }}"
                                class="text-decoration-none fw-semibold"
                                title="{{ __('Filtrar por esta regla') }}">
-                                {{ $log->rule_name }}
+                                {{ $log->nombre_regla }}
                             </a>
-                            @if(!$log->rule_id)
+                            @if(!$log->regla_id)
                                 <span class="badge bg-light text-muted border ms-1" style="font-size:.65rem;" title="{{ __('Regla eliminada') }}">{{ __('eliminada') }}</span>
                             @endif
                         </td>
 
                         {{-- Dispositivo --}}
                         <td>
-                            <a href="{{ route('alertas.historial', array_merge($queryParams, ['device' => $log->device_name, 'page' => 1])) }}"
+                            <a href="{{ route('alertas.historial', array_merge($queryParams, ['device' => $log->nombre_dispositivo, 'page' => 1])) }}"
                                class="text-decoration-none d-flex align-items-center gap-1"
                                title="{{ __('Filtrar por este dispositivo') }}">
                                 <i class="fas fa-microchip text-muted small"></i>
-                                {{ $log->device_name }}
+                                {{ $log->nombre_dispositivo }}
                             </a>
                         </td>
 
                         {{-- Canales --}}
                         <td class="d-none d-md-table-cell">
-                            @php $chList = $log->channels ?? []; @endphp
+                            @php $chList = $log->canales ?? []; @endphp
                             @if(in_array('telegram', $chList))
                                 <i class="fab fa-telegram text-info fs-5" title="Telegram"></i>
                             @endif
@@ -186,8 +186,8 @@
 
                         {{-- Mensaje --}}
                         <td class="d-none d-lg-table-cell text-muted small" style="max-width:320px;">
-                            <span class="text-truncate d-block" style="max-width:320px;" title="{{ $log->message }}">
-                                {{ $log->message }}
+                            <span class="text-truncate d-block" style="max-width:320px;" title="{{ $log->mensaje }}">
+                                {{ $log->mensaje }}
                             </span>
                         </td>
                     </tr>

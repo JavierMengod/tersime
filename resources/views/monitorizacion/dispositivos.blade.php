@@ -48,7 +48,7 @@
                                     @endif
                                 </td>
                                 <td class="text-truncate d-none d-md-table-cell {{ $device->pivot->habilitado ? '' : 'text-muted' }}" style="max-width: 260px;">
-                                    {{ $device->influx_tag }}
+                                    {{ $device->etiqueta_influx }}
                                 </td>
                                 <td class="text-center">
                                     @if($device->activo)
@@ -73,7 +73,7 @@
                                             data-bs-target="#modal-device-edit"
                                             data-id="{{ $device->id }}"
                                             data-nombre="{{ $device->nombre }}"
-                                            data-influx-tag="{{ $device->influx_tag }}"
+                                            data-etiqueta-influx="{{ $device->etiqueta_influx }}"
                                             title="{{ __('Editar') }}">
                                         <span class="d-none d-md-inline">{{ __('Editar') }}</span>
                                         <i class="d-md-none fas fa-pencil-alt"></i>
@@ -117,8 +117,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('modal-device-edit').addEventListener('show.bs.modal', e => {
         const btn    = e.relatedTarget;
-        const select = document.getElementById('edit-influx-tag');
-        const tag    = btn.dataset.influxTag;
+        const select = document.getElementById('edit-etiqueta-influx');
+        const tag    = btn.dataset.etiquetaInflux;
 
         // Remove any tag injected for a previous device
         select.querySelectorAll('option[data-injected]').forEach(o => o.remove());

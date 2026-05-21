@@ -13,16 +13,16 @@ class AlertLogController extends Controller
         $ordenar  = $request->input('sort', 'created_at');
         $direccion = $request->input('dir',  'desc');
 
-        $consulta = RegistroAlerta::forUser($usuario->id);
+        $consulta = RegistroAlerta::porUsuario($usuario->id);
 
         if ($request->filled('device')) {
-            $consulta->where('device_name', $request->input('device'));
+            $consulta->where('nombre_dispositivo', $request->input('device'));
         }
         if ($request->filled('rule')) {
-            $consulta->where('rule_name', $request->input('rule'));
+            $consulta->where('nombre_regla', $request->input('rule'));
         }
         if ($request->filled('type')) {
-            $consulta->where('type', $request->input('type'));
+            $consulta->where('tipo', $request->input('type'));
         }
         if ($request->filled('from')) {
             $consulta->whereDate('created_at', '>=', $request->input('from'));
@@ -34,13 +34,13 @@ class AlertLogController extends Controller
         $porPagina = (int) $request->input('per_page', 20);
         $registros = $consulta->orderBy($ordenar, $direccion)->paginate($porPagina)->withQueryString();
 
-        $dispositivos = RegistroAlerta::forUser($usuario->id)
-            ->select('device_name')->distinct()->orderBy('device_name')
-            ->pluck('device_name');
+        $dispositivos = RegistroAlerta::porUsuario($usuario->id)
+            ->select('nombre_dispositivo')->distinct()->orderBy('nombre_dispositivo')
+            ->pluck('nombre_dispositivo');
 
-        $nombresReglas = RegistroAlerta::forUser($usuario->id)
-            ->select('rule_name')->distinct()->orderBy('rule_name')
-            ->pluck('rule_name');
+        $nombresReglas = RegistroAlerta::porUsuario($usuario->id)
+            ->select('nombre_regla')->distinct()->orderBy('nombre_regla')
+            ->pluck('nombre_regla');
 
         return view('alertas.historial', compact('registros', 'dispositivos', 'nombresReglas', 'ordenar', 'direccion'));
     }

@@ -13,31 +13,31 @@ class ReglaFactory extends Factory
     public function definition()
     {
         return [
-            'name'             => $this->faker->words(3, true),
-            'user_id'          => User::factory(),
-            'operator'         => $this->faker->randomElement(['>', '<', '>=', '<=', '==', '!=']),
-            'comparison_value' => $this->faker->randomFloat(2, 10, 500),
-            'for_duration'     => 0,
-            'is_active'        => true,
-            'email_enabled'    => false,
-            'telegram_enabled' => false,
-            'discord_enabled'  => false,
-            'recipient_email'  => null,
+            'nombre'            => $this->faker->words(3, true),
+            'user_id'           => User::factory(),
+            'operador'          => $this->faker->randomElement(['>', '<', '>=', '<=', '==', '!=']),
+            'valor_comparacion' => $this->faker->randomFloat(2, 10, 500),
+            'duracion'          => 0,
+            'activo'            => true,
+            'correo_activo'     => false,
+            'telegram_activo'   => false,
+            'discord_activo'    => false,
+            'correo_destinatario' => null,
         ];
     }
 
     public function withDuration(int $minutes)
     {
-        return $this->state(['for_duration' => $minutes]);
+        return $this->state(['duracion' => $minutes]);
     }
 
     public function inactive()
     {
-        return $this->state(['is_active' => false]);
+        return $this->state(['activo' => false]);
     }
 
     public function withOperator(string $operator, float $value)
     {
-        return $this->state(['operator' => $operator, 'comparison_value' => $value]);
+        return $this->state(['operador' => $operator, 'valor_comparacion' => $value]);
     }
 }

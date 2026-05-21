@@ -9,7 +9,7 @@ class DispositivoFactory extends Factory
     public function definition()
     {
         return [
-            'influx_tag' => strtoupper($this->faker->bothify('DEVICE-????-####')),
+            'etiqueta_influx' => strtoupper($this->faker->bothify('DEVICE-????-####')),
         ];
     }
 }

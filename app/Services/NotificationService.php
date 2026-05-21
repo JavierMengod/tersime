@@ -25,7 +25,7 @@ class NotificationService
 
     public function sendTelegram(string $texto, User $usuario): void
     {
-        $credencial = $this->requerirCredencialActiva($usuario->telegramCredential, 'Telegram');
+        $credencial = $this->requerirCredencialActiva($usuario->credencialTelegram, 'Telegram');
 
         $bot = new BotApi(decrypt($credencial->bot_token));
         $bot->sendMessage($credencial->chat_id, $texto);
@@ -35,7 +35,7 @@ class NotificationService
 
     public function sendDiscord(string $texto, User $usuario): void
     {
-        $credencial = $this->requerirCredencialActiva($usuario->discordCredential, 'Discord');
+        $credencial = $this->requerirCredencialActiva($usuario->credencialDiscord, 'Discord');
 
         $respuesta = Http::post($credencial->webhook_url, ['content' => $texto]);
 
@@ -66,7 +66,7 @@ class NotificationService
 
     public function sendTelegramWithAttachment(string $texto, User $usuario, ?string $rutaPdf = null): void
     {
-        $credencial = $this->requerirCredencialActiva($usuario->telegramCredential, 'Telegram');
+        $credencial = $this->requerirCredencialActiva($usuario->credencialTelegram, 'Telegram');
 
         $bot = new BotApi(decrypt($credencial->bot_token));
 
@@ -92,7 +92,7 @@ class NotificationService
 
     public function sendDiscordWithFile(string $texto, string $rutaArchivo, User $usuario): void
     {
-        $credencial = $this->requerirCredencialActiva($usuario->discordCredential, 'Discord');
+        $credencial = $this->requerirCredencialActiva($usuario->credencialDiscord, 'Discord');
 
         if (!file_exists($rutaArchivo)) {
             throw new \RuntimeException("El archivo no existe: {$rutaArchivo}");
@@ -110,7 +110,7 @@ class NotificationService
 
     private function requerirCredencialActiva($credencial, string $canal): object
     {
-        if (!$credencial || !$credencial->active) {
+        if (!$credencial || !$credencial->activo) {
             throw new \RuntimeException("El usuario no tiene {$canal} configurado o activo.");
         }
         return $credencial;
@@ -118,7 +118,7 @@ class NotificationService
 
     private function prepararSmtp(User $usuario, ?string $direccionRemitente): string
     {
-        $credencial = $this->requerirCredencialActiva($usuario->smtpCredential, 'SMTP');
+        $credencial = $this->requerirCredencialActiva($usuario->credencialSmtp, 'SMTP');
 
         $remitente = $direccionRemitente ?? $credencial->from_address ?? $credencial->username;
 

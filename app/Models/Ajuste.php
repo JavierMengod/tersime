@@ -6,19 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Ajuste extends Model
 {
-    protected $primaryKey = 'key';
+    protected $primaryKey = 'clave';
     public $incrementing  = false;
     protected $keyType    = 'string';
-    protected $fillable   = ['key', 'value'];
+    protected $fillable   = ['clave', 'valor'];
 
-    public static function get(string $key, $default = null): ?string
+    public static function get(string $clave, $defecto = null): ?string
     {
-        $record = static::find($key);
-        return $record ? $record->value : $default;
+        $registro = static::find($clave);
+        return $registro ? $registro->valor : $defecto;
     }
 
-    public static function set(string $key, $value): void
+    public static function set(string $clave, $valor): void
     {
-        static::updateOrCreate(['key' => $key], ['value' => $value]);
+        static::updateOrCreate(['clave' => $clave], ['valor' => $valor]);
     }
 }

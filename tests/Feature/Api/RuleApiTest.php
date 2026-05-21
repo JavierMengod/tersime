@@ -92,19 +92,19 @@ class RuleApiTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonFragment([
-                'name'          => 'Regla de prueba',
-                'operator'      => '>',
-                'email_enabled' => true,
+                'nombre'        => 'Regla de prueba',
+                'operador'      => '>',
+                'correo_activo' => true,
             ]);
 
         $this->assertDatabaseHas('reglas', [
-            'name'    => 'Regla de prueba',
+            'nombre'  => 'Regla de prueba',
             'user_id' => $user->id,
         ]);
 
         $ruleId = $response->json('id');
         $this->assertDatabaseHas('dispositivo_regla', [
-            'rule_id'        => $ruleId,
+            'regla_id'       => $ruleId,
             'dispositivo_id' => $device->id,
         ]);
     }
@@ -124,9 +124,9 @@ class RuleApiTest extends TestCase
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('reglas', [
-            'telegram_enabled' => 1,
-            'discord_enabled'  => 1,
-            'email_enabled'    => 0,
+            'telegram_activo' => 1,
+            'discord_activo'  => 1,
+            'correo_activo'   => 0,
         ]);
     }
 
@@ -196,7 +196,7 @@ class RuleApiTest extends TestCase
     {
         $user   = $this->user();
         $device = $this->deviceFor($user);
-        $rule   = Regla::factory()->create(['user_id' => $user->id, 'name' => 'Original']);
+        $rule   = Regla::factory()->create(['user_id' => $user->id, 'nombre' => 'Original']);
         $rule->dispositivos()->attach($device->id, ['alert_state' => 'ok']);
 
         Sanctum::actingAs($user);
@@ -205,9 +205,9 @@ class RuleApiTest extends TestCase
             'name'     => 'Actualizada',
             'operator' => '<',
             'value'    => 50,
-        ]))->assertStatus(200)->assertJsonFragment(['name' => 'Actualizada', 'operator' => '<']);
+        ]))->assertStatus(200)->assertJsonFragment(['nombre' => 'Actualizada', 'operador' => '<']);
 
-        $this->assertDatabaseHas('reglas', ['id' => $rule->id, 'name' => 'Actualizada']);
+        $this->assertDatabaseHas('reglas', ['id' => $rule->id, 'nombre' => 'Actualizada']);
     }
 
     #[Test]
@@ -229,14 +229,14 @@ class RuleApiTest extends TestCase
     public function toggle_deactivates_active_rule(): void
     {
         $user = $this->user();
-        $rule = Regla::factory()->create(['user_id' => $user->id, 'is_active' => true]);
+        $rule = Regla::factory()->create(['user_id' => $user->id, 'activo' => true]);
 
         Sanctum::actingAs($user);
 
         $response = $this->patchJson("/api/rules/{$rule->id}/toggle");
-        $response->assertStatus(200)->assertJsonFragment(['is_active' => false]);
+        $response->assertStatus(200)->assertJsonFragment(['activo' => false]);
 
-        $this->assertDatabaseHas('reglas', ['id' => $rule->id, 'is_active' => 0]);
+        $this->assertDatabaseHas('reglas', ['id' => $rule->id, 'activo' => 0]);
     }
 
     #[Test]
@@ -248,7 +248,7 @@ class RuleApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->patchJson("/api/rules/{$rule->id}/toggle");
-        $response->assertStatus(200)->assertJsonFragment(['is_active' => true]);
+        $response->assertStatus(200)->assertJsonFragment(['activo' => true]);
     }
 
     #[Test]
@@ -294,6 +294,6 @@ class RuleApiTest extends TestCase
         Sanctum::actingAs($user);
         $this->deleteJson("/api/rules/{$rule->id}")->assertStatus(200);
 
-        $this->assertDatabaseMissing('dispositivo_regla', ['rule_id' => $rule->id]);
+        $this->assertDatabaseMissing('dispositivo_regla', ['regla_id' => $rule->id]);
     }
 }

@@ -62,7 +62,7 @@ class GenerarInformeJob implements ShouldQueue
         $informe = Informe::findOrFail($this->idInforme);
 
         try {
-            $informe->update(['status' => 'processing']);
+            $informe->update(['estado' => 'processing']);
 
             $usuario      = User::findOrFail($this->idUsuario);
             $dispositivos = Dispositivo::whereIn('id', $this->idsDispositivos)->get();
@@ -114,7 +114,7 @@ class GenerarInformeJob implements ShouldQueue
                 Log::warning('[GenerarInformeJob] Notificación DB fallida', ['error' => $e->getMessage()]);
             }
 
-            $informe->update(['status' => 'completed']);
+            $informe->update(['estado' => 'completed']);
             Log::info('[GenerarInformeJob] Completado', ['informe_id' => $this->idInforme]);
         } catch (\Throwable $e) {
             Log::error('[GenerarInformeJob] Falló', [
@@ -123,8 +123,8 @@ class GenerarInformeJob implements ShouldQueue
                 'trace'      => $e->getTraceAsString(),
             ]);
             $informe->update([
-                'status'        => 'failed',
-                'error_message' => $e->getMessage(),
+                'estado'        => 'failed',
+                'mensaje_error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -133,10 +133,10 @@ class GenerarInformeJob implements ShouldQueue
     public function failed(\Throwable $e): void
     {
         $informe = Informe::find($this->idInforme);
-        if ($informe && $informe->status !== 'failed') {
+        if ($informe && $informe->estado !== 'failed') {
             $informe->update([
-                'status'        => 'failed',
-                'error_message' => 'El proceso fue interrumpido: ' . $e->getMessage(),
+                'estado'        => 'failed',
+                'mensaje_error' => 'El proceso fue interrumpido: ' . $e->getMessage(),
             ]);
         }
         Log::error('[GenerarInformeJob] Job eliminado por el worker', [
