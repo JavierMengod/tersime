@@ -12,8 +12,8 @@ class ComprobarFuncion extends Command
 
     public function handle(GrafanaController $grafana): int
     {
-        $devices = $grafana->checkDevices();
-        $this->info('Dispositivos encontrados: ' . count($devices));
+        $dispositivos = $grafana->verificarDispositivos();
+        $this->info('Dispositivos encontrados: ' . count($dispositivos));
         return 0;
     }
 }
