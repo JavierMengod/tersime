@@ -8,7 +8,7 @@ class NotificacionInforme extends Notification
 {
     private string $titulo;
     private string $mensaje;
-    private string $downloadUrl;
+    private string $urlDescarga;
     private string $nombreArchivo;
     private string $subtipo;
 
@@ -19,7 +19,7 @@ class NotificacionInforme extends Notification
 
         $this->titulo        = 'Informe generado';
         $this->mensaje       = "Tu informe del período {$desde} al {$hasta} está listo.";
-        $this->downloadUrl   = route('informes.download', $idInforme, false);
+        $this->urlDescarga   = route('informes.download', $idInforme, false);
         $this->nombreArchivo = $nombreArchivo;
         $this->subtipo       = $subtipo;
     }
@@ -38,7 +38,7 @@ class NotificacionInforme extends Notification
             'titulo'         => $this->titulo,
             'mensaje'        => $this->mensaje,
             'nombre_archivo' => $this->nombreArchivo,
-            'url'            => $this->downloadUrl,
+            'url'            => $this->urlDescarga,
         ];
     }
 }
