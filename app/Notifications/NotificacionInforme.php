@@ -9,20 +9,19 @@ class NotificacionInforme extends Notification
     private string $titulo;
     private string $mensaje;
     private string $downloadUrl;
+    private string $nombreArchivo;
+    private string $subtipo;
 
-    public function __construct(
-        int    $idInforme,
-        string $fechaDesde,
-        string $fechaHasta,
-        private string $nombreArchivo = '',
-        private string $subtipo       = 'demanda',
-    ) {
+    public function __construct(int $idInforme, string $fechaDesde, string $fechaHasta, string $nombreArchivo = '', string $subtipo = 'demanda')
+    {
         $desde = \Carbon\Carbon::parse($fechaDesde)->format('d/m/Y');
         $hasta = \Carbon\Carbon::parse($fechaHasta)->format('d/m/Y');
 
-        $this->titulo      = 'Informe generado';
-        $this->mensaje     = "Tu informe del período {$desde} al {$hasta} está listo.";
-        $this->downloadUrl = route('informes.download', $idInforme, false);
+        $this->titulo        = 'Informe generado';
+        $this->mensaje       = "Tu informe del período {$desde} al {$hasta} está listo.";
+        $this->downloadUrl   = route('informes.download', $idInforme, false);
+        $this->nombreArchivo = $nombreArchivo;
+        $this->subtipo       = $subtipo;
     }
 
     public function via(object $notifiable): array

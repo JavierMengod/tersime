@@ -6,7 +6,14 @@ use Illuminate\Notifications\Notification;
 
 class SolicitudResetPassword extends Notification
 {
-    public function __construct(private string $nombreUsuario, private string $ip) {}
+    private string $nombreUsuario;
+    private string $ip;
+
+    public function __construct(string $nombreUsuario, string $ip)
+    {
+        $this->nombreUsuario = $nombreUsuario;
+        $this->ip            = $ip;
+    }
 
     public function via(object $notifiable): array
     {

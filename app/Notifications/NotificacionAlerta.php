@@ -6,16 +6,19 @@ use Illuminate\Notifications\Notification;
 
 class NotificacionAlerta extends Notification
 {
+    private string $tipo;
+    private string $deviceName;
+    private string $mensaje;
+    private array  $canales;
     private string $titulo;
 
-    public function __construct(
-        private string $tipo,
-        private string $ruleName,
-        private string $deviceName,
-        private string $mensaje,
-        private array  $canales = [],
-    ) {
-        $this->titulo = $tipo === 'firing'
+    public function __construct(string $tipo, string $ruleName, string $deviceName, string $mensaje, array $canales = [])
+    {
+        $this->tipo       = $tipo;
+        $this->deviceName = $deviceName;
+        $this->mensaje    = $mensaje;
+        $this->canales    = $canales;
+        $this->titulo     = $tipo === 'firing'
             ? "Alerta en {$deviceName} — {$ruleName}"
             : "Resuelta: {$deviceName} — {$ruleName}";
     }
