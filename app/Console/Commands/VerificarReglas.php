@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Dispositivo;
 use App\Models\Regla;
 use App\Models\RegistroAlerta;
@@ -18,7 +19,27 @@ class VerificarReglas extends Command
     protected $signature   = 'reglas:verificar';
     protected $description = 'Revisar reglas activas y actualizar estados de alerta (ok / pending / firing)';
 
+    // Minutos mínimos entre resolución y nuevo disparo para el mismo dispositivo+regla.
+    private const COOLDOWN_MINUTOS = 60;
+
     public function handle(NotificationService $notificador, InfluxService $influx)
+    {
+        // Fix: lock de exclusión mutua — evita solapamiento si una ejecución tarda más de 1 h.
+        $lock = Cache::lock('reglas:verificar', 3600);
+        if (!$lock->get()) {
+            $this->warn('Ya hay una verificación en curso. Saltando ejecución.');
+            Log::warning('[VerificarReglas] Ejecución anterior aún en curso, saltando.');
+            return;
+        }
+
+        try {
+            $this->ejecutar($notificador, $influx);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function ejecutar(NotificationService $notificador, InfluxService $influx): void
     {
         $inicio = microtime(true);
         $this->info('=== Inicio de revisión de reglas ===');
@@ -36,28 +57,51 @@ class VerificarReglas extends Command
                 $etiqueta    = $dispositivo->etiqueta_influx;
                 $valorActual = $influx->ultimoValor($etiqueta);
 
-                $condicionCumplida = ($valorActual === null)
-                    || $this->evaluarCondicion($valorActual, $regla->operador, $regla->valor_comparacion);
+                // Fix: datos ausentes no evalúan la condición — evita falsas alarmas
+                // por dispositivos desconectados o sin mediciones recientes.
+                if ($valorActual === null) {
+                    $this->line("[{$nombreUsuario}] {$regla->nombre} | {$dispositivo->nombre} = sin datos | omitido");
+                    Log::info('Evaluación omitida: sin datos', [
+                        'regla_id'    => $regla->id,
+                        'dispositivo' => $dispositivo->nombre,
+                    ]);
+                    continue;
+                }
+
+                $condicionCumplida = $this->evaluarCondicion($valorActual, $regla->operador, $regla->valor_comparacion);
 
                 $estado         = $dispositivo->pivot->alert_state ?? 'ok';
                 $pendienteDesde = $dispositivo->pivot->pending_since
                     ? Carbon::parse($dispositivo->pivot->pending_since)
                     : null;
 
-                $etiquetaValor = $valorActual === null ? 'sin datos' : "{$valorActual} kWh";
-                $this->line("[{$nombreUsuario}] {$regla->nombre} | {$dispositivo->nombre} = {$etiquetaValor} | estado={$estado} | condición=" . ($condicionCumplida ? 'SÍ' : 'NO'));
+                $this->line("[{$nombreUsuario}] {$regla->nombre} | {$dispositivo->nombre} = {$valorActual} kWh | estado={$estado} | condición=" . ($condicionCumplida ? 'SÍ' : 'NO'));
 
                 Log::info('Evaluando regla', [
-                    'regla_id'          => $regla->id,
-                    'dispositivo'       => $dispositivo->nombre,
-                    'valor_actual'      => $valorActual,
-                    'condicion_cumplida'=> $condicionCumplida,
-                    'estado'            => $estado,
+                    'regla_id'           => $regla->id,
+                    'dispositivo'        => $dispositivo->nombre,
+                    'valor_actual'       => $valorActual,
+                    'condicion_cumplida' => $condicionCumplida,
+                    'estado'             => $estado,
                 ]);
 
                 switch ($estado) {
                     case 'ok':
                         if ($condicionCumplida) {
+                            // Fix: cooldown post-resolución — evita flapping de notificaciones.
+                            $ultimaResolucion = $dispositivo->pivot->ultima_resolucion_en
+                                ? Carbon::parse($dispositivo->pivot->ultima_resolucion_en)
+                                : null;
+
+                            if ($ultimaResolucion) {
+                                $minutosDesdeResolucion = $ultimaResolucion->diffInMinutes(Carbon::now());
+                                if ($minutosDesdeResolucion < self::COOLDOWN_MINUTOS) {
+                                    $restantes = self::COOLDOWN_MINUTOS - $minutosDesdeResolucion;
+                                    $this->line("  → Cooldown activo, faltan {$restantes} min para poder volver a disparar.");
+                                    break;
+                                }
+                            }
+
                             if ($regla->duracion === 0) {
                                 $this->transicionActiva($regla, $dispositivo, $notificador, $usuario, $valorActual);
                             } else {
@@ -95,7 +139,10 @@ class VerificarReglas extends Command
 
         $transcurrido = round(microtime(true) - $inicio, 2);
         $this->info("=== Fin de revisión de reglas ({$transcurrido}s) ===");
-        Log::info('Fin de revisión de reglas', ['transcurrido_s' => $transcurrido, 'reglas_evaluadas' => $reglas->count()]);
+        Log::info('Fin de revisión de reglas', [
+            'transcurrido_s'    => $transcurrido,
+            'reglas_evaluadas'  => $reglas->count(),
+        ]);
     }
 
     private function transicionPendiente(Regla $regla, Dispositivo $dispositivo): void
@@ -107,7 +154,7 @@ class VerificarReglas extends Command
         Log::info('Estado → pending', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
     }
 
-    private function transicionActiva(Regla $regla, Dispositivo $dispositivo, NotificationService $notificador, ?User $usuario, ?float $valorActual): void
+    private function transicionActiva(Regla $regla, Dispositivo $dispositivo, NotificationService $notificador, ?User $usuario, float $valorActual): void
     {
         $regla->dispositivos()->updateExistingPivot($dispositivo->id, [
             'alert_state'       => 'firing',
@@ -117,9 +164,7 @@ class VerificarReglas extends Command
 
         $this->info("  → FIRING: enviando alerta.");
 
-        $mensaje = $valorActual === null
-            ? "🚨 Sin datos en las últimas 24 h para {$dispositivo->nombre} (regla: {$regla->nombre})"
-            : "🚨 Regla '{$regla->nombre}' activada en {$dispositivo->nombre} (valor={$valorActual} kWh)";
+        $mensaje = "🚨 Regla '{$regla->nombre}' activada en {$dispositivo->nombre} (valor={$valorActual} kWh)";
 
         $this->despacharAlerta('firing', $regla, $dispositivo, $notificador, $usuario, $valorActual, $mensaje);
         Log::info('Estado → firing', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
@@ -134,23 +179,24 @@ class VerificarReglas extends Command
         Log::info('Estado → ok', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
     }
 
-    private function transicionResuelta(Regla $regla, Dispositivo $dispositivo, NotificationService $notificador, ?User $usuario, ?float $valorActual): void
+    private function transicionResuelta(Regla $regla, Dispositivo $dispositivo, NotificationService $notificador, ?User $usuario, float $valorActual): void
     {
+        // Fix: guardar timestamp de resolución para el cooldown.
         $regla->dispositivos()->updateExistingPivot($dispositivo->id, [
-            'alert_state'   => 'ok',
-            'pending_since' => null,
+            'alert_state'         => 'ok',
+            'pending_since'       => null,
+            'ultima_resolucion_en'=> Carbon::now()->toDateTimeString(),
         ]);
 
         $this->info("  → RESUELTO: enviando notificación de resolución.");
 
-        $etiquetaValor = $valorActual === null ? 'sin datos' : "{$valorActual} kWh";
-        $mensaje       = "✅ Regla '{$regla->nombre}' resuelta en {$dispositivo->nombre} (valor actual={$etiquetaValor})";
+        $mensaje = "✅ Regla '{$regla->nombre}' resuelta en {$dispositivo->nombre} (valor actual={$valorActual} kWh)";
 
         $this->despacharAlerta('resolution', $regla, $dispositivo, $notificador, $usuario, $valorActual, $mensaje);
         Log::info('Estado → ok (resolución)', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
     }
 
-    private function despacharAlerta(string $tipo, Regla $regla, Dispositivo $dispositivo, NotificationService $notificador, ?User $usuario, ?float $valorActual, string $mensaje): void
+    private function despacharAlerta(string $tipo, Regla $regla, Dispositivo $dispositivo, NotificationService $notificador, ?User $usuario, float $valorActual, string $mensaje): void
     {
         $this->enviarNotificaciones($notificador, $regla, $usuario, $dispositivo, $valorActual, $mensaje);
         $this->registrarLog($regla, $dispositivo, $tipo, $mensaje);
@@ -174,7 +220,7 @@ class VerificarReglas extends Command
         Regla $regla,
         ?User $usuario,
         Dispositivo $dispositivo,
-        ?float $valorActual,
+        float $valorActual,
         string $mensajePorDefecto
     ): void {
         if ($regla->correo_activo && $regla->correo_destinatario && $usuario) {
@@ -217,9 +263,9 @@ class VerificarReglas extends Command
         }
     }
 
-    private function interpolarPlantilla(string $plantilla, Regla $regla, Dispositivo $dispositivo, ?float $valorActual): string
+    private function interpolarPlantilla(string $plantilla, Regla $regla, Dispositivo $dispositivo, float $valorActual): string
     {
-        $etiquetaValor = $valorActual === null ? 'sin datos' : "{$valorActual} kWh";
+        $etiquetaValor = "{$valorActual} kWh";
         return str_replace(
             ['{dispositivo}', '{device}', '{regla}',      '{rule}',       '{valor}',         '{value}'],
             [$dispositivo->nombre, $dispositivo->nombre, $regla->nombre, $regla->nombre, $etiquetaValor, $etiquetaValor],
@@ -235,14 +281,14 @@ class VerificarReglas extends Command
         if ($regla->discord_activo)  $canales[] = 'discord';
 
         RegistroAlerta::create([
-            'user_id'             => $regla->user_id,
-            'regla_id'            => $regla->id,
-            'nombre_regla'        => $regla->nombre,
-            'dispositivo_id'      => $dispositivo->id,
-            'nombre_dispositivo'  => $dispositivo->nombre,
-            'tipo'                => $tipo,
-            'canales'             => $canales ?: null,
-            'mensaje'             => $mensaje,
+            'user_id'            => $regla->user_id,
+            'regla_id'           => $regla->id,
+            'nombre_regla'       => $regla->nombre,
+            'dispositivo_id'     => $dispositivo->id,
+            'nombre_dispositivo' => $dispositivo->nombre,
+            'tipo'               => $tipo,
+            'canales'            => $canales ?: null,
+            'mensaje'            => $mensaje,
         ]);
     }
 
@@ -250,14 +296,14 @@ class VerificarReglas extends Command
     {
         $vc = (float) $comparacion;
 
-        switch ($operador) {
-            case '>':  return $valor >   $vc;
-            case '<':  return $valor <   $vc;
-            case '>=': return $valor >=  $vc;
-            case '<=': return $valor <=  $vc;
-            case '==': return abs($valor - $vc) < 1e-9;
-            case '!=': return abs($valor - $vc) >= 1e-9;
-            default:   return false;
-        }
+        return match ($operador) {
+            '>'  => $valor >  $vc,
+            '<'  => $valor <  $vc,
+            '>=' => $valor >= $vc,
+            '<=' => $valor <= $vc,
+            '==' => abs($valor - $vc) < 1e-9,
+            '!=' => abs($valor - $vc) >= 1e-9,
+            default => false,
+        };
     }
 }

@@ -120,7 +120,16 @@ class GenerarInformeJob implements ShouldQueue
                 Log::warning('[GenerarInformeJob] Notificación DB fallida', ['error' => $e->getMessage()]);
             }
 
-            $informe->update(['estado' => 'completed']);
+            // Fix: update condicional — evita sobreescribir 'failed' escrito por el cron
+            // de limpieza si el job tardó más de 22 min y fue marcado externamente.
+            $actualizados = Informe::where('id', $informe->id)
+                ->where('estado', 'processing')
+                ->update(['estado' => 'completed']);
+
+            if (!$actualizados) {
+                Log::warning('[GenerarInformeJob] Informe ya no estaba en processing al completar', ['informe_id' => $this->idInforme]);
+            }
+
             Log::info('[GenerarInformeJob] Completado', ['informe_id' => $this->idInforme]);
         } catch (\Throwable $e) {
             Log::error('[GenerarInformeJob] Falló', [

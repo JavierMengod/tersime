@@ -38,7 +38,7 @@ class Regla extends Model
     public function dispositivos()
     {
         return $this->belongsToMany(Dispositivo::class, 'dispositivo_regla', 'regla_id', 'dispositivo_id')
-                    ->withPivot('ultimo_disparo_en', 'alert_state', 'pending_since')
+                    ->withPivot('ultimo_disparo_en', 'alert_state', 'pending_since', 'ultima_resolucion_en')
                     ->withTimestamps();
     }
 

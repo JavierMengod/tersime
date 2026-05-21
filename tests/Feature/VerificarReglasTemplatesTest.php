@@ -137,8 +137,9 @@ class VerificarReglasTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function template_renders_sin_datos_when_influx_value_is_null(): void
+    public function null_influx_value_skips_evaluation_and_sends_no_notification(): void
     {
+        // Con datos ausentes el comando debe omitir la evaluación sin disparar alertas.
         $regla = Regla::factory()->withOperator('>', 0)->create([
             'user_id'            => $this->usuario->id,
             'telegram_activo'    => true,
@@ -148,15 +149,13 @@ class VerificarReglasTemplatesTest extends TestCase
         $this->simularInflux(null);
         Notification::fake();
 
-        $capturado = null;
-        $this->mock(NotificationService::class, function ($m) use (&$capturado) {
-            $m->shouldReceive('sendTelegram')->once()
-              ->withArgs(function ($texto) use (&$capturado) { $capturado = $texto; return true; });
+        $this->mock(NotificationService::class, function ($m) {
+            $m->shouldReceive('sendTelegram')->never();
         });
 
         $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $this->assertStringContainsString('sin datos', $capturado);
+        Notification::assertNothingSent();
     }
 
     #[Test]

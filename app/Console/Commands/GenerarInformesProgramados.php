@@ -47,6 +47,20 @@ class GenerarInformesProgramados extends Command
                 continue;
             }
 
+            // Fix: límite de cola por usuario — evita saturar el worker con un único usuario.
+            $pendientes = Informe::where('user_id', $usuario->id)
+                ->whereIn('estado', ['pending', 'processing'])
+                ->count();
+
+            if ($pendientes >= 3) {
+                $this->warn("  ↷ '{$programacion->nombre}' omitida: {$usuario->name} ya tiene {$pendientes} informes en cola.");
+                Log::warning("[InformesProgramados] Cola llena para usuario {$usuario->id}", [
+                    'programacion_id' => $programacion->id,
+                    'pendientes'      => $pendientes,
+                ]);
+                continue;
+            }
+
             // Atomic compare-and-swap: solo procede si ultima_ejecucion_at no cambió desde que lo leímos.
             // Evita doble despacho si dos instancias del cron se solapan.
             $actualizado = ProgramacionInformes::where('id', $programacion->id)

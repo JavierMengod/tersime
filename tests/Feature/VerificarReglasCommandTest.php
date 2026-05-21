@@ -307,37 +307,37 @@ class VerificarReglasCommandTest extends TestCase
     // ── Null / sin datos ───────────────────────────────────────────────────────
 
     #[Test]
-    public function null_influx_value_triggers_alert_regardless_of_operator(): void
+    public function null_influx_value_skips_evaluation_and_state_stays_ok(): void
     {
+        // Con datos ausentes el estado no debe cambiar y no deben enviarse notificaciones.
         $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
-        $this->fakeInflux(null); // no data → always fires
-        $this->fakeNotifier();
+        $this->fakeInflux(null);
+        $this->mock(NotificationService::class, fn($m) => $m->shouldReceive('sendTelegram')->never());
         Notification::fake();
 
         $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $this->assertSame('firing', $rule->dispositivos()->first()->pivot->alert_state);
+        $this->assertSame('ok', $rule->dispositivos()->first()->pivot->alert_state);
+        $this->assertDatabaseCount('registros_alerta', 0);
     }
 
     #[Test]
-    public function null_value_alert_log_message_mentions_sin_datos(): void
+    public function null_influx_value_generates_no_alert_log(): void
     {
         $rule = Regla::factory()->withOperator('>', 100)->create([
             'user_id' => $this->user->id,
         ]);
         $this->attachDevice($rule, 'ok');
         $this->fakeInflux(null);
-        $this->fakeNotifier();
+        $this->mock(NotificationService::class, fn($m) => $m->shouldReceive('sendTelegram')->never());
         Notification::fake();
 
         $this->artisan('reglas:verificar')->assertExitCode(0);
 
-        $log = RegistroAlerta::first();
-        $this->assertNotNull($log);
-        $this->assertStringContainsString('Sin datos', $log->mensaje);
+        $this->assertDatabaseCount('registros_alerta', 0);
     }
 
     // ── Regla inactiva ─────────────────────────────────────────────────────────
