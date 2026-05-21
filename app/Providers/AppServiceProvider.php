@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrap();
 
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(60)->by($request->user() ? $request->user()->id : $request->ip());
         });
     }
 }
