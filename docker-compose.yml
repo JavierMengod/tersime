@@ -170,7 +170,7 @@ services:
       GF_LIVE_ALLOWED_ORIGINS:           ""
       GF_LIVE_MAX_CONNECTIONS:           "0"
       # Variables para sustitución en ficheros de provisioning
-      INFLUXDB_URL:                       http://influxdb:8086
+      INFLUXDB_URL:                       ${INFLUXDB_URL:-http://influxdb:8086}
       INFLUXDB_ORG:                       ${INFLUXDB_ORG:-tersime}
       INFLUX_BUCKET:                      ${INFLUX_BUCKET:-tersime}
       INFLUXDB_TOKEN:                     ${INFLUXDB_TOKEN}

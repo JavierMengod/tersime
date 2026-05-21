@@ -530,7 +530,7 @@ fi
 
 if [ -n "$GRAFANA_API_KEY" ]; then
     COMPOSE_PROFILES="$COMPOSE_PROFILES_VAL" $COMPOSE_CMD exec -T app \
-        php artisan tinker --execute="App\Models\Setting::set('grafana_api_key', '$GRAFANA_API_KEY'); echo 'OK';" \
+        php artisan tinker --execute="App\Models\Ajuste::set('grafana_api_key', '$GRAFANA_API_KEY'); echo 'OK';" \
         >/dev/null 2>&1 || true
     sed -i "s|^GRAFANA_API_KEY=.*|GRAFANA_API_KEY=${GRAFANA_API_KEY}|" .env
     success "API key de Grafana configurada"
@@ -544,7 +544,7 @@ DS_ID_RESP=$(curl -sf "${GF_API_BASE}/api/datasources/uid/feg5i5n3pjq4gf" \
 DS_ID=$(echo "$DS_ID_RESP" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*' || true)
 if [ -n "$DS_ID" ]; then
     COMPOSE_PROFILES="$COMPOSE_PROFILES_VAL" $COMPOSE_CMD exec -T app \
-        php artisan tinker --execute="App\Models\Setting::set('grafana_datasource_id', '$DS_ID'); echo 'OK';" \
+        php artisan tinker --execute="App\Models\Ajuste::set('grafana_datasource_id', '$DS_ID'); echo 'OK';" \
         >/dev/null 2>&1 || true
 fi
 
@@ -576,15 +576,18 @@ BUCKET_RESP=$(curl -sf "${INFLUX_API_HOST}/api/v2/buckets?name=${INFLUX_BUCKET}"
 echo "$BUCKET_RESP" | grep -q '"id":"' && ok "Bucket '${INFLUX_BUCKET}' existe" \
                                        || fail "Bucket '${INFLUX_BUCKET}' no encontrado"
 
-# Contar datos
-DATA_COUNT=$(COMPOSE_PROFILES="$COMPOSE_PROFILES_VAL" $COMPOSE_CMD exec -T \
-    $( [ "$USE_LOCAL_INFLUXDB" = "1" ] && echo "influxdb" || echo "app" ) \
-    sh -c "influx query --org ${INFLUX_ORG} --token ${INFLUX_TOKEN} \
-           'from(bucket:\"${INFLUX_BUCKET}\") |> range(start:-5y) |> count() |> sum()' 2>/dev/null \
-           | tail -1 | awk -F, '{print \$NF}'" 2>/dev/null | tr -d '[:space:]' || echo "0")
-[ "${DATA_COUNT:-0}" -gt "0" ] 2>/dev/null \
-    && ok "Datos presentes: ${DATA_COUNT} puntos" \
-    || skip "Bucket vacío — carga datos con ./docker/data/import.sh"
+# Contar datos (solo cuando InfluxDB es local; el CLI no está en el contenedor app)
+if [ "$USE_LOCAL_INFLUXDB" = "1" ]; then
+    DATA_COUNT=$(COMPOSE_PROFILES="$COMPOSE_PROFILES_VAL" $COMPOSE_CMD exec -T influxdb \
+        sh -c "influx query --org ${INFLUX_ORG} --token ${INFLUX_TOKEN} \
+               'from(bucket:\"${INFLUX_BUCKET}\") |> range(start:-5y) |> count() |> sum()' 2>/dev/null \
+               | tail -1 | awk -F, '{print \$NF}'" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    [ "${DATA_COUNT:-0}" -gt "0" ] 2>/dev/null \
+        && ok "Datos presentes: ${DATA_COUNT} puntos" \
+        || skip "Bucket vacío — carga datos con ./docker/data/import.sh"
+else
+    skip "Conteo de datos omitido (InfluxDB externo — verifica desde su UI)"
+fi
 
 # ── Grafana ───────────────────────────────────────────────────────────────────
 if [ "$USE_LOCAL_GRAFANA" = "1" ]; then
