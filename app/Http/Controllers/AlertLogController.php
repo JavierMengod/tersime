@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\AlertIndexRequest;
+use App\Http\Requests\FiltroAlertasRequest;
 use App\Models\RegistroAlerta;
 
 class AlertLogController extends Controller
 {
-    public function index(AlertIndexRequest $request)
+    public function index(FiltroAlertasRequest $request)
     {
         $usuario  = $request->user();
         $ordenar  = $request->input('sort', 'created_at');

@@ -6,7 +6,7 @@ use App\Models\Regla as ReglaModel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class RuleRequest extends FormRequest
+class ReglaRequest extends FormRequest
 {
     private ?ReglaModel $reglaResuelta = null;
 

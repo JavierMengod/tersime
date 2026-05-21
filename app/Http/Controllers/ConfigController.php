@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\UpdateAjustesRequest;
-use App\Http\Requests\UpdatePasswordRequest;
-use App\Http\Requests\UpdatePreferencesRequest;
-use App\Http\Requests\UserRequest;
+use App\Http\Requests\ActualizarAjustesRequest;
+use App\Http\Requests\ActualizarContrasenaRequest;
+use App\Http\Requests\ActualizarPreferenciasRequest;
+use App\Http\Requests\UsuarioRequest;
 use App\Models\RegistroAlerta;
 use App\Models\Informe;
 use App\Models\Ajuste;
@@ -38,7 +38,7 @@ class ConfigController extends Controller
         return view('configuracion.perfil');
     }
 
-    public function updatePreferencias(UpdatePreferencesRequest $request)
+    public function updatePreferencias(ActualizarPreferenciasRequest $request)
     {
         auth()->user()->fill($request->validated())->save();
 
@@ -50,18 +50,18 @@ class ConfigController extends Controller
     public function ajustes()
     {
         return view('configuracion.ajustes', [
-            'zonaHoraria' => UserRequest::timezones(),
+            'zonaHoraria' => UsuarioRequest::timezones(),
         ]);
     }
 
-    public function updateAjustes(UpdateAjustesRequest $request)
+    public function updateAjustes(ActualizarAjustesRequest $request)
     {
         auth()->user()->fill($request->validated())->save();
 
         return back()->with('success_ajustes', 'Ajustes guardados.');
     }
 
-    public function updatePassword(UpdatePasswordRequest $request)
+    public function updatePassword(ActualizarContrasenaRequest $request)
     {
         $usuario = auth()->user();
 

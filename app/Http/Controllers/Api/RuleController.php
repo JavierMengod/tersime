@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\RuleRequest;
+use App\Http\Requests\ReglaRequest;
 use App\Http\Resources\RuleResource;
 use App\Models\Regla;
 use App\Traits\BuildsRuleAttributes;
@@ -23,7 +23,7 @@ class RuleController extends Controller
         );
     }
 
-    public function store(RuleRequest $request)
+    public function store(ReglaRequest $request)
     {
         if (Regla::limiteAlcanzado($request->user()->id)) {
             return response()->json(['error' => 'Has alcanzado el límite de 50 reglas.'], 422);
@@ -44,7 +44,7 @@ class RuleController extends Controller
         return (new RuleResource($regla))->response()->setStatusCode(201);
     }
 
-    public function update(RuleRequest $request, $id)
+    public function update(ReglaRequest $request, $id)
     {
         $regla = $request->reglaResuelta() ?? Regla::where('id', $id)
             ->where('user_id', $request->user()->id)

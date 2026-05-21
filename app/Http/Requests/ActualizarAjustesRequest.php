@@ -3,8 +3,9 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\UsuarioRequest;
 
-class UpdateAjustesRequest extends FormRequest
+class ActualizarAjustesRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -13,7 +14,7 @@ class UpdateAjustesRequest extends FormRequest
 
     public function rules(): array
     {
-        $valoresZona = implode(',', array_keys(UserRequest::timezones()));
+        $valoresZona = implode(',', array_keys(UsuarioRequest::timezones()));
 
         return [
             'theme'     => 'required|in:light,dark',

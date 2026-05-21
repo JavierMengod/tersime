@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\AlertIndexRequest;
+use App\Http\Requests\FiltroAlertasRequest;
 use App\Models\RegistroAlerta;
 
 class AlertController extends Controller
 {
-    public function index(AlertIndexRequest $request)
+    public function index(FiltroAlertasRequest $request)
     {
         $consulta = RegistroAlerta::porUsuario($request->user()->id);
 

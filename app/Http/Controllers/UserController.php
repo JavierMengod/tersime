@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\UserRequest;
+use App\Http\Requests\UsuarioRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -12,11 +12,11 @@ class UserController extends Controller
     public function index()
     {
         $usuarios  = User::orderBy('name')->paginate(20);
-        $zonaHoraria = UserRequest::timezones();
+        $zonaHoraria = UsuarioRequest::timezones();
         return view('usuarios.index', compact('usuarios', 'zonaHoraria'));
     }
 
-    public function store(UserRequest $request)
+    public function store(UsuarioRequest $request)
     {
         $validado = $request->validated();
 
@@ -34,7 +34,7 @@ class UserController extends Controller
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
     }
 
-    public function update(UserRequest $request, User $usuario)
+    public function update(UsuarioRequest $request, User $usuario)
     {
         $validado = $request->validated();
 

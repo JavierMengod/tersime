@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\RuleRequest;
+use App\Http\Requests\ReglaRequest;
 use App\Models\Regla;
 use App\Traits\BuildsRuleAttributes;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +19,7 @@ class ReglaController extends Controller
         return view('alertas.acciones', compact('dispositivos', 'reglas'));
     }
 
-    public function store(RuleRequest $request)
+    public function store(ReglaRequest $request)
     {
         if (Regla::limiteAlcanzado(auth()->id())) {
             return back()->withErrors(['name' => 'Has alcanzado el límite de 50 reglas.']);
@@ -39,7 +39,7 @@ class ReglaController extends Controller
         return redirect()->back()->with('success', 'Regla guardada correctamente.');
     }
 
-    public function update(RuleRequest $request, Regla $regla)
+    public function update(ReglaRequest $request, Regla $regla)
     {
         abort_if((int) $regla->user_id !== (int) auth()->id(), 404);
 
