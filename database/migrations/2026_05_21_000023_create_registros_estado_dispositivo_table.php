@@ -15,7 +15,7 @@ return new class extends Migration
             $table->boolean('habilitado');
             $table->timestamp('modificado_en');
 
-            $table->index(['user_id', 'dispositivo_id', 'modificado_en']);
+            $table->index(['user_id', 'dispositivo_id', 'modificado_en'], 'idx_red_user_dispositivo_fecha');
         });
     }
 
