@@ -189,28 +189,6 @@ if [ "$SKIP_CONFIG" = "0" ]; then
 
     info "Escribiendo .env..."
 
-    # Bloque de init de InfluxDB (solo si es local)
-    if [ "$USE_LOCAL_INFLUXDB" = "1" ]; then
-        INFLUX_INIT_BLOCK="
-DOCKER_INFLUXDB_INIT_MODE=setup
-DOCKER_INFLUXDB_INIT_USERNAME=admin
-DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_PASS}
-DOCKER_INFLUXDB_INIT_ORG=${INFLUX_ORG}
-DOCKER_INFLUXDB_INIT_BUCKET=${INFLUX_BUCKET}
-DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN}
-DOCKER_INFLUXDB_INIT_RETENTION=0"
-    else
-        INFLUX_INIT_BLOCK="# InfluxDB externo — no se requieren variables de inicialización"
-    fi
-
-    # Bloque de Grafana admin (solo si es local)
-    if [ "$USE_LOCAL_GRAFANA" = "1" ]; then
-        GF_ADMIN_BLOCK="GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER}
-GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASS}"
-    else
-        GF_ADMIN_BLOCK="# Grafana externo — credenciales admin gestionadas externamente"
-    fi
-
     sed \
         -e "s|^APP_URL=.*|APP_URL=${APP_URL}|" \
         -e "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" \
@@ -272,6 +250,11 @@ PROFILES_ARRAY=()
 [ "$USE_LOCAL_INFLUXDB" = "1" ] && PROFILES_ARRAY+=("local-influxdb")
 [ "$USE_LOCAL_GRAFANA"  = "1" ] && PROFILES_ARRAY+=("local-grafana")
 COMPOSE_PROFILES_VAL=$(IFS=,; echo "${PROFILES_ARRAY[*]:-}")
+
+# Persistir COMPOSE_PROFILES en .env para que "docker compose up -d" funcione
+# en arranques sucesivos sin especificar perfiles manualmente.
+sed -i '/^COMPOSE_PROFILES=/d' .env
+echo "COMPOSE_PROFILES=${COMPOSE_PROFILES_VAL}" >> .env
 
 info "Perfiles activos: ${COMPOSE_PROFILES_VAL:-ninguno (servicios externos)}"
 info "Esto puede tardar varios minutos la primera vez..."
@@ -657,7 +640,7 @@ echo ""
 echo -e "  ${BOLD}Comandos útiles:${NC}"
 echo -e "  ·  Añadir datos .lp/.csv:   copia a ${CYAN}docker/data/${NC} y re-ejecuta install.sh"
 echo -e "  ·  Datos demo:              ${CYAN}./docker/data/import.sh --demo${NC}"
-echo -e "  ·  Ver logs:                ${CYAN}COMPOSE_PROFILES=${COMPOSE_PROFILES_VAL} docker compose logs -f${NC}"
-echo -e "  ·  Reiniciar:               ${CYAN}COMPOSE_PROFILES=${COMPOSE_PROFILES_VAL} docker compose restart${NC}"
-echo -e "  ·  Parar todo:              ${CYAN}COMPOSE_PROFILES=${COMPOSE_PROFILES_VAL} docker compose down${NC}"
+echo -e "  ·  Ver logs:                ${CYAN}docker compose logs -f${NC}"
+echo -e "  ·  Reiniciar:               ${CYAN}docker compose restart${NC}"
+echo -e "  ·  Parar todo:              ${CYAN}docker compose down${NC}"
 echo ""

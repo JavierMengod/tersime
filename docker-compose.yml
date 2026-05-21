@@ -9,10 +9,9 @@
 #   · Predictor:            interno (no expuesto)
 #
 # Primer arranque:
-#   cp .env.docker .env   # ajusta las variables CHANGE_ME
-#   ./install.sh           # configura y levanta todo automáticamente
+#   ./install.sh           # configura, genera .env y levanta todo automáticamente
 #
-# Arranques sucesivos:
+# Arranques sucesivos (COMPOSE_PROFILES queda guardado en .env):
 #   docker compose up -d
 # ─────────────────────────────────────────────────────────────────────────────
 
