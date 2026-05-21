@@ -157,7 +157,12 @@ class VerificarReglas extends Command
 
         if ($usuario) {
             try {
-                $usuario->notify(new NotificacionAlerta($tipo, $regla->nombre, $dispositivo->nombre, $mensaje));
+                $canales = array_values(array_filter([
+                    $regla->correo_activo   ? 'email'    : null,
+                    $regla->telegram_activo ? 'telegram' : null,
+                    $regla->discord_activo  ? 'discord'  : null,
+                ]));
+                $usuario->notify(new NotificacionAlerta($tipo, $regla->nombre, $dispositivo->nombre, $mensaje, $canales));
             } catch (\Throwable $e) {
                 Log::error("Error guardando notificación DB ({$tipo})", ['error' => $e->getMessage()]);
             }

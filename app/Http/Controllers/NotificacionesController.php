@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RegistroAlerta;
-use App\Models\Informe;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -14,29 +12,57 @@ class NotificacionesController extends Controller
         $user = auth()->user();
         $tipo = $request->get('tipo', 'todas');
 
-        $alertas  = RegistroAlerta::where('user_id', $user->id)->latest()->get();
-        $informes = Informe::where('user_id', $user->id)->latest('generado_en')->get();
+        $todas = $user->notifications()->latest()->get();
+
+        $cuentaAlertas  = $todas->filter(fn($n) => in_array($n->data['tipo'] ?? '', ['firing', 'resolution']))->count();
+        $cuentaInformes = $todas->filter(fn($n) => ($n->data['tipo'] ?? '') === 'informe')->count();
 
         $feed = collect();
 
-        // Solicitudes de reset de contraseña — solo visibles para admins
-        if ($user->admin) {
-            $resetSolicitudes = $user->notifications()
-                ->where('data->tipo', 'reset_password')
-                ->latest()
-                ->get();
+        foreach ($todas as $notif) {
+            $data  = $notif->data;
+            $tipoN = $data['tipo'] ?? '';
 
-            foreach ($resetSolicitudes as $notif) {
-                $data = $notif->data;
+            if ($tipoN === 'firing' || $tipoN === 'resolution') {
+                $firing = $tipoN === 'firing';
+                $feed->push([
+                    'tipo'       => 'alerta',
+                    'subtipo'    => $tipoN,
+                    'titulo'     => $data['titulo']             ?? __('Alerta'),
+                    'mensaje'    => $data['mensaje']            ?? '',
+                    'fecha'      => $notif->created_at,
+                    'meta'       => $data['nombre_dispositivo'] ?? '',
+                    'canales'    => $data['canales']            ?? [],
+                    'url'        => $data['url']                ?? route('alertas.historial'),
+                    'iconClass'  => $firing ? 'bi bi-exclamation-octagon-fill text-danger' : 'bi bi-check-circle-fill text-success',
+                    'badgeClass' => $firing ? 'bg-danger' : 'bg-success',
+                    'badgeText'  => $firing ? __('Alerta activa') : __('Resuelta'),
+                ]);
+
+            } elseif ($tipoN === 'informe') {
+                $subtipo = strtolower($data['subtipo'] ?? 'demanda');
+                $feed->push([
+                    'tipo'       => 'informe',
+                    'subtipo'    => $subtipo,
+                    'titulo'     => $data['titulo']        ?? __('Informe'),
+                    'mensaje'    => $data['mensaje']       ?? '',
+                    'fecha'      => $notif->created_at,
+                    'meta'       => $data['nombre_archivo'] ?? '',
+                    'url'        => $data['url']            ?? '#',
+                    'iconClass'  => 'bi bi-file-earmark-pdf-fill text-primary',
+                    'badgeClass' => 'bg-primary',
+                    'badgeText'  => $subtipo === 'programado' ? __('Programado') : __('Demanda'),
+                ]);
+
+            } elseif ($tipoN === 'reset_password' && $user->admin) {
                 $feed->push([
                     'tipo'       => 'reset_password',
                     'subtipo'    => 'reset_password',
-                    'titulo'     => $data['titulo'] ?? __('Solicitud de contraseña'),
-                    'mensaje'    => $data['mensaje'] ?? '',
+                    'titulo'     => $data['titulo']   ?? __('Solicitud de contraseña'),
+                    'mensaje'    => $data['mensaje']  ?? '',
                     'fecha'      => $notif->created_at,
                     'meta'       => '',
-                    'objeto'     => $notif,
-                    'url'        => $data['url'] ?? route('usuarios.index'),
+                    'url'        => $data['url']      ?? route('usuarios.index'),
                     'iconClass'  => 'bi bi-key-fill text-warning',
                     'badgeClass' => 'bg-warning text-dark',
                     'badgeText'  => __('Reset contraseña'),
@@ -44,49 +70,15 @@ class NotificacionesController extends Controller
             }
         }
 
-        foreach ($alertas as $alerta) {
-            $subtipo = $alerta->tipo ?? 'info';
-            $firing  = $subtipo === 'firing';
-            $feed->push([
-                'tipo'       => 'alerta',
-                'subtipo'    => $subtipo,
-                'titulo'     => $alerta->nombre_regla ?? __('Alerta'),
-                'mensaje'    => $alerta->mensaje ?? '',
-                'fecha'      => $alerta->created_at,
-                'meta'       => $alerta->nombre_dispositivo ?? '',
-                'canales'    => $alerta->canales,
-                'objeto'     => $alerta,
-                'iconClass'  => $firing ? 'bi bi-exclamation-octagon-fill text-danger' : 'bi bi-check-circle-fill text-success',
-                'badgeClass' => $firing ? 'bg-danger' : 'bg-success',
-                'badgeText'  => $firing ? __('Alerta activa') : __('Resuelta'),
-            ]);
-        }
-
-        foreach ($informes as $informe) {
-            $subtipo = strtolower($informe->tipo ?? 'demanda');
-            $feed->push([
-                'tipo'       => 'informe',
-                'subtipo'    => $subtipo,
-                'titulo'     => __('Informe') . ' ' . ($informe->tipo ?? ''),
-                'mensaje'    => __('Periodo') . ': ' . $informe->periodo_from . ' — ' . $informe->periodo_to,
-                'fecha'      => $informe->generado_en ?? $informe->created_at,
-                'meta'       => $informe->nombre_archivo ?? '',
-                'objeto'     => $informe,
-                'iconClass'  => 'bi bi-file-earmark-pdf-fill text-primary',
-                'badgeClass' => 'bg-primary',
-                'badgeText'  => $subtipo === 'programado' ? __('Programado') : __('Demanda'),
-            ]);
-        }
-
         if ($tipo === 'alertas') {
-            $feed = $feed->filter(fn ($i) => $i['tipo'] === 'alerta');
+            $feed = $feed->filter(fn($i) => $i['tipo'] === 'alerta');
         } elseif ($tipo === 'informes') {
-            $feed = $feed->filter(fn ($i) => $i['tipo'] === 'informe');
+            $feed = $feed->filter(fn($i) => $i['tipo'] === 'informe');
         } elseif ($tipo === 'reset_password') {
-            $feed = $feed->filter(fn ($i) => $i['tipo'] === 'reset_password');
+            $feed = $feed->filter(fn($i) => $i['tipo'] === 'reset_password');
         }
 
-        $feed     = $feed->sortByDesc('fecha')->values();
+        $feed     = $feed->values();
         $noLeidas = $user->unreadNotifications->count();
 
         $perPage = 20;
@@ -100,7 +92,7 @@ class NotificacionesController extends Controller
         );
 
         return view('usuarios.notificaciones', compact(
-            'alertas', 'informes', 'tipo', 'feed', 'noLeidas'
+            'tipo', 'feed', 'noLeidas', 'cuentaAlertas', 'cuentaInformes'
         ));
     }
 

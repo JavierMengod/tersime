@@ -109,7 +109,13 @@ class GenerarInformeJob implements ShouldQueue
             }
 
             try {
-                $usuario->notify(new NotificacionInforme($informe->id, $this->fechaDesde, $this->fechaHasta));
+                $usuario->notify(new NotificacionInforme(
+                    $informe->id,
+                    $this->fechaDesde,
+                    $this->fechaHasta,
+                    $informe->nombre_archivo ?? '',
+                    $informe->tipo ?? 'demanda',
+                ));
             } catch (\Throwable $e) {
                 Log::warning('[GenerarInformeJob] Notificación DB fallida', ['error' => $e->getMessage()]);
             }

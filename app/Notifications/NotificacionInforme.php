@@ -10,8 +10,13 @@ class NotificacionInforme extends Notification
     private string $mensaje;
     private string $downloadUrl;
 
-    public function __construct(int $idInforme, string $fechaDesde, string $fechaHasta)
-    {
+    public function __construct(
+        int    $idInforme,
+        string $fechaDesde,
+        string $fechaHasta,
+        private string $nombreArchivo = '',
+        private string $subtipo       = 'demanda',
+    ) {
         $desde = \Carbon\Carbon::parse($fechaDesde)->format('d/m/Y');
         $hasta = \Carbon\Carbon::parse($fechaHasta)->format('d/m/Y');
 
@@ -28,11 +33,13 @@ class NotificacionInforme extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'tipo'   => 'informe',
-            'titulo' => $this->titulo,
-            'mensaje' => $this->mensaje,
-            'url'    => $this->downloadUrl,
-            'icono'  => 'informe',
+            'tipo'           => 'informe',
+            'icono'          => 'informe',
+            'subtipo'        => $this->subtipo,
+            'titulo'         => $this->titulo,
+            'mensaje'        => $this->mensaje,
+            'nombre_archivo' => $this->nombreArchivo,
+            'url'            => $this->downloadUrl,
         ];
     }
 }

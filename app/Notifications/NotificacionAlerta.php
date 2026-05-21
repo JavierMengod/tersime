@@ -6,22 +6,21 @@ use Illuminate\Notifications\Notification;
 
 class NotificacionAlerta extends Notification
 {
-    private string $tipo;
     private string $titulo;
-    private string $mensaje;
 
-    public function __construct(string $tipo, string $ruleName, string $deviceName, string $mensaje)
-    {
-        $this->tipo    = $tipo;
-        $this->mensaje = $mensaje;
-        $this->titulo  = $tipo === 'firing'
+    public function __construct(
+        private string $tipo,
+        private string $ruleName,
+        private string $deviceName,
+        private string $mensaje,
+        private array  $canales = [],
+    ) {
+        $this->titulo = $tipo === 'firing'
             ? "Alerta en {$deviceName} — {$ruleName}"
             : "Resuelta: {$deviceName} — {$ruleName}";
     }
 
-    public function getTipo(): string   { return $this->tipo; }
-    public function getTitulo(): string { return $this->titulo; }
-    public function getMensaje(): string { return $this->mensaje; }
+    public function getTipo(): string { return $this->tipo; }
 
     public function via(object $notifiable): array
     {
@@ -31,10 +30,13 @@ class NotificacionAlerta extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'tipo'    => $this->tipo,
-            'titulo'  => $this->titulo,
-            'mensaje' => $this->mensaje,
-            'url'     => route('alertas.historial'),
+            'tipo'               => $this->tipo,
+            'icono'              => $this->tipo,
+            'titulo'             => $this->titulo,
+            'mensaje'            => $this->mensaje,
+            'nombre_dispositivo' => $this->deviceName,
+            'canales'            => $this->canales,
+            'url'                => route('alertas.historial'),
         ];
     }
 }

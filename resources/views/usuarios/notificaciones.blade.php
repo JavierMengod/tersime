@@ -28,21 +28,21 @@
         <a class="nav-link {{ $tipo === 'todas' ? 'active' : '' }}"
            href="{{ route('notificaciones.index', ['tipo' => 'todas']) }}">
             {{ __('Todas') }}
-            <span class="badge bg-secondary ms-1">{{ $alertas->count() + $informes->count() }}</span>
+            <span class="badge bg-secondary ms-1">{{ $cuentaAlertas + $cuentaInformes }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {{ $tipo === 'alertas' ? 'active' : '' }}"
            href="{{ route('notificaciones.index', ['tipo' => 'alertas']) }}">
             <i class="bi bi-exclamation-triangle text-warning"></i> {{ __('Alertas') }}
-            <span class="badge bg-warning text-dark ms-1">{{ $alertas->count() }}</span>
+            <span class="badge bg-warning text-dark ms-1">{{ $cuentaAlertas }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {{ $tipo === 'informes' ? 'active' : '' }}"
            href="{{ route('notificaciones.index', ['tipo' => 'informes']) }}">
             <i class="bi bi-file-earmark-pdf text-primary"></i> {{ __('Informes') }}
-            <span class="badge bg-primary ms-1">{{ $informes->count() }}</span>
+            <span class="badge bg-primary ms-1">{{ $cuentaInformes }}</span>
         </a>
     </li>
 </ul>
@@ -99,7 +99,7 @@
                     {{-- Acción descargar informe --}}
                     @if ($item['tipo'] === 'informe')
                         <div class="mt-2">
-                            <a href="{{ route('informes.download', $item['objeto']) }}"
+                            <a href="{{ $item['url'] }}"
                                class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-download"></i> {{ __('Descargar PDF') }}
                             </a>
