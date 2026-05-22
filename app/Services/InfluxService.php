@@ -355,18 +355,21 @@ FLUX;
 
     public function listarDispositivos(): array
     {
+        // group() consolida en una sola tabla; distinct(column:"name") devuelve
+        // un registro por dispositivo con el nombre en _value.
         $flux = <<<FLUX
 from(bucket: "{$this->bucket}")
   |> range(start: -2y)
   |> filter(fn: (r) => r._measurement == "hourly" and r._field == "kwh")
+  |> group()
   |> distinct(column: "name")
-  |> keep(columns: ["name"])
 FLUX;
 
         $dispositivos = [];
         foreach ($this->consultar($flux) as $fila) {
-            if (!empty($fila['name'])) {
-                $dispositivos[] = $fila['name'];
+            $val = $fila['_value'] ?? $fila['name'] ?? null;
+            if (!empty($val) && $val !== '_value' && $val !== 'name') {
+                $dispositivos[] = $val;
             }
         }
 
@@ -419,7 +422,7 @@ FLUX;
             $linea = trim($linea);
             if ($linea === '' || strpos($linea, '#') === 0) continue;
 
-            $columnas = str_getcsv($linea);
+            $columnas = str_getcsv($linea, ',', '"', '\\');
 
             if ($encabezados === null) {
                 $encabezados = $columnas;
