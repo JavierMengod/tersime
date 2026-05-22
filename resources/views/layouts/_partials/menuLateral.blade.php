@@ -266,7 +266,7 @@ $isConfig     = request()->routeIs('configuracion.*');
                     </a>
                     <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.ajustes') ? 'active' : '' }}"
                        href="{{ route('configuracion.ajustes') }}">
-                        <i class="sidebar__dropdown-icon bi bi-sliders2 me-1"></i>
+                        <i class="sidebar__dropdown-icon bi bi-sliders2"></i>
                         <span class="sidebar__dropdown-text">{{ __('Ajustes') }}</span>
                     </a>
                     @if(auth()->user()->admin)

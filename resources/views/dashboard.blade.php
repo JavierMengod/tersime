@@ -106,7 +106,6 @@
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Por Encima de la Media') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(5, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -116,7 +115,6 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Por Debajo de la Media') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(6, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -130,7 +128,6 @@
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Top 5 Dispositivos por Consumo') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(2, $defaultFrom, $defaultTo) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -140,7 +137,6 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Consumo Medio por Dispositivo') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBaseAlt . '?' . $commonParams(3, $defaultFrom, $defaultTo) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -154,7 +150,6 @@
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Factor de Carga por Dispositivo') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(11, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -164,7 +159,6 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Último Valor por Dispositivo') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(10, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -178,7 +172,6 @@
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Horas Activas') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(9, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -188,7 +181,6 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Consumo Total') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(8, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -202,7 +194,6 @@
             <div class="row g-3 mb-4">
                 <div class="col-12">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Desviación del Consumo') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(4, $from7DaysMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="300" frameborder="0"
@@ -216,7 +207,6 @@
             <div class="row g-3 mb-4">
                 <div class="col-12">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white fw-bold">{{ __('Variación de Consumo Mensual') }}</div>
                         <div class="card-body p-0">
                             @php $src = $grafanaBase . '?' . $commonParams(7, $from1YearMs, $toNowMs) . $deviceQuery; @endphp
                             <iframe src="{{ $src }}" width="100%" height="360" frameborder="0"
