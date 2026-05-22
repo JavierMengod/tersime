@@ -1282,7 +1282,7 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -720h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> last()\n  |> map(fn: (r) => ({\n      _time: now(),\n      name: r.name,\n      _value: if r._time >= time(v: int(v: now()) - 10800000000000) then 1 else 0\n  }))\n  |> group()\n  |> yield(name: \"estado\")\n",
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -720h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> last()\n  |> map(fn: (r) => ({\n      _time: now(),\n      _field: r.name,\n      _value: if r._time >= time(v: int(v: now()) - 10800000000000) then 1 else 0\n  }))\n  |> group(columns: [\"_field\"])\n  |> yield(name: \"estado\")\n",
           "refId": "A"
         }
       ],
@@ -1450,6 +1450,6 @@
   "timezone": "browser",
   "title": "Dashboard principal",
   "uid": "fek5yx516oyrkd",
-  "version": 27,
+  "version": 28,
   "weekStart": ""
 }
