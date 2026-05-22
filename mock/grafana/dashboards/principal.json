@@ -381,7 +381,7 @@
           "refId": "A"
         }
       ],
-      "title": "Horas Activas (últimos 7 días)",
+      "title": "Horas Activas",
       "type": "barchart"
     },
     {
@@ -479,7 +479,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo Total (últimos 7 días)",
+      "title": "Consumo Total",
       "type": "barchart"
     },
     {
@@ -759,7 +759,7 @@
           "refId": "A"
         }
       ],
-      "title": "Consumo Medio Diario por Dispositivo",
+      "title": "Consumo Medio por Dispositivo",
       "type": "barchart"
     },
     {
@@ -848,7 +848,7 @@
           "refId": "A"
         }
       ],
-      "title": "Desviación del Consumo (últimos 7 días)",
+      "title": "Desviación del Consumo",
       "type": "barchart"
     },
     {
@@ -934,7 +934,7 @@
           "refId": "A"
         }
       ],
-      "title": "Por Encima de la Media (últimos 7 días)",
+      "title": "Por Encima de la Media",
       "type": "barchart"
     },
     {
@@ -1023,7 +1023,7 @@
           "refId": "A"
         }
       ],
-      "title": "Por Debajo de la Media (últimos 7 días)",
+      "title": "Por Debajo de la Media",
       "type": "barchart"
     },
     {
@@ -1282,7 +1282,7 @@
             "type": "influxdb",
             "uid": "feg5i5n3pjq4gf"
           },
-          "query": "todos = from(bucket: v.defaultBucket)\n  |> range(start: -720h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> first()\n  |> map(fn: (r) => ({_time: 2020-01-01T00:00:00Z, name: r.name, _value: 0}))\n\nactivos = from(bucket: v.defaultBucket)\n  |> range(start: -1h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> last()\n  |> map(fn: (r) => ({_time: now(), name: r.name, _value: 1}))\n\nunion(tables: [todos, activos])\n  |> group(columns: [\"name\"])\n  |> last()\n  |> yield(name: \"estado\")\n",
+          "query": "todos = from(bucket: v.defaultBucket)\n  |> range(start: -720h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> first()\n  |> map(fn: (r) => ({_time: 2020-01-01T00:00:00Z, name: r.name, _value: 0}))\n\nactivos = from(bucket: v.defaultBucket)\n  |> range(start: -2h)\n  |> filter(fn: (r) =>\n      r._measurement == \"hourly\" and\n      r._field == \"kwh\" and\n      r.name =~ /^(${dispositivos:regex})$/)\n  |> group(columns: [\"name\"])\n  |> last()\n  |> map(fn: (r) => ({_time: now(), name: r.name, _value: 1}))\n\nunion(tables: [todos, activos])\n  |> group(columns: [\"name\"])\n  |> last()\n  |> yield(name: \"estado\")\n",
           "refId": "A"
         }
       ],
