@@ -1420,13 +1420,13 @@
           "type": "influxdb",
           "uid": "feg5i5n3pjq4gf"
         },
-        "definition": "from(bucket: v.defaultBucket)\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")",
+        "definition": "from(bucket: v.defaultBucket)\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"hourly\" and r._field == \"kwh\")\r\n  |> group()\r\n  |> distinct(column: \"name\")",
         "includeAll": true,
         "multi": true,
         "name": "dispositivos",
         "options": [],
         "query": {
-          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"daily\")\r\n  |> group(columns: [\"name\"])\r\n  |> distinct(column: \"name\")"
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: -30000h)\r\n  |> filter(fn: (r) => r._measurement == \"hourly\" and r._field == \"kwh\")\r\n  |> group()\r\n  |> distinct(column: \"name\")"
         },
         "refresh": 1,
         "regex": "",
