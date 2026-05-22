@@ -259,7 +259,12 @@ class InformeService
         ];
 
         $datosParaLLM = $this->estructurarDatosParaLLM($datos, $resumenPorDispositivo, $metricasAvanzadas, $anomalias);
-        $contexto     = compact('fechaDesde', 'fechaHasta', 'resumenGlobal', 'metricasAvanzadas');
+        $contexto     = [
+            'fromDate'          => $fechaDesde,
+            'toDate'            => $fechaHasta,
+            'resumenGlobal'     => $resumenGlobal,
+            'metricasAvanzadas' => $metricasAvanzadas,
+        ];
 
         $resumen                    = 'No se pudo generar el resumen automático.';
         $conclusion                 = 'No se pudo generar la conclusión automática.';
