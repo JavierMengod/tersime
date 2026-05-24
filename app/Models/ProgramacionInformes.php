@@ -23,11 +23,11 @@ class ProgramacionInformes extends Model
         'correo',
         'correo_destino',
         'activo',
-        'ultima_ejecucion_at',
+        'ultima_ejecucion_en',
     ];
 
     protected $casts = [
-        'ultima_ejecucion_at' => 'datetime',
+        'ultima_ejecucion_en' => 'datetime',
         'activo'        => 'boolean',
         'telegram'      => 'boolean',
         'discord'       => 'boolean',
@@ -75,7 +75,7 @@ class ProgramacionInformes extends Model
         $valor = (int) ($this->valor_periodo ?? 1);
         $tipo  = $this->tipo_periodo ?? 'horas';
 
-        if (!$this->ultima_ejecucion_at) {
+        if (!$this->ultima_ejecucion_en) {
             // Primera ejecución: para horas arranca inmediatamente.
             // Para días/meses con hora_inicio calcula la próxima ventana real.
             if ($tipo === 'horas') {
@@ -88,12 +88,12 @@ class ProgramacionInformes extends Model
         }
 
         if ($tipo === 'horas') {
-            return $this->ultima_ejecucion_at->copy()->addHours($valor);
+            return $this->ultima_ejecucion_en->copy()->addHours($valor);
         }
 
         $siguiente = $tipo === 'meses'
-            ? $this->ultima_ejecucion_at->copy()->addMonths($valor)
-            : $this->ultima_ejecucion_at->copy()->addDays($valor);
+            ? $this->ultima_ejecucion_en->copy()->addMonths($valor)
+            : $this->ultima_ejecucion_en->copy()->addDays($valor);
 
         if ($this->hora_inicio) {
             [$h, $m] = array_map('intval', explode(':', $this->hora_inicio));

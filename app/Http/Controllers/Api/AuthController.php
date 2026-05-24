@@ -12,17 +12,17 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string',
+            'nombre'   => 'required|string',
             'password' => 'required|string',
         ]);
 
-        if (!Auth::attempt(['name' => $request->name, 'password' => $request->password])) {
+        if (!Auth::attempt(['nombre' => $request->nombre, 'password' => $request->password])) {
             return response()->json(['message' => 'Credenciales incorrectas.'], 401);
         }
 
         $user = Auth::user();
 
-        if (!$user->enabled) {
+        if (!$user->activo) {
             Auth::logout();
             return response()->json(['message' => 'Esta cuenta está deshabilitada.'], 403);
         }
@@ -30,17 +30,17 @@ class AuthController extends Controller
         $tokenName = $request->input('device_name', 'api-token');
         $token     = $user->createToken($tokenName)->plainTextToken;
 
-        Log::info('[API] Login: ' . $user->name);
+        Log::info('[API] Login: ' . $user->nombre);
 
         return response()->json([
             'token' => $token,
             'user'  => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'language' => $user->language,
-                'timezone' => $user->timezone,
-                'theme'    => $user->theme,
-                'admin'    => $user->admin,
+                'id'           => $user->id,
+                'nombre'       => $user->nombre,
+                'idioma'       => $user->idioma,
+                'zona_horaria' => $user->zona_horaria,
+                'tema'         => $user->tema,
+                'administrador'=> $user->administrador,
             ],
         ]);
     }
@@ -55,14 +55,14 @@ class AuthController extends Controller
     {
         $user = $request->user();
         return response()->json([
-            'id'         => $user->id,
-            'name'       => $user->name,
-            'language'   => $user->language,
-            'timezone'   => $user->timezone,
-            'theme'      => $user->theme,
-            'admin'      => $user->admin,
-            'enabled'    => $user->enabled,
-            'created_at' => $user->created_at,
+            'id'            => $user->id,
+            'nombre'        => $user->nombre,
+            'idioma'        => $user->idioma,
+            'zona_horaria'  => $user->zona_horaria,
+            'tema'          => $user->tema,
+            'administrador' => $user->administrador,
+            'activo'        => $user->activo,
+            'created_at'    => $user->created_at,
         ]);
     }
 }

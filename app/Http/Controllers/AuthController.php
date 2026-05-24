@@ -27,8 +27,8 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (Auth::attempt(['name' => $request->user, 'password' => $request->password])) {
-            if (!Auth::user()->enabled) {
+        if (Auth::attempt(['nombre' => $request->user, 'password' => $request->password])) {
+            if (!Auth::user()->activo) {
                 Auth::logout();
                 Log::warning('Login denegado (usuario deshabilitado): ' . $request->user);
                 return back()->withErrors(['username' => 'Esta cuenta está deshabilitada.']);
@@ -57,11 +57,11 @@ class AuthController extends Controller
     {
         
         $request->validate([
-            'language' => 'required|in:es,en,fr', // valida que sea uno de los idiomas permitidos
+            'idioma' => 'required|in:es,en,fr',
         ]);
 
         $user = auth()->user();
-        $user->language = $request->language;
+        $user->idioma = $request->idioma;
         $user->save();
         Log::info('Se ha solicitado cambiar un lenguaje para un usuario');
         

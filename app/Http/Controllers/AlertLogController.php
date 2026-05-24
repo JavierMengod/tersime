@@ -10,7 +10,7 @@ class AlertLogController extends Controller
     public function index(FiltroAlertasRequest $request)
     {
         $usuario  = $request->user();
-        $ordenar  = $request->input('sort', 'created_at');
+        $ordenar  = $request->input('sort', 'creado_en');
         $direccion = $request->input('dir',  'desc');
 
         $consulta = RegistroAlerta::porUsuario($usuario->id);
@@ -25,10 +25,10 @@ class AlertLogController extends Controller
             $consulta->where('tipo', $request->input('type'));
         }
         if ($request->filled('from')) {
-            $consulta->whereDate('created_at', '>=', $request->input('from'));
+            $consulta->whereDate('creado_en', '>=', $request->input('from'));
         }
         if ($request->filled('to')) {
-            $consulta->whereDate('created_at', '<=', $request->input('to'));
+            $consulta->whereDate('creado_en', '<=', $request->input('to'));
         }
 
         $porPagina = (int) $request->input('per_page', 20);

@@ -170,7 +170,7 @@
             </tr>
 
             {{-- Mensaje de error expandido — solo para admins --}}
-            @if($registro->estado === 'failed' && $registro->mensaje_error && auth()->user()->admin)
+            @if($registro->estado === 'failed' && $registro->mensaje_error && auth()->user()->administrador)
               <tr class="table-danger">
                 <td colspan="8" class="py-1 px-3">
                   <small class="text-danger"><i class="fas fa-info-circle me-1"></i>{{ $registro->mensaje_error }}</small>

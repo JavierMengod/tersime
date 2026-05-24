@@ -42,17 +42,17 @@
                         @csrf
                         @method('PUT')
 
-                        <button type="submit" name="language" value="es" class="dropdown-item topbar__dropdown-item">
+                        <button type="submit" name="idioma" value="es" class="dropdown-item topbar__dropdown-item">
                             <img src="{{ asset('assets/img/es.svg') }}" width="21" alt="Español">
                             <span>{{ __('Español') }}</span>
                         </button>
 
-                        <button type="submit" name="language" value="en" class="dropdown-item topbar__dropdown-item">
+                        <button type="submit" name="idioma" value="en" class="dropdown-item topbar__dropdown-item">
                             <img src="{{ asset('assets/img/us.svg') }}" width="21" alt="English">
                             <span>{{ __('English') }}</span>
                         </button>
 
-                        <button type="submit" name="language" value="fr" class="dropdown-item topbar__dropdown-item">
+                        <button type="submit" name="idioma" value="fr" class="dropdown-item topbar__dropdown-item">
                             <img src="{{ asset('assets/img/fr.svg') }}" width="21" alt="Français">
                             <span>{{ __('French') }}</span>
                         </button>
@@ -181,7 +181,7 @@
 
             <li class="nav-item dropdown no-arrow topbar__action">
                 <button type="button" class="dropdown-toggle nav-link topbar__user-toggle topbar__icon-button" aria-expanded="false" data-bs-toggle="dropdown">
-                    <span class="d-none d-lg-inline me-2 small topbar__user-name">{{ Auth::user()->name }}</span>
+                    <span class="d-none d-lg-inline me-2 small topbar__user-name">{{ Auth::user()->nombre }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="fa-fw topbar__icon-svg">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7ZM14 7C14 8.10457 13.1046 9 12 9C10.8954 9 10 8.10457 10 7C10 5.89543 10.8954 5 12 5C13.1046 5 14 5.89543 14 7Z" fill="currentColor"></path>
                         <path d="M16 15C16 14.4477 15.5523 14 15 14H9C8.44772 14 8 14.4477 8 15V21H6V15C6 13.3431 7.34315 12 9 12H15C16.6569 12 18 13.3431 18 15V21H16V15Z" fill="currentColor"></path>

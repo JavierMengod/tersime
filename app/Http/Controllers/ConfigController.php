@@ -26,7 +26,7 @@ class ConfigController extends Controller
                       'conexiones', 'updateConexiones', 'logs', 'clearLogs', 'downloadLog'];
 
         $this->middleware(function ($request, $next) {
-            abort_unless(auth()->user() && auth()->user()->admin, 403);
+            abort_unless(auth()->user() && auth()->user()->administrador, 403);
             return $next($request);
         })->only($soloAdmin);
     }
@@ -73,7 +73,7 @@ class ConfigController extends Controller
         $usuario->password = Hash::make($request->new_password);
         $usuario->save();
 
-        Log::info('[Config] Contraseña cambiada: ' . $usuario->name);
+        Log::info('[Config] Contraseña cambiada: ' . $usuario->nombre);
         return back()->with('success_password', 'Contraseña actualizada.');
     }
 
@@ -108,7 +108,7 @@ class ConfigController extends Controller
             Ajuste::set($clave, $valor ?? '');
         }
 
-        Log::info('[Config] Configuración del sistema actualizada por: ' . auth()->user()->name);
+        Log::info('[Config] Configuración del sistema actualizada por: ' . auth()->user()->nombre);
         return back()->with('success', 'Configuración guardada.');
     }
 
@@ -116,7 +116,7 @@ class ConfigController extends Controller
     {
         $dias        = (int) Ajuste::get('alert_log_retention_days', self::DEFAULT_ALERT_RETENTION_DAYS);
         $fechaCorte  = Carbon::now()->subDays($dias);
-        $eliminados  = RegistroAlerta::where('created_at', '<', $fechaCorte)->delete();
+        $eliminados  = RegistroAlerta::where('creado_en', '<', $fechaCorte)->delete();
 
         Log::info("[Config] Purgadas {$eliminados} alertas anteriores a {$fechaCorte->toDateString()}");
         return back()->with('success', "Purgados {$eliminados} registros de alerta anteriores a {$dias} días.");
@@ -216,7 +216,7 @@ class ConfigController extends Controller
             }
         }
 
-        Log::info('[Config] Conexiones actualizadas por: ' . auth()->user()->name);
+        Log::info('[Config] Conexiones actualizadas por: ' . auth()->user()->nombre);
         return back()->with('success', 'Conexiones guardadas.');
     }
 
@@ -244,7 +244,7 @@ class ConfigController extends Controller
             file_put_contents($rutaLog, '');
         }
 
-        Log::info('[Config] Log vaciado por: ' . auth()->user()->name);
+        Log::info('[Config] Log vaciado por: ' . auth()->user()->nombre);
         return back()->with('success', 'Log vaciado correctamente.');
     }
 

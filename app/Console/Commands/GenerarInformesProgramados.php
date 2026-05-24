@@ -53,7 +53,7 @@ class GenerarInformesProgramados extends Command
                 ->count();
 
             if ($pendientes >= 3) {
-                $this->warn("  ↷ '{$programacion->nombre}' omitida: {$usuario->name} ya tiene {$pendientes} informes en cola.");
+                $this->warn("  ↷ '{$programacion->nombre}' omitida: {$usuario->nombre} ya tiene {$pendientes} informes en cola.");
                 Log::warning("[InformesProgramados] Cola llena para usuario {$usuario->id}", [
                     'programacion_id' => $programacion->id,
                     'pendientes'      => $pendientes,
@@ -61,17 +61,17 @@ class GenerarInformesProgramados extends Command
                 continue;
             }
 
-            // Atomic compare-and-swap: solo procede si ultima_ejecucion_at no cambió desde que lo leímos.
+            // Atomic compare-and-swap: solo procede si ultima_ejecucion_en no cambió desde que lo leímos.
             // Evita doble despacho si dos instancias del cron se solapan.
             $actualizado = ProgramacionInformes::where('id', $programacion->id)
                 ->where(function ($q) use ($programacion) {
-                    if ($programacion->ultima_ejecucion_at) {
-                        $q->where('ultima_ejecucion_at', $programacion->ultima_ejecucion_at);
+                    if ($programacion->ultima_ejecucion_en) {
+                        $q->where('ultima_ejecucion_en', $programacion->ultima_ejecucion_en);
                     } else {
-                        $q->whereNull('ultima_ejecucion_at');
+                        $q->whereNull('ultima_ejecucion_en');
                     }
                 })
-                ->update(['ultima_ejecucion_at' => $ahora]);
+                ->update(['ultima_ejecucion_en' => $ahora]);
 
             if (!$actualizado) {
                 $this->line("  ↷ '{$programacion->nombre}' ya fue reclamada por otro proceso.");

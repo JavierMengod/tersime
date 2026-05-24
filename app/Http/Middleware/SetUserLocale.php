@@ -19,7 +19,7 @@ class SetUserLocale
     public function handle(Request $request, Closure $next)
     {
         if (Auth::check()) {
-            $locale = Auth::user()->language;
+            $locale = Auth::user()->idioma;
             App::setLocale($locale);
         }
 

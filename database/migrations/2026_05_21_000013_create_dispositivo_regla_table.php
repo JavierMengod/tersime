@@ -13,8 +13,8 @@ return new class extends Migration
             $table->foreignId('regla_id')->constrained('reglas')->cascadeOnDelete();
             $table->foreignId('dispositivo_id')->constrained('dispositivos')->cascadeOnDelete();
             $table->timestamp('ultimo_disparo_en')->nullable();
-            $table->string('alert_state', 10)->default('ok');
-            $table->timestamp('pending_since')->nullable();
+            $table->string('estado_alerta', 10)->default('ok');
+            $table->timestamp('pendiente_desde')->nullable();
             $table->timestamp('ultima_resolucion_en')->nullable();
             $table->timestamps();
         });

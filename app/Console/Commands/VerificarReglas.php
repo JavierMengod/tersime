@@ -70,9 +70,9 @@ class VerificarReglas extends Command
 
                 $condicionCumplida = $this->evaluarCondicion($valorActual, $regla->operador, $regla->valor_comparacion);
 
-                $estado         = $dispositivo->pivot->alert_state ?? 'ok';
-                $pendienteDesde = $dispositivo->pivot->pending_since
-                    ? Carbon::parse($dispositivo->pivot->pending_since)
+                $estado         = $dispositivo->pivot->estado_alerta ?? 'ok';
+                $pendienteDesde = $dispositivo->pivot->pendiente_desde
+                    ? Carbon::parse($dispositivo->pivot->pendiente_desde)
                     : null;
 
                 $this->line("[{$nombreUsuario}] {$regla->nombre} | {$dispositivo->nombre} = {$valorActual} kWh | estado={$estado} | condición=" . ($condicionCumplida ? 'SÍ' : 'NO'));
@@ -148,8 +148,8 @@ class VerificarReglas extends Command
     private function transicionPendiente(Regla $regla, Dispositivo $dispositivo): void
     {
         $regla->dispositivos()->updateExistingPivot($dispositivo->id, [
-            'alert_state'   => 'pending',
-            'pending_since' => Carbon::now()->toDateTimeString(),
+            'estado_alerta'   => 'pending',
+            'pendiente_desde' => Carbon::now()->toDateTimeString(),
         ]);
         Log::info('Estado → pending', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
     }
@@ -157,8 +157,8 @@ class VerificarReglas extends Command
     private function transicionActiva(Regla $regla, Dispositivo $dispositivo, NotificationService $notificador, ?User $usuario, float $valorActual): void
     {
         $regla->dispositivos()->updateExistingPivot($dispositivo->id, [
-            'alert_state'       => 'firing',
-            'pending_since'     => null,
+            'estado_alerta'     => 'firing',
+            'pendiente_desde'   => null,
             'ultimo_disparo_en' => Carbon::now()->toDateTimeString(),
         ]);
 
@@ -173,8 +173,8 @@ class VerificarReglas extends Command
     private function transicionOk(Regla $regla, Dispositivo $dispositivo): void
     {
         $regla->dispositivos()->updateExistingPivot($dispositivo->id, [
-            'alert_state'   => 'ok',
-            'pending_since' => null,
+            'estado_alerta'   => 'ok',
+            'pendiente_desde' => null,
         ]);
         Log::info('Estado → ok', ['regla_id' => $regla->id, 'dispositivo' => $dispositivo->nombre]);
     }
@@ -183,9 +183,9 @@ class VerificarReglas extends Command
     {
         // Fix: guardar timestamp de resolución para el cooldown.
         $regla->dispositivos()->updateExistingPivot($dispositivo->id, [
-            'alert_state'         => 'ok',
-            'pending_since'       => null,
-            'ultima_resolucion_en'=> Carbon::now()->toDateTimeString(),
+            'estado_alerta'        => 'ok',
+            'pendiente_desde'      => null,
+            'ultima_resolucion_en' => Carbon::now()->toDateTimeString(),
         ]);
 
         $this->info("  → RESUELTO: enviando notificación de resolución.");

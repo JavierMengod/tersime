@@ -228,7 +228,7 @@ class InformeService
             $mediasHorariaHistorico[$etiqueta] = $mediaHistorica;
         }
 
-        $archivosGraficas = $this->renderizarGraficas($urlsPaneles, $user->name ?? 'admin');
+        $archivosGraficas = $this->renderizarGraficas($urlsPaneles, $user->nombre ?? 'admin');
 
         foreach ($dispositivos as $dispositivo) {
             $etiqueta = $this->resolverEtiqueta($dispositivo);

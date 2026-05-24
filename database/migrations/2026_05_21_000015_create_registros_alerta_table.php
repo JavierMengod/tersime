@@ -18,12 +18,13 @@ return new class extends Migration
             $table->enum('tipo', ['firing', 'resolution']);
             $table->json('canales')->nullable();
             $table->text('mensaje');
-            $table->timestamps();
+            $table->timestamp('creado_en')->useCurrent();
+            $table->timestamp('updated_at')->nullable();
 
-            $table->index(['user_id', 'created_at']);
+            $table->index(['user_id', 'creado_en']);
             $table->index(['user_id', 'nombre_dispositivo']);
             $table->index(['user_id', 'nombre_regla']);
-            $table->index('created_at');
+            $table->index('creado_en');
             $table->index('user_id');
         });
     }

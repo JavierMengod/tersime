@@ -25,7 +25,7 @@ class GrafanaProxyController extends Controller
         $tipoContenido = $request->header('Content-Type');
 
         $cabeceras = [
-            'X-WEBAUTH-USER' => auth()->user()->name,
+            'X-WEBAUTH-USER' => auth()->user()->nombre,
             'Accept'         => $request->header('Accept', '*/*'),
         ];
         if ($tipoContenido) {

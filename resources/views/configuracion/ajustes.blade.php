@@ -30,16 +30,16 @@
         <div class="row g-3">
             <div class="col-12 col-md-4">
                 <label class="form-label">{{ __('Tema') }}</label>
-                <select name="theme" class="form-select">
-                    <option value="light" {{ auth()->user()->theme === 'light' ? 'selected' : '' }}>{{ __('Claro') }}</option>
-                    <option value="dark"  {{ auth()->user()->theme === 'dark'  ? 'selected' : '' }}>{{ __('Oscuro') }}</option>
+                <select name="tema" class="form-select">
+                    <option value="light" {{ auth()->user()->tema === 'light' ? 'selected' : '' }}>{{ __('Claro') }}</option>
+                    <option value="dark"  {{ auth()->user()->tema === 'dark'  ? 'selected' : '' }}>{{ __('Oscuro') }}</option>
                 </select>
             </div>
             <div class="col-12 col-md-8">
                 <label class="form-label">{{ __('Zona horaria') }}</label>
-                <select name="timezone" class="form-select">
+                <select name="zona_horaria" class="form-select">
                     @foreach($zonaHoraria as $value => $label)
-                        <option value="{{ $value }}" {{ auth()->user()->timezone === $value ? 'selected' : '' }}>
+                        <option value="{{ $value }}" {{ auth()->user()->zona_horaria === $value ? 'selected' : '' }}>
                             {{ $label }}
                         </option>
                     @endforeach

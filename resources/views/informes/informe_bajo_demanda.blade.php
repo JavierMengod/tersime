@@ -198,7 +198,7 @@
       </p>
     </div>
     <div class="header-meta-cell">
-      <div>{{ $user->name ?? '' }}</div>
+      <div>{{ $user->nombre ?? '' }}</div>
       <div style="margin-top:3px;">Generado: {{ now()->format('d/m/Y H:i') }}</div>
     </div>
   </div>

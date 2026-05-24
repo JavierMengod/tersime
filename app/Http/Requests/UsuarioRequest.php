@@ -33,17 +33,17 @@ class UsuarioRequest extends FormRequest
     {
         $usuario           = $this->route('user');
         $idUsuario         = $usuario ? $usuario->id : null;
-        $reglaNombre       = 'required|string|max:255|unique:users,name' . ($idUsuario ? ",{$idUsuario}" : '');
+        $reglaNombre       = 'required|string|max:255|unique:users,nombre' . ($idUsuario ? ",{$idUsuario}" : '');
         $reglaContrasena   = $idUsuario ? 'nullable|string|min:8|confirmed' : 'required|string|min:8|confirmed';
         $valoresZona       = implode(',', array_keys(self::timezones()));
 
         return [
-            'name'     => $reglaNombre,
-            'password' => $reglaContrasena,
-            'language' => 'required|in:es,en,fr',
-            'timezone' => "required|string|in:{$valoresZona}",
-            'theme'    => 'required|in:light,dark',
-            'admin'    => 'sometimes|boolean',
+            'nombre'       => $reglaNombre,
+            'password'     => $reglaContrasena,
+            'idioma'       => 'required|in:es,en,fr',
+            'zona_horaria' => "required|string|in:{$valoresZona}",
+            'tema'         => 'required|in:light,dark',
+            'administrador'=> 'sometimes|boolean',
         ];
     }
 }

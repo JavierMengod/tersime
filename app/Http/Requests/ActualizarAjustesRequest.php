@@ -17,9 +17,9 @@ class ActualizarAjustesRequest extends FormRequest
         $valoresZona = implode(',', array_keys(UsuarioRequest::timezones()));
 
         return [
-            'theme'     => 'required|in:light,dark',
-            'timezone'  => "required|string|in:{$valoresZona}",
-            'coste_kwh' => 'required|numeric|min:0|max:99',
+            'tema'        => 'required|in:light,dark',
+            'zona_horaria'=> "required|string|in:{$valoresZona}",
+            'coste_kwh'   => 'required|numeric|min:0|max:99',
         ];
     }
 }

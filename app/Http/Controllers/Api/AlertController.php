@@ -22,14 +22,14 @@ class AlertController extends Controller
             $consulta->where('tipo', $request->input('type'));
         }
         if ($request->filled('from')) {
-            $consulta->whereDate('created_at', '>=', $request->input('from'));
+            $consulta->whereDate('creado_en', '>=', $request->input('from'));
         }
         if ($request->filled('to')) {
-            $consulta->whereDate('created_at', '<=', $request->input('to'));
+            $consulta->whereDate('creado_en', '<=', $request->input('to'));
         }
 
         $porPagina = (int) $request->input('per_page', 20);
-        $registros = $consulta->orderBy('created_at', 'desc')->paginate($porPagina);
+        $registros = $consulta->orderBy('creado_en', 'desc')->paginate($porPagina);
 
         return response()->json($registros);
     }

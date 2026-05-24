@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('correo')->default(false);
             $table->string('correo_destino')->nullable();
             $table->boolean('activo')->default(true);
-            $table->timestamp('ultima_ejecucion_at')->nullable();
+            $table->timestamp('ultima_ejecucion_en')->nullable();
             $table->timestamps();
         });
     }

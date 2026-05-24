@@ -20,7 +20,7 @@ class ProgramacionInformesFactory extends Factory
             'correo'              => false,
             'correo_destino'      => null,
             'activo'              => true,
-            'ultima_ejecucion_at' => null,
+            'ultima_ejecucion_en' => null,
         ];
     }
 

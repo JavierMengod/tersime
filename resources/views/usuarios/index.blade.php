@@ -49,15 +49,15 @@
                 </thead>
                 <tbody>
                     @forelse($usuarios as $usuario)
-                    <tr class="{{ !$usuario->enabled ? 'text-muted' : '' }}">
-                        <td class="fw-semibold">{{ $usuario->name }}</td>
+                    <tr class="{{ !$usuario->activo ? 'text-muted' : '' }}">
+                        <td class="fw-semibold">{{ $usuario->nombre }}</td>
 
-                        <td>{{ strtoupper($usuario->language ?? 'es') }}</td>
+                        <td>{{ strtoupper($usuario->idioma ?? 'es') }}</td>
 
-                        <td class="text-nowrap">{{ $usuario->timezone ?? 'Europe/Madrid' }}</td>
+                        <td class="text-nowrap">{{ $usuario->zona_horaria ?? 'Europe/Madrid' }}</td>
 
                         <td>
-                            @if($usuario->theme === 'dark')
+                            @if($usuario->tema === 'dark')
                                 <span class="badge bg-dark"><i class="bi bi-moon-fill me-1"></i>{{ __('Oscuro') }}</span>
                             @else
                                 <span class="badge bg-secondary"><i class="bi bi-sun-fill me-1"></i>{{ __('Claro') }}</span>
@@ -65,7 +65,7 @@
                         </td>
 
                         <td>
-                            @if($usuario->admin)
+                            @if($usuario->administrador)
                                 <span class="badge bg-warning text-dark">{{ __('Admin') }}</span>
                             @else
                                 <span class="badge bg-light text-secondary border">{{ __('Usuario') }}</span>
@@ -73,7 +73,7 @@
                         </td>
 
                         <td>
-                            @if($usuario->enabled)
+                            @if($usuario->activo)
                                 <span class="badge bg-success">{{ __('Activo') }}</span>
                             @else
                                 <span class="badge bg-danger">{{ __('Deshabilitado') }}</span>
@@ -91,9 +91,9 @@
                                     <form action="{{ route('usuarios.toggle', $usuario) }}" method="POST" class="d-inline">
                                         @csrf @method('PATCH')
                                         <button type="submit"
-                                                class="btn btn-sm py-0 px-2 {{ $usuario->enabled ? 'btn-outline-secondary' : 'btn-outline-success' }}"
-                                                title="{{ $usuario->enabled ? __('Deshabilitar') : __('Habilitar') }}">
-                                            {{ $usuario->enabled ? __('Deshabilitar') : __('Habilitar') }}
+                                                class="btn btn-sm py-0 px-2 {{ $usuario->activo ? 'btn-outline-secondary' : 'btn-outline-success' }}"
+                                                title="{{ $usuario->activo ? __('Deshabilitar') : __('Habilitar') }}">
+                                            {{ $usuario->activo ? __('Deshabilitar') : __('Habilitar') }}
                                         </button>
                                     </form>
                                 @endif
@@ -103,13 +103,13 @@
                                         data-bs-toggle="modal"
                                         data-bs-target="#modal-editar"
                                         data-user="{{ json_encode([
-                                            'id'       => $usuario->id,
-                                            'name'     => $usuario->name,
-                                            'language' => $usuario->language ?? 'es',
-                                            'timezone' => $usuario->timezone ?? 'Europe/Madrid',
-                                            'theme'    => $usuario->theme ?? 'light',
-                                            'admin'    => (bool)$usuario->admin,
-                                            'url'      => route('usuarios.update', $usuario),
+                                            'id'           => $usuario->id,
+                                            'nombre'       => $usuario->nombre,
+                                            'idioma'       => $usuario->idioma ?? 'es',
+                                            'zona_horaria' => $usuario->zona_horaria ?? 'Europe/Madrid',
+                                            'tema'         => $usuario->tema ?? 'light',
+                                            'administrador'=> (bool)$usuario->administrador,
+                                            'url'          => route('usuarios.update', $usuario),
                                         ]) }}"
                                         title="{{ __('Editar') }}">
                                     <i class="bi bi-pencil"></i>
@@ -119,7 +119,7 @@
                                 @if($usuario->id !== auth()->id())
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger py-0 px-2 btn-eliminar-usuario"
-                                            data-user-name="{{ $usuario->name }}"
+                                            data-user-name="{{ $usuario->nombre }}"
                                             data-url="{{ route('usuarios.destroy', $usuario) }}"
                                             title="{{ __('Eliminar') }}">
                                         <i class="bi bi-trash"></i>
@@ -174,8 +174,8 @@
 
                     <div class="mb-3">
                         <label class="form-label">{{ __('Nombre de usuario') }}</label>
-                        <input type="text" name="name" class="form-control" required
-                               value="{{ old('name') }}" autocomplete="off">
+                        <input type="text" name="nombre" class="form-control" required
+                               value="{{ old('nombre') }}" autocomplete="off">
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-6">
@@ -190,33 +190,33 @@
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label">{{ __('Idioma') }}</label>
-                            <select name="language" class="form-select">
-                                <option value="es" {{ old('language','es') === 'es' ? 'selected' : '' }}>{{ __('Español') }}</option>
-                                <option value="en" {{ old('language') === 'en' ? 'selected' : '' }}>{{ __('Inglés') }}</option>
-                                <option value="fr" {{ old('language') === 'fr' ? 'selected' : '' }}>{{ __('Francés') }}</option>
+                            <select name="idioma" class="form-select">
+                                <option value="es" {{ old('idioma','es') === 'es' ? 'selected' : '' }}>{{ __('Español') }}</option>
+                                <option value="en" {{ old('idioma') === 'en' ? 'selected' : '' }}>{{ __('Inglés') }}</option>
+                                <option value="fr" {{ old('idioma') === 'fr' ? 'selected' : '' }}>{{ __('Francés') }}</option>
                             </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label">{{ __('Tema') }}</label>
-                            <select name="theme" class="form-select">
-                                <option value="light" {{ old('theme','light') === 'light' ? 'selected' : '' }}>{{ __('Claro') }}</option>
-                                <option value="dark"  {{ old('theme') === 'dark' ? 'selected' : '' }}>{{ __('Oscuro') }}</option>
+                            <select name="tema" class="form-select">
+                                <option value="light" {{ old('tema','light') === 'light' ? 'selected' : '' }}>{{ __('Claro') }}</option>
+                                <option value="dark"  {{ old('tema') === 'dark' ? 'selected' : '' }}>{{ __('Oscuro') }}</option>
                             </select>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('Zona horaria') }}</label>
-                        <select name="timezone" class="form-select">
+                        <select name="zona_horaria" class="form-select">
                             @foreach($zonaHoraria as $value => $label)
-                                <option value="{{ $value }}" {{ old('timezone','Europe/Madrid') === $value ? 'selected' : '' }}>
+                                <option value="{{ $value }}" {{ old('zona_horaria','Europe/Madrid') === $value ? 'selected' : '' }}>
                                     {{ $label }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" name="admin" id="crear-admin" class="form-check-input" value="1"
-                               {{ old('admin') ? 'checked' : '' }}>
+                        <input type="checkbox" name="administrador" id="crear-admin" class="form-check-input" value="1"
+                               {{ old('administrador') ? 'checked' : '' }}>
                         <label class="form-check-label" for="crear-admin">{{ __('Administrador') }}</label>
                     </div>
                 </div>
@@ -243,7 +243,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">{{ __('Nombre de usuario') }}</label>
-                        <input type="text" name="name" id="edit-name" class="form-control" required autocomplete="off">
+                        <input type="text" name="nombre" id="edit-name" class="form-control" required autocomplete="off">
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-6">
@@ -259,7 +259,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label">{{ __('Idioma') }}</label>
-                            <select name="language" id="edit-language" class="form-select">
+                            <select name="idioma" id="edit-language" class="form-select">
                                 <option value="es">{{ __('Español') }}</option>
                                 <option value="en">{{ __('Inglés') }}</option>
                                 <option value="fr">{{ __('Francés') }}</option>
@@ -267,7 +267,7 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label">{{ __('Tema') }}</label>
-                            <select name="theme" id="edit-theme" class="form-select">
+                            <select name="tema" id="edit-theme" class="form-select">
                                 <option value="light">{{ __('Claro') }}</option>
                                 <option value="dark">{{ __('Oscuro') }}</option>
                             </select>
@@ -275,14 +275,14 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('Zona horaria') }}</label>
-                        <select name="timezone" id="edit-timezone" class="form-select">
+                        <select name="zona_horaria" id="edit-timezone" class="form-select">
                             @foreach($zonaHoraria as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" name="admin" id="edit-admin" class="form-check-input" value="1">
+                        <input type="checkbox" name="administrador" id="edit-admin" class="form-check-input" value="1">
                         <label class="form-check-label" for="edit-admin">{{ __('Administrador') }}</label>
                     </div>
                 </div>

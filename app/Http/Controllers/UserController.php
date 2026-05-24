@@ -11,7 +11,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        $usuarios  = User::orderBy('name')->paginate(20);
+        $usuarios  = User::orderBy('nombre')->paginate(20);
         $zonaHoraria = UsuarioRequest::timezones();
         return view('usuarios.index', compact('usuarios', 'zonaHoraria'));
     }
@@ -21,16 +21,16 @@ class UserController extends Controller
         $validado = $request->validated();
 
         User::create([
-            'name'     => $validado['name'],
-            'password' => Hash::make($validado['password']),
-            'language' => $validado['language'],
-            'timezone' => $validado['timezone'],
-            'theme'    => $validado['theme'],
-            'admin'    => $request->boolean('admin'),
-            'enabled'  => true,
+            'nombre'       => $validado['nombre'],
+            'password'     => Hash::make($validado['password']),
+            'idioma'       => $validado['idioma'],
+            'zona_horaria' => $validado['zona_horaria'],
+            'tema'         => $validado['tema'],
+            'administrador'=> $request->boolean('administrador'),
+            'activo'       => true,
         ]);
 
-        Log::info('[UserController] Usuario creado: ' . $validado['name']);
+        Log::info('[UserController] Usuario creado: ' . $validado['nombre']);
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
     }
 
@@ -39,11 +39,11 @@ class UserController extends Controller
         $validado = $request->validated();
 
         $usuario->fill([
-            'name'     => $validado['name'],
-            'language' => $validado['language'],
-            'timezone' => $validado['timezone'],
-            'theme'    => $validado['theme'],
-            'admin'    => $request->boolean('admin'),
+            'nombre'       => $validado['nombre'],
+            'idioma'       => $validado['idioma'],
+            'zona_horaria' => $validado['zona_horaria'],
+            'tema'         => $validado['tema'],
+            'administrador'=> $request->boolean('administrador'),
         ]);
 
         if (!empty($validado['password'])) {
@@ -52,7 +52,7 @@ class UserController extends Controller
 
         $usuario->save();
 
-        Log::info('[UserController] Usuario actualizado: ' . $usuario->name);
+        Log::info('[UserController] Usuario actualizado: ' . $usuario->nombre);
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente.');
     }
 
@@ -62,7 +62,7 @@ class UserController extends Controller
             return redirect()->route('usuarios.index')->with('error', 'No puedes eliminar tu propia cuenta.');
         }
 
-        $nombre = $usuario->name;
+        $nombre = $usuario->nombre;
         $usuario->delete();
         Log::info('[UserController] Usuario eliminado: ' . $nombre);
         return redirect()->route('usuarios.index')->with('success', "Usuario '{$nombre}' eliminado.");
@@ -74,9 +74,9 @@ class UserController extends Controller
             return redirect()->route('usuarios.index')->with('error', 'No puedes deshabilitarte a ti mismo.');
         }
 
-        $nuevoEstado = !$usuario->enabled;
-        $usuario->update(['enabled' => $nuevoEstado]);
+        $nuevoEstado = !$usuario->activo;
+        $usuario->update(['activo' => $nuevoEstado]);
         $estado = $nuevoEstado ? 'habilitado' : 'deshabilitado';
-        return redirect()->route('usuarios.index')->with('success', "Usuario '{$usuario->name}' {$estado}.");
+        return redirect()->route('usuarios.index')->with('success', "Usuario '{$usuario->nombre}' {$estado}.");
     }
 }

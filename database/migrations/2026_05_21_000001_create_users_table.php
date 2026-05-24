@@ -10,16 +10,16 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('nombre');
             $table->string('email')->nullable()->unique();
             $table->string('password');
-            $table->string('language')->default('es');
-            $table->string('timezone')->default('UTC+01:00');
-            $table->string('theme')->default('light');
+            $table->string('idioma')->default('es');
+            $table->string('zona_horaria')->default('UTC+01:00');
+            $table->string('tema')->default('light');
             $table->decimal('coste_kwh', 8, 4)->default(0.15);
-            $table->boolean('debug_mode')->default(false);
-            $table->boolean('admin')->default(false);
-            $table->boolean('enabled')->default(true);
+            $table->boolean('modo_depuracion')->default(false);
+            $table->boolean('administrador')->default(false);
+            $table->boolean('activo')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });

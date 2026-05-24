@@ -11,6 +11,8 @@ class RegistroAlerta extends Model
 
     protected $table = 'registros_alerta';
 
+    const CREATED_AT = 'creado_en';
+
     protected $fillable = [
         'user_id', 'regla_id', 'nombre_regla',
         'dispositivo_id', 'nombre_dispositivo',

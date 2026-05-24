@@ -219,7 +219,7 @@ $isConfig     = request()->routeIs('configuracion.*');
                     <span class="sidebar__text">{{ __('Usuarios') }}</span>
                 </a>
                 <div class="collapse sidebar__submenu {{ $isUsuarios ? 'show' : '' }}" id="sidebarUsuarios">
-                    @if(auth()->user()->admin)
+                    @if(auth()->user()->administrador)
                     <a class="sidebar__dropdown-item {{ request()->routeIs('usuarios.index') ? 'active' : '' }}"
                        href="{{ route('usuarios.index') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
@@ -269,7 +269,7 @@ $isConfig     = request()->routeIs('configuracion.*');
                         <i class="sidebar__dropdown-icon bi bi-sliders2"></i>
                         <span class="sidebar__dropdown-text">{{ __('Ajustes') }}</span>
                     </a>
-                    @if(auth()->user()->admin)
+                    @if(auth()->user()->administrador)
                     <a class="sidebar__dropdown-item {{ request()->routeIs('configuracion.sistema') ? 'active' : '' }}"
                        href="{{ route('configuracion.sistema') }}">
                         <i class="sidebar__dropdown-icon bi bi-sliders"></i>

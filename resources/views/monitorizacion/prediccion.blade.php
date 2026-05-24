@@ -110,7 +110,7 @@
 @push('scripts')
 <script>
 const GRAFANA_BASE   = '/grafana/d-solo/ee9tdrsio7wg0b/prediccion';
-const GRAFANA_PARAMS = 'orgId=1&timezone=browser&panelId=2&__feature.dashboardSceneSolo&theme={{ Auth::user()->theme ?? "light" }}';
+const GRAFANA_PARAMS = 'orgId=1&timezone=browser&panelId=2&__feature.dashboardSceneSolo&theme={{ Auth::user()->tema ?? "light" }}';
 const MSG_SIN_DISPOSITIVO = '{{ __('Debes seleccionar al menos un dispositivo') }}';
 </script>
 <script src="{{ asset('assets/js/grafana-utils.js') }}"></script>

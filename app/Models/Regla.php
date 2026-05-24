@@ -38,7 +38,7 @@ class Regla extends Model
     public function dispositivos()
     {
         return $this->belongsToMany(Dispositivo::class, 'dispositivo_regla', 'regla_id', 'dispositivo_id')
-                    ->withPivot('ultimo_disparo_en', 'alert_state', 'pending_since', 'ultima_resolucion_en')
+                    ->withPivot('ultimo_disparo_en', 'estado_alerta', 'pendiente_desde', 'ultima_resolucion_en')
                     ->withTimestamps();
     }
 
@@ -53,7 +53,7 @@ class Regla extends Model
             return 'ok';
         }
 
-        $estados = $this->dispositivos->pluck('pivot.alert_state')->toArray();
+        $estados = $this->dispositivos->pluck('pivot.estado_alerta')->toArray();
 
         if (in_array('firing',  $estados)) {
             return 'firing';

@@ -26,7 +26,7 @@
                 $costeKwh       = auth()->user()->coste_kwh ?? '0.15';
                 $deviceQuery   .= '&var-coste_kwh=' . $costeKwh;
 
-                $grafanaTheme   = Auth::user()->theme ?? 'light';
+                $grafanaTheme   = Auth::user()->tema ?? 'light';
                 $grafanaBase    = '/grafana/d-solo/fek5yx516oyrkd/dashboard-principal';
                 $grafanaBaseAlt = '/grafana/d-solo/eegznxsjl47i8b/dashboard-initiot';
 

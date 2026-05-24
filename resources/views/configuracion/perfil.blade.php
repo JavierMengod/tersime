@@ -30,10 +30,10 @@
         <i class="bi bi-person me-1"></i>{{ __('Datos personales') }}
     </div>
     <div class="card-body">
-        @if($errors->hasAny(['name', 'email', 'language']))
+        @if($errors->hasAny(['nombre', 'email', 'idioma']))
             <div class="alert alert-danger py-2 small">
                 <ul class="mb-0 ps-3">
-                    @foreach(['name','email','language'] as $field)
+                    @foreach(['nombre','email','idioma'] as $field)
                         @error($field)<li>{{ $message }}</li>@enderror
                     @endforeach
                 </ul>
@@ -45,8 +45,8 @@
             <div class="row g-3">
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Nombre') }}</label>
-                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                           value="{{ old('name', auth()->user()->name) }}" required maxlength="255">
+                    <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror"
+                           value="{{ old('nombre', auth()->user()->nombre) }}" required maxlength="255">
                 </div>
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Correo electrónico') }}</label>
@@ -55,10 +55,10 @@
                 </div>
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Idioma') }}</label>
-                    <select name="language" class="form-select">
-                        <option value="es" {{ auth()->user()->language === 'es' ? 'selected' : '' }}>{{ __('Español') }}</option>
-                        <option value="en" {{ auth()->user()->language === 'en' ? 'selected' : '' }}>{{ __('Inglés') }}</option>
-                        <option value="fr" {{ auth()->user()->language === 'fr' ? 'selected' : '' }}>{{ __('Francés') }}</option>
+                    <select name="idioma" class="form-select">
+                        <option value="es" {{ auth()->user()->idioma === 'es' ? 'selected' : '' }}>{{ __('Español') }}</option>
+                        <option value="en" {{ auth()->user()->idioma === 'en' ? 'selected' : '' }}>{{ __('Inglés') }}</option>
+                        <option value="fr" {{ auth()->user()->idioma === 'fr' ? 'selected' : '' }}>{{ __('Francés') }}</option>
                     </select>
                 </div>
             </div>

@@ -13,15 +13,15 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name',
+        'nombre',
         'email',
         'password',
-        'language',
-        'timezone',
-        'theme',
+        'idioma',
+        'zona_horaria',
+        'tema',
         'coste_kwh',
-        'admin',
-        'enabled',
+        'administrador',
+        'activo',
     ];
 
     protected $hidden = [
@@ -30,8 +30,8 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
-        'admin'   => 'boolean',
-        'enabled' => 'boolean',
+        'administrador' => 'boolean',
+        'activo'        => 'boolean',
     ];
 
     public function dispositivos()

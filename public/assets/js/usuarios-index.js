@@ -20,13 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
         editModal.addEventListener('show.bs.modal', e => {
             const user = JSON.parse(e.relatedTarget.dataset.user);
 
-            document.getElementById('modal-editar-nombre').textContent = user.name;
+            document.getElementById('modal-editar-nombre').textContent = user.nombre;
             document.getElementById('form-editar-usuario').action      = user.url;
-            document.getElementById('edit-name').value                 = user.name;
-            document.getElementById('edit-language').value             = user.language;
-            document.getElementById('edit-theme').value                = user.theme;
-            document.getElementById('edit-timezone').value             = user.timezone;
-            document.getElementById('edit-admin').checked              = user.admin;
+            document.getElementById('edit-name').value                 = user.nombre;
+            document.getElementById('edit-language').value             = user.idioma;
+            document.getElementById('edit-theme').value                = user.tema;
+            document.getElementById('edit-timezone').value             = user.zona_horaria;
+            document.getElementById('edit-admin').checked              = user.administrador;
             document.getElementById('edit-password').value             = '';
             document.getElementById('edit-password-confirm').value     = '';
         });

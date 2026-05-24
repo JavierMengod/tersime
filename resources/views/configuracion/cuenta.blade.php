@@ -7,7 +7,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="mb-0">{{ __('Mi cuenta') }}</h2>
-        <p class="text-muted mb-0 small">{{ auth()->user()->name }}</p>
+        <p class="text-muted mb-0 small">{{ auth()->user()->nombre }}</p>
     </div>
 </div>
 
@@ -35,24 +35,24 @@
             <div class="row g-3">
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Idioma') }}</label>
-                    <select name="language" class="form-select">
-                        <option value="es" {{ auth()->user()->language === 'es' ? 'selected' : '' }}>{{ __('Español') }}</option>
-                        <option value="en" {{ auth()->user()->language === 'en' ? 'selected' : '' }}>{{ __('Inglés') }}</option>
-                        <option value="fr" {{ auth()->user()->language === 'fr' ? 'selected' : '' }}>{{ __('Francés') }}</option>
+                    <select name="idioma" class="form-select">
+                        <option value="es" {{ auth()->user()->idioma === 'es' ? 'selected' : '' }}>{{ __('Español') }}</option>
+                        <option value="en" {{ auth()->user()->idioma === 'en' ? 'selected' : '' }}>{{ __('Inglés') }}</option>
+                        <option value="fr" {{ auth()->user()->idioma === 'fr' ? 'selected' : '' }}>{{ __('Francés') }}</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Tema') }}</label>
-                    <select name="theme" class="form-select">
-                        <option value="light" {{ auth()->user()->theme === 'light' ? 'selected' : '' }}>{{ __('Claro') }}</option>
-                        <option value="dark"  {{ auth()->user()->theme === 'dark'  ? 'selected' : '' }}>{{ __('Oscuro') }}</option>
+                    <select name="tema" class="form-select">
+                        <option value="light" {{ auth()->user()->tema === 'light' ? 'selected' : '' }}>{{ __('Claro') }}</option>
+                        <option value="dark"  {{ auth()->user()->tema === 'dark'  ? 'selected' : '' }}>{{ __('Oscuro') }}</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
                     <label class="form-label">{{ __('Zona horaria') }}</label>
-                    <select name="timezone" class="form-select">
+                    <select name="zona_horaria" class="form-select">
                         @foreach($zonaHoraria as $value => $label)
-                            <option value="{{ $value }}" {{ auth()->user()->timezone === $value ? 'selected' : '' }}>
+                            <option value="{{ $value }}" {{ auth()->user()->zona_horaria === $value ? 'selected' : '' }}>
                                 {{ $label }}
                             </option>
                         @endforeach

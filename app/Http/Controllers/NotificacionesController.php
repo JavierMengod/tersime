@@ -54,7 +54,7 @@ class NotificacionesController extends Controller
                     'textoBadge'  => $subtipo === 'programado' ? __('Programado') : __('Demanda'),
                 ]);
 
-            } elseif ($tipoNotif === 'reset_password' && $usuario->admin) {
+            } elseif ($tipoNotif === 'reset_password' && $usuario->administrador) {
                 $feed->push([
                     'tipo'        => 'reset_password',
                     'subtipo'     => 'reset_password',

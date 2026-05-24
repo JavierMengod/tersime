@@ -18,10 +18,10 @@ class PasswordResetRequestController extends Controller
         $nombreUsuario = $request->input('username');
         $ip            = $request->ip();
 
-        $usuario = User::where('name', $nombreUsuario)->first();
+        $usuario = User::where('nombre', $nombreUsuario)->first();
 
-        if ($usuario && $usuario->enabled) {
-            $administradores = User::where('admin', true)->where('enabled', true)->get();
+        if ($usuario && $usuario->activo) {
+            $administradores = User::where('administrador', true)->where('activo', true)->get();
 
             foreach ($administradores as $administrador) {
                 $administrador->notify(new SolicitudResetPassword($nombreUsuario, $ip));

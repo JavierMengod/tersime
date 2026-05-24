@@ -83,7 +83,7 @@
                         </td>
 
                         <td class="text-nowrap text-muted d-none d-lg-table-cell">
-                            {{ $informe->ultima_ejecucion_at ? $informe->ultima_ejecucion_at->format('d/m/y H:i') : '—' }}
+                            {{ $informe->ultima_ejecucion_en ? $informe->ultima_ejecucion_en->format('d/m/y H:i') : '—' }}
                         </td>
 
                         <td class="text-nowrap d-none d-sm-table-cell {{ ($proxima && $proxima->isPast() && $informe->activo) ? 'text-danger fw-semibold' : 'text-muted' }}">
